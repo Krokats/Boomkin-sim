@@ -918,6 +918,13 @@ function calculateGearStats() {
     // --- UPDATE MAIN INPUTS (WITH MANUAL OVERRIDE CHECK) ---
     var isManual = document.getElementById("manual_stats") ? document.getElementById("manual_stats").checked : false;
 
+    // Handle Warning Banner
+    var warnEl = document.getElementById("manualStatsWarning");
+    if(warnEl) {
+        if(isManual) warnEl.classList.remove("hidden");
+        else warnEl.classList.add("hidden");
+    }
+
     // List of fields to control
     var autoFields = ["sp_gen", "sp_nature", "sp_arcane", "statCrit", "statHit", "statHaste"];
     
