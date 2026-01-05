@@ -64,7 +64,8 @@ function setupUIListeners() {
         var el = document.getElementById(id);
         if (el) {
             el.addEventListener('change', function() {
-                if(id.startsWith("buff_")) calculateGearStats();
+                // Trigger calculation for Buffs OR Manual Stats Toggle
+                if(id.startsWith("buff_") || id === "manual_stats") calculateGearStats();
                 saveCurrentState(); 
             });
         }
@@ -405,7 +406,7 @@ function exportSettings() {
     });
 
     if (!hasAnyGear) {
-        alert("No gear selected to export!");
+        alert("ACHTUNG: Es wurde KEIN Gear gefunden!\nBitte wähle im Simulator erst Items aus, bevor du exportierst.");
         return; 
     }
 

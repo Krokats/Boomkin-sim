@@ -191,7 +191,16 @@
                             <div class="card"><div class="card-header"><h2>⚙️ General</h2></div><div class="card-body"><div class="input-group"><label>Fight Duration (s)</label><input type="number" id="maxTime" value="120"></div><div class="input-group"><label>Cast Delay (ms)</label><input type="number" id="avcd" value="30"></div><div class="input-group"><label>Calculation Method</label><div class="select-wrapper"><select id="calcMethod"><option value="S">Stochastic (RNG)</option><option value="D_CYC">Deterministic (Counter)</option><option value="D_AVG">Deterministic (Average)</option></select></div></div><div class="input-group" id="iterGroup"><label>Number of Fights</label><input type="number" id="simCount" value="1000"></div></div></div>
                             
                             <div class="card full-width-mobile">
-                                <div class="card-header"><h2>📊 Player Stats (Total)</h2></div>
+                                <div class="card-header">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                        <h2>📊 Player Stats (Total)</h2>
+                                        <label class="toggle" style="transform: scale(0.7); margin:0;">
+                                            <input type="checkbox" id="manual_stats">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span style="font-size:0.7em; color:#888; margin-left:-5px;">Edit</span>
+                                    </div>
+                                </div>
                                 <div class="card-body">
                                     <div class="input-group">
                                         <label>Race</label>

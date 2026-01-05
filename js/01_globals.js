@@ -30,6 +30,7 @@ var CONFIG_IDS = [
     "item_reos", "item_toep", "item_roop", "item_zhc", "item_scythe_use",
     "trinket_strat",
     "char_race",
+    "manual_stats", // NEW: Toggle for manual editing
     // BUFFS
     "buff_moonkin", "buff_atiesh_druid", "buff_atiesh_mage", "buff_atiesh_warlock",
     "buff_arcane_brilliance", "buff_bok", "buff_emerald", "buff_gotw",
@@ -44,10 +45,10 @@ var SLOT_LAYOUT = {
     bottom: ["Main Hand", "Off Hand"] 
 };
 
-// Base 3.38% Crit for Druids, Base Hit 0
+// Base 3.33% Crit for Druids, Base Hit 3 (From Talents)
 const RACE_STATS = {
     "Tauren":   { hit: 3, crit: 3.33, haste: 0, stam: 72, int: 95 },
-    "NightElf": { hit: 3, crit: 3.33, haste: 0, stam: 69, int: 100 }
+    "NightElf": { hit: 3, crit: 3.33, haste: 1, stam: 69, int: 100 }
     
 };
 

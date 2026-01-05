@@ -174,6 +174,7 @@ function showTooltip(e, item) {
 
     if(item.effects) {
         var eff = item.effects;
+        if(eff.spellHaste) html += '<div class="tt-green">Equip: Increase your attack and casting speed by ' + eff.spellHaste + ' %.</div>';
         if(eff.spellPower) html += '<div class="tt-green">Equip: Increases damage and healing done by magical spells and effects by up to ' + eff.spellPower + '.</div>';
         if(eff.arcaneSpellPower) html += '<div class="tt-green">Equip: Increases damage done by Arcane spells and effects by up to ' + eff.arcaneSpellPower + '.</div>';
         if(eff.natureSpellPower) html += '<div class="tt-green">Equip: Increases damage done by Nature spells and effects by up to ' + eff.natureSpellPower + '.</div>';
@@ -913,12 +914,37 @@ function calculateGearStats() {
     var elHaste = document.getElementById("gp_haste"); if(elHaste) elHaste.innerText = charStats.haste.toFixed(2) + "%";
     var elInt = document.getElementById("gp_int"); if(elInt) elInt.innerText = charStats.int;
 
-    // Update Main Simulation Inputs (TOTAL STATS - SPLIT)
-    var inSP = document.getElementById("sp_gen"); if(inSP) { inSP.value = charStats.sp; inSP.dispatchEvent(new Event('change')); }
-    var inSPNat = document.getElementById("sp_nature"); if(inSPNat) { inSPNat.value = charStats.spNat; inSPNat.dispatchEvent(new Event('change')); }
-    var inSPArc = document.getElementById("sp_arcane"); if(inSPArc) { inSPArc.value = charStats.spArc; inSPArc.dispatchEvent(new Event('change')); }
+
+    // --- UPDATE MAIN INPUTS (WITH MANUAL OVERRIDE CHECK) ---
+    var isManual = document.getElementById("manual_stats") ? document.getElementById("manual_stats").checked : false;
+
+    // List of fields to control
+    var autoFields = ["sp_gen", "sp_nature", "sp_arcane", "statCrit", "statHit", "statHaste"];
     
-    var inCrit = document.getElementById("statCrit"); if(inCrit) { inCrit.value = charStats.crit.toFixed(2); inCrit.dispatchEvent(new Event('change')); }
-    var inHit = document.getElementById("statHit"); if(inHit) { inHit.value = charStats.hit; inHit.dispatchEvent(new Event('change')); }
-    var inHaste = document.getElementById("statHaste"); if(inHaste) { inHaste.value = charStats.haste.toFixed(2); inHaste.dispatchEvent(new Event('change')); }
+    // Helper to set value only if not manual
+    var updateInput = function(id, val, isPct) {
+        var el = document.getElementById(id);
+        if(!el) return;
+        
+        if (isManual) {
+            // Manual Mode: Enable input, DO NOT OVERWRITE
+            el.disabled = false;
+        } else {
+            // Auto Mode: Disable input, Overwrite with calculation
+            el.disabled = true;
+            el.value = isPct ? val.toFixed(2) : val;
+            el.dispatchEvent(new Event('change')); // Trigger sim update if needed
+        }
+    };
+
+    updateInput("sp_gen", charStats.sp, false);
+    updateInput("sp_nature", charStats.spNat, false);
+    updateInput("sp_arcane", charStats.spArc, false);
+    updateInput("statCrit", charStats.crit, true);
+    updateInput("statHit", charStats.hit, false);
+    updateInput("statHaste", charStats.haste, true);
+
+    // Note: sp_pen (Spell Pen) is usually not calculated from gear in this logic yet (unless items added it specifically, which current item logic doesn't sum into a charStat for pen). 
+    // It remains manually editable or controlled by global event listeners, but let's ensure it follows the "Edit" style if needed. 
+    // Currently, it's not in the disabled list in HTML, so it works as is.
 }
