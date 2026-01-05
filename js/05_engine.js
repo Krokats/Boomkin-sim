@@ -113,15 +113,18 @@ function calculateWeights() {
 
             var cCrit = JSON.parse(JSON.stringify(b)); cCrit.stats.crit += 1;
             var wCrit = (runCoreSimulation(cCrit).avg.dps - rB) / wSP;
-            
+            if(wCrit < 0) wCrit = 0;
+
             var cHit = JSON.parse(JSON.stringify(b)); 
             cHit.stats.hitBonus += 1; 
             cHit.stats.hit = Math.min(0.99, 0.83 + cHit.stats.hitBonus/100); 
             var wHit = (runCoreSimulation(cHit).avg.dps - rB) / wSP;
-            
+            if(wHit < 0) wHit = 0;
+
             var cHaste = JSON.parse(JSON.stringify(b)); cHaste.stats.haste += 1;
             var wHaste = (runCoreSimulation(cHaste).avg.dps - rB) / wSP;
-            
+            if(wHaste < 0) wHaste = 0;
+
             var resBox = document.getElementById("weightResults");
             if(resBox) resBox.classList.remove("hidden");
             
