@@ -150,7 +150,10 @@
                         <div class="grid-container">
                             
                             <div class="card full-width">
-                                <div class="card-header"><h2>✨ Buffs & Consumables</h2></div>
+                                <div class="card-header clickable" onclick="toggleCard(this)">
+                                    <h2>✨ Buffs & Consumables</h2>
+                                    <span class="toggle-icon">▼</span>
+                                </div>
                                 <div class="card-body">
                                     <div class="gear-section-title">Auras & Group Buffs</div>
                                     <div class="checkbox-grid">
@@ -248,7 +251,13 @@
                             </div></div>
                             <div class="card full-width-mobile"><div class="card-header"><h2>🔄 Rotation & Talents</h2></div><div class="card-body"><div class="input-group"><label>Fishing Spell</label><div class="select-wrapper"><select id="rota_fish"><option value="F1">Alternate: Start with Starfire</option><option value="F2">Alternate: Start with Wrath</option><option value="W">Only Wrath</option><option value="SF">Only Starfire</option></select></div></div><div class="spell-row"><div class="multi-input"><div class="input-wrapper"><label>Start BoaT</label><input type="number" id="start_boat" value="0" min="0" max="3"></div><div class="input-wrapper"><label>Wrath Flight</label><input type="number" id="wrath_flight" value="1.0" step="0.1"></div></div></div><hr class="separator"><div class="toggle-grid"><label class="toggle"><input type="checkbox" id="rota_starfire" checked><span class="slider"></span><span class="label-text">Starfire</span></label><label class="toggle"><input type="checkbox" id="rota_wrath" checked><span class="slider"></span><span class="label-text">Wrath</span></label><label class="toggle"><input type="checkbox" id="rota_is" checked><span class="slider"></span><span class="label-text">Insect Swarm</span></label><label class="toggle"><input type="checkbox" id="rota_mf" checked><span class="slider"></span><span class="label-text">Moonfire</span></label><label class="toggle"><input type="checkbox" id="rota_eclDot" checked><span class="slider"></span><span class="label-text">DoT End of Eclipse</span></label><label class="toggle"><input type="checkbox" id="rota_interrupt" checked><span class="slider"></span><span class="label-text">Cancel wrong Spell</span></label></div></div></div>
                             
-                            <div class="card full-width"><div class="card-header"><h2>🛡️ Gear & Sets</h2></div><div class="card-body">
+                            <div class="card full-width">
+                                <div class="card-header clickable" onclick="toggleCard(this)">
+                                    <h2>🛡️ Gear & Sets</h2>
+                                    <span class="toggle-icon">▼</span>
+                                </div>
+                                <div class="card-body">
+
                                 <div class="gear-section-title">Tier Sets</div>
                                 <div class="checkbox-grid">
                                     <label class="custom-checkbox"><input type="checkbox" id="t3_4p" disabled><span class="checkmark"></span> T3/4p (Duration)</label>
@@ -281,11 +290,110 @@
                                 <div class="input-group"><label>On-Use Strategy</label><div class="select-wrapper"><select id="trinket_strat"><option value="START">Use at Fight Start</option><option value="ECLIPSE">Save for First Eclipse</option></select></div></div>
                             </div></div>
                             
-                            <div class="card full-width"><div class="card-header"><h2>📐 Damage Scaling Calculation</h2><button onclick="updateSpellStats()" class="btn-mini">Refresh</button></div><div class="card-body"><table class="info-table"><thead><tr><th>Spell</th><th>Base Dmg</th><th>Scaled (No Ecl)</th><th>Ecl. Mod</th><th>Scaled (Eclipse)</th><th>Cast Time</th></tr></thead><tbody id="spellCalcBody"></tbody></table></div></div>
+                            <div class="card full-width">
+                                <div class="card-header clickable" onclick="toggleCard(this)">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <h2>📐 Damage Scaling Calculation</h2>
+                                        <button onclick="event.stopPropagation(); updateSpellStats()" class="btn-mini">Refresh</button>
+                                    </div>
+                                    <span class="toggle-icon">▼</span>
+                                </div>
+                                <div class="card-body">
+                                <table class="info-table"><thead><tr><th>Spell</th><th>Base Dmg</th><th>Scaled (No Ecl)</th><th>Ecl. Mod</th><th>Scaled (Eclipse)</th><th>Cast Time</th></tr></thead><tbody id="spellCalcBody"></tbody></table></div></div>
                         </div>
-                        <div class="action-area button-row"><button id="btnRun" onclick="runSimulation()" class="primary-btn"><span class="btn-icon">⚡</span> Run Simulation</button><button id="btnWeights" onclick="calculateWeights()" class="secondary-btn"><span class="btn-icon">⚖️</span> Stat Weights</button></div>
-                        <div id="resultsArea" class="hidden"><div class="results-header"><div class="left-actions"><h2>Results</h2></div><div class="center-toggles"><div class="view-toggles"><button class="view-btn active" onclick="switchView('avg')" id="viewAvg">Average</button><button class="view-btn" onclick="switchView('min')" id="viewMin">Min DPS</button><button class="view-btn" onclick="switchView('max')" id="viewMax">Max DPS</button></div></div><div class="right-actions"><button onclick="generateSummaryImage()" class="btn-mini" style="margin-right:5px;">📸 Save Image</button></div></div><div class="stats-grid"><div class="stat-box primary"><h3>DPS</h3><span id="out_dps_main" class="big-number">-</span></div><div class="stat-box"><h3>Total Damage</h3><span id="out_total_dmg" class="med-number">-</span></div><div class="stat-box"><h3>Total Mana</h3><span id="out_total_mana" class="med-number">-</span></div><div class="stat-box"><h3>MPS</h3><span id="out_mps" class="med-number">-</span></div></div><div id="weightResults" class="hidden weight-box"><div class="weight-grid"><div class="weight-item"><span class="weight-label">Reference</span><span class="weight-value">1 SP = 1.00 EP</span></div><div class="weight-item"><span class="weight-label">Value of 1% Crit</span><span class="weight-value orange"><span id="val_crit">-</span> SP</span></div><div class="weight-item"><span class="weight-label">Value of 1 Hit</span><span class="weight-value blue"><span id="val_hit">-</span> SP</span></div><div class="weight-item"><span class="weight-label">Value of 1% Haste</span><span class="weight-value green"><span id="val_haste">-</span> SP</span></div></div></div><div class="table-wrapper"><table class="result-table"><thead><tr><th class="text-left">Source</th><th class="text-right">Damage</th><th class="text-right">%</th><th class="bar-col"></th></tr></thead><tbody id="tbl_body"></tbody></table></div><div class="uptime-grid"><div class="uptime-box nature"><span class="label">Nature Eclipse</span><span class="value" id="out_up_ne">0s</span></div><div class="uptime-box arcane"><span class="label">Arcane Eclipse</span><span class="value" id="out_up_ae">0s</span></div></div><div id="combatLogSection" class="hidden" style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;"><div class="results-header"><h2>📜 Combat Log <span id="logTypeLabel" style="font-size:0.6em; color:#666; margin-left:10px"></span></h2><div class="log-actions"><button onclick="exportCSV()" class="btn-mini">💾 Export CSV</button></div></div><div class="log-container"><table class="log-table"><thead id="logHeader"></thead><tbody id="logBody"></tbody></table></div></div></div>
-                    </div>
+                        <div class="action-area-wrapper" style="display:flex; flex-direction:column; align-items:center; gap:10px; margin: 20px 0;">
+                            <div class="weight-settings-box" style="background:var(--card-bg); padding:10px 20px; border-radius:8px; border:1px solid var(--border-color); display:flex; gap:15px; align-items:center; flex-wrap:wrap; justify-content:center;">
+                                <span style="font-size:0.9rem; color:var(--text-muted); font-weight:600;">Weight Settings:</span>
+                                <div class="select-wrapper" style="width:auto;">
+                                    <select id="weight_calcMethod" style="padding:5px 25px 5px 10px; font-size:0.85rem; width:auto;">
+                                        <option value="S">Stochastic (RNG)</option>
+                                        <option value="D_CYC">Deterministic (Counter)</option>
+                                        <option value="D_AVG">Deterministic (Average)</option>
+                                    </select>
+                                </div>
+                                <div class="input-wrapper" style="display:flex; align-items:center; gap:5px;" id="weight_iter_wrapper">
+                                    <label style="margin:0; font-size:0.85rem;">Iter:</label>
+                                    <input type="number" id="weight_simCount" value="2000" style="padding:5px; width:80px; font-size:0.85rem;">
+                                </div>
+                            </div>
+
+                            <div class="button-row" style="display:flex; gap:15px;">
+                                <button id="btnRun" onclick="runSimulation()" class="primary-btn"><span class="btn-icon">⚡</span> Run Simulation</button>
+                                <button id="btnWeights" onclick="calculateWeights()" class="secondary-btn"><span class="btn-icon">⚖️</span> Stat Weights</button>
+                            </div>
+                        </div>
+                        <div id="resultsArea">
+                            <div class="results-header">
+                                <div class="left-actions">
+                                    <h2>Results</h2>
+                                </div>
+                                <div class="center-toggles">
+                                    <div class="view-toggles"><button class="view-btn active" onclick="switchView('avg')"
+                                            id="viewAvg">Average</button><button class="view-btn" onclick="switchView('min')" id="viewMin">Min
+                                            DPS</button><button class="view-btn" onclick="switchView('max')" id="viewMax">Max DPS</button></div>
+                                </div>
+                                <div class="right-actions"><button onclick="generateSummaryImage()" class="btn-mini"
+                                        style="margin-right:5px;">📸 Save Image</button></div>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-box primary">
+                                    <h3>DPS</h3><span id="out_dps_main" class="big-number">-</span>
+                                </div>
+                                <div class="stat-box">
+                                    <h3>Total Damage</h3><span id="out_total_dmg" class="med-number">-</span>
+                                </div>
+                                <div class="stat-box">
+                                    <h3>Total Mana</h3><span id="out_total_mana" class="med-number">-</span>
+                                </div>
+                                <div class="stat-box">
+                                    <h3>MPS</h3><span id="out_mps" class="med-number">-</span>
+                                </div>
+                            </div>
+                            <div id="weightResults" weight-box">
+                                <div class="weight-grid">
+                                    <div class="weight-item"><span class="weight-label">Reference</span><span class="weight-value">1 SP = 1.00
+                                            EP</span></div>
+                                    <div class="weight-item"><span class="weight-label">Value of 1% Crit</span><span
+                                            class="weight-value orange"><span id="val_crit">-</span> SP</span></div>
+                                    <div class="weight-item"><span class="weight-label">Value of 1 Hit</span><span
+                                            class="weight-value blue"><span id="val_hit">-</span> SP</span></div>
+                                    <div class="weight-item"><span class="weight-label">Value of 1% Haste</span><span
+                                            class="weight-value green"><span id="val_haste">-</span> SP</span></div>
+                                </div>
+                            </div>
+                            <div class="table-wrapper">
+                                <table class="result-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-left">Source</th>
+                                            <th class="text-right">Damage</th>
+                                            <th class="text-right">%</th>
+                                            <th class="bar-col"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbl_body"></tbody>
+                                </table>
+                            </div>
+                            <div class="uptime-grid">
+                                <div class="uptime-box nature"><span class="label">Nature Eclipse</span><span class="value"
+                                        id="out_up_ne">0s</span></div>
+                                <div class="uptime-box arcane"><span class="label">Arcane Eclipse</span><span class="value"
+                                        id="out_up_ae">0s</span></div>
+                            </div>
+                            <div id="combatLogSection" class="hidden" style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
+                                <div class="results-header">
+                                    <h2>📜 Combat Log <span id="logTypeLabel" style="font-size:0.6em; color:#666; margin-left:10px"></span></h2>
+                                    <div class="log-actions"><button onclick="exportCSV()" class="btn-mini">💾 Export CSV</button></div>
+                                </div>
+                                <div class="log-container">
+                                    <table class="log-table">
+                                        <thead id="logHeader"></thead>
+                                        <tbody id="logBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
                 </div>
             </div>
         </main>

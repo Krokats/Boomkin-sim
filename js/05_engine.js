@@ -38,8 +38,13 @@ function getInputs() {
 
 function runSimulation() {
     showProgress("Simulating...");
-    var wRes = document.getElementById("weightResults");
-    if(wRes) wRes.classList.add("hidden");
+    // var wRes = document.getElementById("weightResults");
+    //if(wRes) wRes.classList.add("hidden");
+    setText("val_crit", "-");
+    setText("val_hit", "-");
+    setText("val_haste", "-");
+
+    
     
     setTimeout(function() {
         try {
@@ -100,34 +105,48 @@ function calculateWeights() {
     setTimeout(function() {
         try {
             var b = getInputs(); 
-            //b.mode = "D_AVG"; b.iterations = 1; b.maxTime = 120;
-            b.mode = "S"; b.iterations = 5000; b.maxTime = 120;
-
+            
+            // NEU: Werte aus der neuen UI lesen
+            var wMethod = document.getElementById('weight_calcMethod') ? document.getElementById('weight_calcMethod').value : "S";
+            var wIter = document.getElementById('weight_simCount') ? parseInt(document.getElementById('weight_simCount').value) : 2000;
+            
+            b.mode = wMethod; 
+            b.iterations = (wMethod === "S") ? wIter : 1; 
+            // MaxTime auf Standard lassen oder auch konfigurierbar? 
+            // Hier nutzen wir die Zeit aus dem Main-Config (b.maxTime), wie es Sinn ergibt.
+            // Falls hardcoded gewünscht wie vorher (120s): b.maxTime = 120;
+            
+            // Baseline Run
             var rB = runCoreSimulation(b).avg.dps;
 
+            // 1. SP Weight
             var dSP = 50;
             var cSP = JSON.parse(JSON.stringify(b)); cSP.power.sp += dSP;
             var rSP = runCoreSimulation(cSP).avg.dps;
             var wSP = (rSP - rB) / dSP;
             
-            if(wSP === 0) wSP = 1;
+            if(wSP === 0) wSP = 1; // Prevent div by zero
 
+            // 2. Crit Weight
             var cCrit = JSON.parse(JSON.stringify(b)); cCrit.stats.crit += 1;
             var wCrit = (runCoreSimulation(cCrit).avg.dps - rB) / wSP;
             if(wCrit < 0) wCrit = 0;
 
+            // 3. Hit Weight
             var cHit = JSON.parse(JSON.stringify(b)); 
             cHit.stats.hitBonus += 1; 
-            cHit.stats.hit = Math.min(0.99, 0.83 + cHit.stats.hitBonus/100); 
+            cHit.stats.hit = Math.min(0.99, b.stats.baseHitProb + cHit.stats.hitBonus/100); 
             var wHit = (runCoreSimulation(cHit).avg.dps - rB) / wSP;
             if(wHit < 0) wHit = 0;
 
+            // 4. Haste Weight
             var cHaste = JSON.parse(JSON.stringify(b)); cHaste.stats.haste += 1;
             var wHaste = (runCoreSimulation(cHaste).avg.dps - rB) / wSP;
             if(wHaste < 0) wHaste = 0;
 
-            var resBox = document.getElementById("weightResults");
-            if(resBox) resBox.classList.remove("hidden");
+            // Result Container ist jetzt immer sichtbar, wir updaten nur die Werte
+            // var resBox = document.getElementById("weightResults");
+            // if(resBox) resBox.classList.remove("hidden"); // Nicht mehr nötig
             
             setText("val_crit", wCrit.toFixed(2));
             setText("val_hit", wHit.toFixed(2));
