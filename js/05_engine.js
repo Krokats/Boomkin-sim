@@ -37,14 +37,17 @@ function getInputs() {
 }
 
 function runSimulation() {
-    showProgress("Simulating...");
-    // var wRes = document.getElementById("weightResults");
-    //if(wRes) wRes.classList.add("hidden");
+    var iter = document.getElementById("simCount") ? document.getElementById("simCount").value : "1";
+    var method = document.getElementById("calcMethod") ? document.getElementById("calcMethod").value : "S";
+    var txt = "Simulating...";
+    if(method === "S") txt = "Simulating " + iter + " Fights...";
+    
+    showProgress(txt);
+    
+    // Reset Weights display to placeholders if they are not recalculated
     setText("val_crit", "-");
     setText("val_hit", "-");
     setText("val_haste", "-");
-
-
 
     setTimeout(function () {
         try {
@@ -62,9 +65,7 @@ function runSimulation() {
                     setText("viewMax", "Max (" + results.max.dps.toFixed(1) + ")");
 
                     switchView('avg');
-                    //var btnW = document.getElementById("btnWeights");
-                    //if(btnW) btnW.disabled = false;
-
+                    
                     updateProgress(100);
                 } catch (e) { alert("Error: " + e.message); console.error(e); }
                 finally { setTimeout(hideProgress, 200); }
@@ -74,7 +75,7 @@ function runSimulation() {
 }
 
 function runAllSims() {
-    showProgress("Running All...");
+    showProgress("Running All (" + SIM_LIST.length + " Sims)...");
     var idx = 0;
     function step() {
         if (idx >= SIM_LIST.length) {
@@ -83,6 +84,11 @@ function runAllSims() {
             showOverview();
             return;
         }
+        
+        // Update Text
+        var tEl = document.getElementById("progressText");
+        if(tEl) tEl.innerText = "Simulating " + (idx+1) + " / " + SIM_LIST.length;
+
         var pct = (idx / SIM_LIST.length) * 100;
         updateProgress(pct);
 
@@ -95,65 +101,97 @@ function runAllSims() {
             SIM_LIST[idx].results = res;
             idx++;
             step();
-        }, 100);
+        }, 50); // Kleiner Delay für UI Refresh
     }
     step();
 }
 
 function calculateWeights() {
-    showProgress("Calculating Weights...");
-    setTimeout(function () {
+    // Phase 1: Prep
+    showProgress("Initializing Weights...");
+    
+    // Setup variables outside the timeouts
+    var b, wMethod, wIter;
+    var rB, wSP, wCrit, wHit, wHaste;
+
+    // Use a chain of timeouts to allow UI updates between heavy calculations
+    setTimeout(function() {
         try {
-            var b = getInputs();
-
-            // NEU: Werte aus der neuen UI lesen
-            var wMethod = document.getElementById('weight_calcMethod') ? document.getElementById('weight_calcMethod').value : "S";
-            var wIter = document.getElementById('weight_simCount') ? parseInt(document.getElementById('weight_simCount').value) : 2000;
-
+            b = getInputs();
+            wMethod = document.getElementById('weight_calcMethod') ? document.getElementById('weight_calcMethod').value : "S";
+            wIter = document.getElementById('weight_simCount') ? parseInt(document.getElementById('weight_simCount').value) : 2000;
             b.mode = wMethod;
             b.iterations = (wMethod === "S") ? wIter : 1;
-            // MaxTime auf Standard lassen oder auch konfigurierbar? 
-            // Hier nutzen wir die Zeit aus dem Main-Config (b.maxTime), wie es Sinn ergibt.
-            // Falls hardcoded gewünscht wie vorher (120s): b.maxTime = 120;
 
-            // Baseline Run
-            var rB = runCoreSimulation(b).avg.dps;
+            // Phase 2: Baseline
+            setText("progressText", "Calculating Baseline (1/4)...");
+            updateProgress(10);
+            
+            setTimeout(function() {
+                try {
+                    rB = runCoreSimulation(b).avg.dps;
+                    
+                    // Phase 3: SP
+                    setText("progressText", "Calculating SP Value (2/4)...");
+                    updateProgress(35);
+                    
+                    setTimeout(function() {
+                        try {
+                            var dSP = 50;
+                            var cSP = JSON.parse(JSON.stringify(b)); cSP.power.sp += dSP;
+                            var rSP = runCoreSimulation(cSP).avg.dps;
+                            wSP = (rSP - rB) / dSP;
+                            if (wSP === 0) wSP = 1;
 
-            // 1. SP Weight
-            var dSP = 50;
-            var cSP = JSON.parse(JSON.stringify(b)); cSP.power.sp += dSP;
-            var rSP = runCoreSimulation(cSP).avg.dps;
-            var wSP = (rSP - rB) / dSP;
+                            // Phase 4: Crit
+                            setText("progressText", "Calculating Crit Value (3/4)...");
+                            updateProgress(60);
+                            
+                            setTimeout(function() {
+                                try {
+                                    var cCrit = JSON.parse(JSON.stringify(b)); cCrit.stats.crit += 1;
+                                    wCrit = (runCoreSimulation(cCrit).avg.dps - rB) / wSP;
+                                    if (wCrit < 0) wCrit = 0;
 
-            if (wSP === 0) wSP = 1; // Prevent div by zero
+                                    // Phase 5: Hit & Haste & Finish
+                                    setText("progressText", "Calculating Hit & Haste (4/4)...");
+                                    updateProgress(85);
 
-            // 2. Crit Weight
-            var cCrit = JSON.parse(JSON.stringify(b)); cCrit.stats.crit += 1;
-            var wCrit = (runCoreSimulation(cCrit).avg.dps - rB) / wSP;
-            if (wCrit < 0) wCrit = 0;
+                                    setTimeout(function() {
+                                        try {
+                                            // Hit
+                                            var cHit = JSON.parse(JSON.stringify(b));
+                                            cHit.stats.hitBonus += 1;
+                                            cHit.stats.hit = Math.min(0.99, b.stats.baseHitProb + cHit.stats.hitBonus / 100);
+                                            wHit = (runCoreSimulation(cHit).avg.dps - rB) / wSP;
+                                            if (wHit < 0) wHit = 0;
 
-            // 3. Hit Weight
-            var cHit = JSON.parse(JSON.stringify(b));
-            cHit.stats.hitBonus += 1;
-            cHit.stats.hit = Math.min(0.99, b.stats.baseHitProb + cHit.stats.hitBonus / 100);
-            var wHit = (runCoreSimulation(cHit).avg.dps - rB) / wSP;
-            if (wHit < 0) wHit = 0;
+                                            // Haste
+                                            var cHaste = JSON.parse(JSON.stringify(b)); cHaste.stats.haste += 1;
+                                            wHaste = (runCoreSimulation(cHaste).avg.dps - rB) / wSP;
+                                            if (wHaste < 0) wHaste = 0;
 
-            // 4. Haste Weight
-            var cHaste = JSON.parse(JSON.stringify(b)); cHaste.stats.haste += 1;
-            var wHaste = (runCoreSimulation(cHaste).avg.dps - rB) / wSP;
-            if (wHaste < 0) wHaste = 0;
+                                            // Output
+                                            setText("val_crit", wCrit.toFixed(2));
+                                            setText("val_hit", wHit.toFixed(2));
+                                            setText("val_haste", wHaste.toFixed(2));
 
-            // Result Container ist jetzt immer sichtbar, wir updaten nur die Werte
-            // var resBox = document.getElementById("weightResults");
-            // if(resBox) resBox.classList.remove("hidden"); // Nicht mehr nötig
+                                            updateProgress(100);
+                                            setTimeout(hideProgress, 300);
+                                        } catch (e) { console.error(e); hideProgress(); }
+                                    }, 50);
 
-            setText("val_crit", wCrit.toFixed(2));
-            setText("val_hit", wHit.toFixed(2));
-            setText("val_haste", wHaste.toFixed(2));
-        } catch (e) { console.error(e); }
-        hideProgress();
-    }, 50);
+                                } catch(e) { console.error(e); hideProgress(); }
+                            }, 50);
+
+                        } catch(e) { console.error(e); hideProgress(); }
+                    }, 50);
+
+                } catch(e) { console.error(e); hideProgress(); }
+            }, 50);
+
+        } catch (e) { console.error(e); hideProgress(); }
+    }, 100);
 }
 
 // ============================================================================
