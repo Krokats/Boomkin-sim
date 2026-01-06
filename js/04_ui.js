@@ -74,13 +74,13 @@ function setupUIListeners() {
     // NEU: Weight Config Listener
     var wMethod = document.getElementById('weight_calcMethod');
     var wIter = document.getElementById('weight_simCount');
-    if(wMethod) {
-        wMethod.addEventListener('change', function() {
+    if (wMethod) {
+        wMethod.addEventListener('change', function () {
             updateWeightUI();
             saveCurrentState();
         });
     }
-    if(wIter) {
+    if (wIter) {
         wIter.addEventListener('change', saveCurrentState);
     }
     // Initial call to set correct state
@@ -114,9 +114,9 @@ function updateWeightUI() {
     var method = document.getElementById('weight_calcMethod');
     var iterDiv = document.getElementById('weight_iter_wrapper');
     var iterInput = document.getElementById('weight_simCount');
-    
-    if(method && iterDiv && iterInput) {
-        if(method.value === 'S') {
+
+    if (method && iterDiv && iterInput) {
+        if (method.value === 'S') {
             iterInput.disabled = false;
             iterDiv.style.opacity = "1";
         } else {
@@ -250,7 +250,7 @@ function deleteSim(index) {
 function switchSim(index) {
     saveCurrentState();
     ACTIVE_SIM_INDEX = index;
-    
+
     var nameInput = document.getElementById('simName');
     if (nameInput) {
         nameInput.value = SIM_LIST[index].name;
@@ -260,17 +260,17 @@ function switchSim(index) {
 
     applyConfigToUI(SIM_LIST[index].config);
     // Sicherstellen, dass die Weight UI korrekt gesetzt ist nach Config-Load
-    if(typeof updateWeightUI === 'function') updateWeightUI();
-    
+    if (typeof updateWeightUI === 'function') updateWeightUI();
+
     document.getElementById('comparisonView').classList.add('hidden');
     document.getElementById('singleSimView').classList.remove('hidden');
-    
+
     var res = SIM_LIST[index].results;
-    
+
     // ÄNDERUNG: Results Area immer anzeigen, Inhalte resetten wenn null
     document.getElementById('resultsArea').classList.remove('hidden');
-    
-    if(res) {
+
+    if (res) {
         SIM_DATA = res;
         switchView('avg'); // Updated UI values
         // Views Buttons update text
@@ -282,18 +282,18 @@ function switchSim(index) {
         // Reset Text to placeholders
         setText("out_dps_main", "-");
         setText("out_total_dmg", "-");
-        if(document.getElementById("out_total_mana")) setText("out_total_mana", "-");
-        if(document.getElementById("out_mps")) setText("out_mps", "-");
-        if(document.getElementById("out_up_ne")) setText("out_up_ne", "-");
-        if(document.getElementById("out_up_ae")) setText("out_up_ae", "-");
-        
+        if (document.getElementById("out_total_mana")) setText("out_total_mana", "-");
+        if (document.getElementById("out_mps")) setText("out_mps", "-");
+        if (document.getElementById("out_up_ne")) setText("out_up_ne", "-");
+        if (document.getElementById("out_up_ae")) setText("out_up_ae", "-");
+
         setText("viewAvg", "Average (-)");
         setText("viewMin", "Min (-)");
         setText("viewMax", "Max (-)");
-        
+
         // Leere Tabelle
         var tbody = document.getElementById("tbl_body");
-        if(tbody) tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#666; padding:20px;'>No simulation run yet.</td></tr>";
+        if (tbody) tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#666; padding:20px;'>No simulation run yet.</td></tr>";
 
         // Weights resetten
         setText("val_crit", "-");
