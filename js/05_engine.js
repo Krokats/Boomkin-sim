@@ -123,17 +123,17 @@ function calculateWeights() {
             b.mode = wMethod;
             b.iterations = (wMethod === "S") ? wIter : 1;
 
-            // Phase 2: Baseline
-            setText("progressText", "Calculating Baseline (1/4)...");
-            updateProgress(10);
+            // Phase 1: Baseline
+            setText("progressText", "Calculating Baseline (1/5)...");
+            updateProgress(1);
             
             setTimeout(function() {
                 try {
                     rB = runCoreSimulation(b).avg.dps;
                     
-                    // Phase 3: SP
-                    setText("progressText", "Calculating SP Value (2/4)...");
-                    updateProgress(35);
+                    // Phase 2: SP
+                    setText("progressText", "Calculating SP Value (2/5)...");
+                    updateProgress(20);
                     
                     setTimeout(function() {
                         try {
@@ -143,9 +143,9 @@ function calculateWeights() {
                             wSP = (rSP - rB) / dSP;
                             if (wSP === 0) wSP = 1;
 
-                            // Phase 4: Crit
-                            setText("progressText", "Calculating Crit Value (3/4)...");
-                            updateProgress(60);
+                            // Phase 3: Crit
+                            setText("progressText", "Calculating Crit Value (3/5)...");
+                            updateProgress(40);
                             
                             setTimeout(function() {
                                 try {
@@ -153,9 +153,9 @@ function calculateWeights() {
                                     wCrit = (runCoreSimulation(cCrit).avg.dps - rB) / wSP;
                                     if (wCrit < 0) wCrit = 0;
 
-                                    // Phase 5: Hit & Haste & Finish
-                                    setText("progressText", "Calculating Hit & Haste (4/4)...");
-                                    updateProgress(85);
+                                    // Phase 4: Hit 
+                                    setText("progressText", "Calculating Hit (4/5)...");
+                                    updateProgress(60);
 
                                     setTimeout(function() {
                                         try {
@@ -166,18 +166,25 @@ function calculateWeights() {
                                             wHit = (runCoreSimulation(cHit).avg.dps - rB) / wSP;
                                             if (wHit < 0) wHit = 0;
 
+                                            setText("progressText", "Haste (4/5)...");
+                                            updateProgress(80);
+                                            
+                                            setTimeout(function() {
+                                            try {
                                             // Haste
-                                            var cHaste = JSON.parse(JSON.stringify(b)); cHaste.stats.haste += 1;
-                                            wHaste = (runCoreSimulation(cHaste).avg.dps - rB) / wSP;
-                                            if (wHaste < 0) wHaste = 0;
+                                                var cHaste = JSON.parse(JSON.stringify(b)); cHaste.stats.haste += 1;
+                                                wHaste = (runCoreSimulation(cHaste).avg.dps - rB) / wSP;
+                                                if (wHaste < 0) wHaste = 0;
 
-                                            // Output
-                                            setText("val_crit", wCrit.toFixed(2));
-                                            setText("val_hit", wHit.toFixed(2));
-                                            setText("val_haste", wHaste.toFixed(2));
+                                                // Output
+                                                setText("val_crit", wCrit.toFixed(2));
+                                                setText("val_hit", wHit.toFixed(2));
+                                                setText("val_haste", wHaste.toFixed(2));
 
-                                            updateProgress(100);
-                                            setTimeout(hideProgress, 300);
+                                                updateProgress(100);
+                                                setTimeout(hideProgress, 300);
+                                                } catch (e) { console.error(e); hideProgress(); }
+                                            }, 50);
                                         } catch (e) { console.error(e); hideProgress(); }
                                     }, 50);
 
