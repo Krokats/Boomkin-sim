@@ -562,7 +562,7 @@ function calculateItemScore(item, slotNameOverride) {
     score += (e.spellCrit || 0) * wCrit;
 
     // Haste * HW
-    score += (e.spellHaste || 0) * wHaste;
+    score += (e.attackSpeed || 0) * wHaste;
 
     // Int / 60 * CW
     var intVal = item.intellect || 0;
@@ -607,7 +607,7 @@ function calculateItemScore(item, slotNameOverride) {
                      bScore += (b.natureSpellPower || 0) * wSP;
                      bScore += (b.spellCrit || 0) * wCrit;
                      bScore += (b.spellHit || 0) * wHit;
-                     bScore += (b.spellHaste || 0) * wHaste;
+                     bScore += (b.attackSpeed || 0) * wHaste;
                      bScore += ((b.intellect || 0) / 60) * wCrit;
 
                      score += bScore;
@@ -645,7 +645,7 @@ function calculateEnchantScore(ench) {
     score += (stats.spellCrit || 0) * wCrit;
 
     // Haste * HW
-    score += (stats.spellHaste || 0) * wHaste;
+    score += (stats.attackSpeed || 0) * wHaste;
 
     // Int / 60 * CW
     var intVal = stats.intellect || 0;
@@ -707,7 +707,7 @@ function calculateGearStats() {
                 var spNat = (e.natureSpellPower || 0);
                 var critVal = (e.spellCrit || 0);
                 var hitVal = (e.spellHit || 0);
-                var hasteVal = (e.spellHaste || 0);
+                var hasteVal = (e.attackSpeed || 0);
 
                 // Add to Character (Total)
                 charStats.int += intVal;
@@ -774,7 +774,7 @@ function calculateGearStats() {
                 var spNat = (ench.effects.natureSpellPower || 0);
                 var critVal = (ench.effects.spellCrit || 0);
                 var hitVal = (ench.effects.spellHit || 0);
-                var hasteVal = (ench.effects.spellHaste || 0);
+                var hasteVal = (ench.effects.attackSpeed || 0);
 
                 // Add to Character (Total) - YES
                 charStats.int += intVal;
@@ -806,7 +806,7 @@ function calculateGearStats() {
                      var spNat = (bonus.natureSpellPower || 0);
                      var critVal = (bonus.spellCrit || 0);
                      var hitVal = (bonus.spellHit || 0);
-                     var hasteVal = (bonus.spellHaste || 0);
+                     var hasteVal = (bonus.attackSpeed || 0);
                      
                      // Add to Character (Total)
                      charStats.sp += spVal;
@@ -921,4 +921,5 @@ function calculateGearStats() {
     var inCrit = document.getElementById("statCrit"); if(inCrit) { inCrit.value = charStats.crit.toFixed(2); inCrit.dispatchEvent(new Event('change')); }
     var inHit = document.getElementById("statHit"); if(inHit) { inHit.value = charStats.hit; inHit.dispatchEvent(new Event('change')); }
     var inHaste = document.getElementById("statHaste"); if(inHaste) { inHaste.value = charStats.haste.toFixed(2); inHaste.dispatchEvent(new Event('change')); }
+
 }
