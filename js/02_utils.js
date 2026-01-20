@@ -20,11 +20,11 @@ function setText(id, text) {
 
 function showToast(msg) {
     var t = document.getElementById("toast");
-    if(t) {
-        if(toastTimer) clearTimeout(toastTimer);
+    if (t) {
+        if (toastTimer) clearTimeout(toastTimer);
         t.innerText = msg || "Action Successful!";
         t.classList.add("show");
-        toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 3000);
+        toastTimer = setTimeout(function () { t.classList.remove("show"); }, 3000);
     }
 }
 
@@ -45,32 +45,32 @@ function hideProgress() { setTimeout(function() { var el = document.getElementBy
 
 function showProgress(text) {
     var el = document.getElementById("progressOverlay");
-    if(el) {
+    if (el) {
         el.classList.remove("hidden");
         var t = document.getElementById("progressText");
-        if(t) t.innerText = text;
+        if (t) t.innerText = text;
         var f = document.getElementById("progressFill");
-        if(f) f.style.width = "0%";
-        
+        if (f) f.style.width = "0%";
+
         // Animation initialisieren (Zufalls-Gimmick)
         initAnimationRandomness();
         updateCanvas(0);
     }
 }
 
-function updateProgress(pct) { 
-    var el = document.getElementById("progressFill"); 
-    if(el) el.style.width = pct + "%"; 
-    
+function updateProgress(pct) {
+    var el = document.getElementById("progressFill");
+    if (el) el.style.width = pct + "%";
+
     // Animation updaten
     updateCanvas(pct);
 }
 
-function hideProgress() { 
-    setTimeout(function() { 
-        var el = document.getElementById("progressOverlay"); 
-        if(el) el.classList.add("hidden"); 
-    }, 200); 
+function hideProgress() {
+    setTimeout(function () {
+        var el = document.getElementById("progressOverlay");
+        if (el) el.classList.add("hidden");
+    }, 200);
 }
 
 // ============================================================================
@@ -84,8 +84,8 @@ var animSpell = 'wrath';
 
 function initAnimationRandomness() {
     var c = document.getElementById('animCanvas');
-    if(c) animCtx = c.getContext('2d');
-    
+    if (c) animCtx = c.getContext('2d');
+
     // Randomize Gimmick
     animSpell = Math.random() > 0.5 ? 'starfire' : 'wrath';
 
@@ -94,24 +94,24 @@ function initAnimationRandomness() {
 
     const rand = Math.random() * 100;
     let res = "";
-    if (rand < 0.5) { res = "crit"}
-    else if (rand < 1.5) { res = "hit" } 
+    if (rand < 0.5) { res = "crit" }
+    else if (rand < 1.5) { res = "hit" }
     else {
-        if (Math.random() > 0.5) { res = "miss"}
+        if (Math.random() > 0.5) { res = "miss" }
         else { res = "immune" }
     }
     animOutcome = res;
 
 
-    
+
 }
 
 function rollLuck() {
     rollSpell();
     const rand = Math.random() * 100;
     let res = "";
-    if (rand < 0.5) { res = "crit"; rngText.style.color = "#FF0000"; rngText.innerText = "ROLLED: CRIT! (" + rand.toFixed(2) + "%)"; } 
-    else if (rand < 1.5) { res = "hit"; rngText.style.color = "#4169E1"; rngText.innerText = "ROLLED: HIT (" + rand.toFixed(2) + "%)"; } 
+    if (rand < 0.5) { res = "crit"; rngText.style.color = "#FF0000"; rngText.innerText = "ROLLED: CRIT! (" + rand.toFixed(2) + "%)"; }
+    else if (rand < 1.5) { res = "hit"; rngText.style.color = "#4169E1"; rngText.innerText = "ROLLED: HIT (" + rand.toFixed(2) + "%)"; }
     else {
         if (Math.random() > 0.5) { res = "miss"; rngText.style.color = "#aaa"; rngText.innerText = "ROLLED: MISS (" + rand.toFixed(2) + "%)"; }
         else { res = "immune"; rngText.style.color = "#FFD700"; rngText.innerText = "ROLLED: IMMUNE (" + rand.toFixed(2) + "%)"; }
@@ -122,7 +122,7 @@ function rollLuck() {
 }
 
 function drawSprite(sprite, startX, startY) {
-    if(!animCtx) return;
+    if (!animCtx) return;
     for (var y = 0; y < sprite.length; y++) {
         for (var x = 0; x < sprite[y].length; x++) {
             var color = sprite[y][x];
@@ -135,15 +135,15 @@ function drawSprite(sprite, startX, startY) {
 }
 
 function drawDiagonalText(textArr, startX, startY, spacingX, spacingY) {
-    textArr.forEach(function(letterSprite, i) {
+    textArr.forEach(function (letterSprite, i) {
         drawSprite(letterSprite, startX + (i * spacingX * animScale), startY - (i * spacingY * animScale));
     });
 }
 
 function updateCanvas(pct) {
     var cvs = document.getElementById('animCanvas');
-    if(!cvs || !animCtx) return;
-    
+    if (!cvs || !animCtx) return;
+
     // Clear
     animCtx.clearRect(0, 0, cvs.width, cvs.height);
 
@@ -153,14 +153,14 @@ function updateCanvas(pct) {
     animCtx.fillRect(0, groundY, cvs.width, 20);
 
     // Positions
-    var moonkinY = groundY - (SPRITES.moonkinLarge.length * animScale) + 5; 
+    var moonkinY = groundY - (SPRITES.moonkinLarge.length * animScale) + 5;
     var dummyY = groundY - (SPRITES.dummyLarge.length * animScale) + 5;
-    var startX = 30; 
-    var endX = cvs.width - 80; 
+    var startX = 30;
+    var endX = cvs.width - 80;
 
     // 1. Draw Moonkin
     drawSprite(SPRITES.moonkinLarge, startX, moonkinY);
-    
+
     // Tear on Miss
     if (animOutcome === 'miss' && pct >= 80) {
         var tearX = startX + (3 * animScale);
@@ -184,7 +184,7 @@ function updateCanvas(pct) {
 
     // 3. Animation Logic
     var castFinishedAt = 80;
-    var wrathFlyStart = 40; 
+    var wrathFlyStart = 40;
     var wrathFlyEnd = 80;
 
     // === STARFIRE ANIMATION ===
@@ -193,22 +193,22 @@ function updateCanvas(pct) {
             var castX = startX + (SPRITES.moonkinLarge[0].length * animScale) - 10;
             var castY = moonkinY + 20;
             var pulse = (Math.floor(pct / 4) % 2 === 0); // Pulse Speed hardcoded for smooth look
-            if(pulse) drawSprite(SPRITES.castBall2, castX - 2, castY - 2);
+            if (pulse) drawSprite(SPRITES.castBall2, castX - 2, castY - 2);
             else drawSprite(SPRITES.castBall1, castX, castY);
 
         } else if (pct >= castFinishedAt) {
-            var beamX = endX + 8; 
+            var beamX = endX + 8;
             var segmentHeight = SPRITES.beamSegment.length * animScale;
-            
+
             if (animOutcome === 'hit' || animOutcome === 'immune') { // Beam appears on immune too, just blocked
-                for(var yPos = -20; yPos < groundY; yPos += segmentHeight) drawSprite(SPRITES.beamSegment, beamX, yPos);
-                if(animOutcome === 'hit') drawSprite(SPRITES.impactSplash, beamX - 5, groundY - 15);
+                for (var yPos = -20; yPos < groundY; yPos += segmentHeight) drawSprite(SPRITES.beamSegment, beamX, yPos);
+                if (animOutcome === 'hit') drawSprite(SPRITES.impactSplash, beamX - 5, groundY - 15);
             } else if (animOutcome === 'crit') {
-                for(var yPos = -20; yPos < groundY; yPos += segmentHeight) drawSprite(SPRITES.redBeamSegment, beamX, yPos);
+                for (var yPos = -20; yPos < groundY; yPos += segmentHeight) drawSprite(SPRITES.redBeamSegment, beamX, yPos);
                 drawSprite(SPRITES.impactSplash, beamX - 5, groundY - 15);
             }
         }
-    } 
+    }
     // === WRATH ANIMATION ===
     else if (animSpell === 'wrath') {
         var castX = startX + (SPRITES.moonkinLarge[0].length * animScale) - 5;
@@ -221,10 +221,10 @@ function updateCanvas(pct) {
             if (pct % 10 < 5) drawSprite(SPRITES.wrathBall, castX, castY);
         } else if (pct >= wrathFlyStart) {
             // Flight
-            var flightDuration = wrathFlyEnd - wrathFlyStart; 
-            var currentFlightTime = pct - wrathFlyStart; 
-            var flightFactor = currentFlightTime / flightDuration; 
-            
+            var flightDuration = wrathFlyEnd - wrathFlyStart;
+            var currentFlightTime = pct - wrathFlyStart;
+            var flightFactor = currentFlightTime / flightDuration;
+
             var curX = castX + (targetX - castX) * flightFactor;
             var curY = castY + (targetY - castY) * flightFactor;
 
@@ -245,7 +245,7 @@ function updateCanvas(pct) {
     if (pct >= castFinishedAt) {
         var textStartX = endX - 20;
         var textStartY = dummyY - 10;
-        
+
         if (animOutcome === 'crit') {
             drawDiagonalText([SPRITES.txtC, SPRITES.txtR, SPRITES.txtI, SPRITES.txtT, SPRITES.txtEcl], textStartX, textStartY, 4, 2);
         } else if (animOutcome === 'miss') {

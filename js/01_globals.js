@@ -12,16 +12,16 @@ var CURRENT_VIEW = 'avg';
 var toastTimer = null;
 
 var ITEM_DB = [];
-var ENCHANT_DB = []; 
-var GEAR_SELECTION = {}; 
-var ENCHANT_SELECTION = {}; 
+var ENCHANT_DB = [];
+var GEAR_SELECTION = {};
+var ENCHANT_SELECTION = {};
 
 var CONFIG_IDS = [
-    "maxTime", "simCount", "avcd", "calcMethod", 
-    "statHit", "statCrit", "statHaste", 
-    "sp_gen", "sp_nature", "sp_arcane", "sp_pen", 
+    "maxTime", "simCount", "avcd", "calcMethod",
+    "statHit", "statCrit", "statHaste",
+    "sp_gen", "sp_nature", "sp_arcane", "sp_pen",
     "enemy_level", "res_arcane", "res_nature", "enemy_cos",
-    "rota_fish", "start_boat", "wrath_flight", 
+    "rota_fish", "start_boat", "wrath_flight",
     "rota_is", "rota_mf", "rota_eclDot", "rota_interrupt",
     "rota_starfire", "rota_wrath",
     "t3_4p", "t3_6p", "t3_8p", "t35_5p",
@@ -39,14 +39,14 @@ var CONFIG_IDS = [
 var SLOT_LAYOUT = {
     left: ["Head", "Neck", "Shoulder", "Back", "Chest", "Wrist"],
     right: ["Hands", "Waist", "Legs", "Feet", "Finger 1", "Finger 2", "Trinket 1", "Trinket 2"],
-    bottom: ["Main Hand", "Off Hand"] 
+    bottom: ["Main Hand", "Off Hand"]
 };
 
 // Base 3.38% Crit for Druids, Base Hit 0
 const RACE_STATS = {
-    "Tauren":   { hit: 3, crit: 3.33, haste: 0, stam: 72, int: 95 },
+    "Tauren": { hit: 3, crit: 3.33, haste: 0, stam: 72, int: 95 },
     "NightElf": { hit: 3, crit: 3.33, haste: 0, stam: 69, int: 100 }
-    
+
 };
 
 // Simulation Object Constructor
@@ -91,27 +91,27 @@ const SPRITES = {
         [C._, C._, C._, C.D, C.B, C.D, C._, C._, C._],
         [C._, C._, C.D, C.D, C.D, C.D, C.D, C._, C._]
     ],
-    castBall1: [[C._, C.P1, C.P1, C._],[C.P1, C.P2, C.P2, C.P1],[C.P1, C.P2, C.P2, C.P1],[C._, C.P1, C.P1, C._]],
-    castBall2: [[C._, C.P1, C.P2, C.P1, C._],[C.P1, C.P2, C.W, C.P2, C.P1],[C.P2, C.W, C.W, C.W, C.P2],[C.P1, C.P2, C.W, C.P2, C.P1],[C._, C.P1, C.P2, C.P1, C._]],
-    beamSegment: [[C.DB, C.LB, C.W, C.W, C.LB, C.DB],[C.DB, C.LB, C.W, C.W, C.LB, C.DB],[C.DB, C.LB, C.W, C.W, C.LB, C.DB],[C.DB, C.LB, C.W, C.W, C.LB, C.DB]],
-    impactSplash: [[C._, C.LB, C._, C.LB, C._],[C.LB, C.W, C.LB, C.W, C.LB],[C.ExpY, C.LB, C.W, C.LB, C.ExpY],[C.ExpO, C.ExpY, C.LB, C.ExpY, C.ExpO]],
-    redBeamSegment: [[C.R, C.LB, C.W, C.W, C.LB, C.R],[C.R, C.LB, C.W, C.W, C.LB, C.R],[C.R, C.LB, C.W, C.W, C.LB, C.R],[C.R, C.LB, C.W, C.W, C.LB, C.R]],
-    wrathBall: [[C._, C.DG, C.DG, C._],[C.DG, C.NG, C.NG, C.DG],[C.DG, C.NG, C.W, C.DG],[C._, C.DG, C.DG, C._]],
-    wrathSplash: [[C._, C.NG, C._, C.NG, C._],[C.NG, C.LG, C.NG, C.LG, C.NG],[C.DG, C.NG, C.W, C.NG, C.DG],[C._, C.DG, C.NG, C.DG, C._]],
-    tear: [ [C.TB], [C.TB], [C.TB] ],
-    
-    txtC: T(['XXX','X..','X..','X..','XXX']),
-    txtR: T(['XXX','X.X','XXX','X.X','X.X']),
-    txtI: T(['XXX','.X.','.X.','.X.','XXX']),
-    txtT: T(['XXX','.X.','.X.','.X.','.X.']),
-    txtM: T(['X.X','XXX','X.X','X.X','X.X']),
-    txtS: T(['XXX','X..','XXX','..X','XXX']),
-    txtEcl: T(['.X.','.X.','.X.','...','.X.']),
-    txtI_y: T(['XXX','.X.','.X.','.X.','XXX'], C.TY),
-    txtM_y: T(['X.X','XXX','X.X','X.X','X.X'], C.TY),
-    txtU_y: T(['X.X','X.X','X.X','X.X','XXX'], C.TY),
-    txtN_y: T(['XX.','X.X','X.X','X.X','X.X'], C.TY),
-    txtE_y: T(['XXX','X..','XXX','X..','XXX'], C.TY),
-    txtEcl_y: T(['.X.','.X.','.X.','...','.X.'], C.TY),
-    shield: [[C.SV, C.SV, C.SV, C.SV, C.SV],[C.SV, C.W,  C.SV, C.W,  C.SV],[C.SV, C.SV, C.SV, C.SV, C.SV],[C._,  C.SV, C.SV, C.SV, C._],[C._,  C._,  C.SV, C._,  C._]]
+    castBall1: [[C._, C.P1, C.P1, C._], [C.P1, C.P2, C.P2, C.P1], [C.P1, C.P2, C.P2, C.P1], [C._, C.P1, C.P1, C._]],
+    castBall2: [[C._, C.P1, C.P2, C.P1, C._], [C.P1, C.P2, C.W, C.P2, C.P1], [C.P2, C.W, C.W, C.W, C.P2], [C.P1, C.P2, C.W, C.P2, C.P1], [C._, C.P1, C.P2, C.P1, C._]],
+    beamSegment: [[C.DB, C.LB, C.W, C.W, C.LB, C.DB], [C.DB, C.LB, C.W, C.W, C.LB, C.DB], [C.DB, C.LB, C.W, C.W, C.LB, C.DB], [C.DB, C.LB, C.W, C.W, C.LB, C.DB]],
+    impactSplash: [[C._, C.LB, C._, C.LB, C._], [C.LB, C.W, C.LB, C.W, C.LB], [C.ExpY, C.LB, C.W, C.LB, C.ExpY], [C.ExpO, C.ExpY, C.LB, C.ExpY, C.ExpO]],
+    redBeamSegment: [[C.R, C.LB, C.W, C.W, C.LB, C.R], [C.R, C.LB, C.W, C.W, C.LB, C.R], [C.R, C.LB, C.W, C.W, C.LB, C.R], [C.R, C.LB, C.W, C.W, C.LB, C.R]],
+    wrathBall: [[C._, C.DG, C.DG, C._], [C.DG, C.NG, C.NG, C.DG], [C.DG, C.NG, C.W, C.DG], [C._, C.DG, C.DG, C._]],
+    wrathSplash: [[C._, C.NG, C._, C.NG, C._], [C.NG, C.LG, C.NG, C.LG, C.NG], [C.DG, C.NG, C.W, C.NG, C.DG], [C._, C.DG, C.NG, C.DG, C._]],
+    tear: [[C.TB], [C.TB], [C.TB]],
+
+    txtC: T(['XXX', 'X..', 'X..', 'X..', 'XXX']),
+    txtR: T(['XXX', 'X.X', 'XXX', 'X.X', 'X.X']),
+    txtI: T(['XXX', '.X.', '.X.', '.X.', 'XXX']),
+    txtT: T(['XXX', '.X.', '.X.', '.X.', '.X.']),
+    txtM: T(['X.X', 'XXX', 'X.X', 'X.X', 'X.X']),
+    txtS: T(['XXX', 'X..', 'XXX', '..X', 'XXX']),
+    txtEcl: T(['.X.', '.X.', '.X.', '...', '.X.']),
+    txtI_y: T(['XXX', '.X.', '.X.', '.X.', 'XXX'], C.TY),
+    txtM_y: T(['X.X', 'XXX', 'X.X', 'X.X', 'X.X'], C.TY),
+    txtU_y: T(['X.X', 'X.X', 'X.X', 'X.X', 'XXX'], C.TY),
+    txtN_y: T(['XX.', 'X.X', 'X.X', 'X.X', 'X.X'], C.TY),
+    txtE_y: T(['XXX', 'X..', 'XXX', 'X..', 'XXX'], C.TY),
+    txtEcl_y: T(['.X.', '.X.', '.X.', '...', '.X.'], C.TY),
+    shield: [[C.SV, C.SV, C.SV, C.SV, C.SV], [C.SV, C.W, C.SV, C.W, C.SV], [C.SV, C.SV, C.SV, C.SV, C.SV], [C._, C.SV, C.SV, C.SV, C._], [C._, C._, C.SV, C._, C._]]
 };
