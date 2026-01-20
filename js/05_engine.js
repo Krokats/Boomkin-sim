@@ -36,35 +36,40 @@ function getInputs() {
     };
 }
 
-function runSimulation() {
+// HINWEIS: 'async' hinzugefügt
+async function runSimulation() {
     showProgress("Simulating...");
     var wRes = document.getElementById("weightResults");
     if(wRes) wRes.classList.add("hidden");
     
-    setTimeout(function() {
-        try {
-            updateProgress(50);
-            setTimeout(function() {
-                try {
-                    saveCurrentState();
-                    var config = getInputs();
-                    var results = runCoreSimulation(config);
-                    SIM_LIST[ACTIVE_SIM_INDEX].results = results;
-                    SIM_DATA = results; 
+    // NEU: Kurze Pause, damit der Browser das Lade-Overlay zeichnen kann
+    await new Promise(r => setTimeout(r, 50));
 
-                    setText("viewAvg", "Average (" + results.avg.dps.toFixed(1) + ")");
-                    setText("viewMin", "Min (" + results.min.dps.toFixed(1) + ")");
-                    setText("viewMax", "Max (" + results.max.dps.toFixed(1) + ")");
+    try {
+        saveCurrentState();
+        var config = getInputs();
+        
+        // NEU: 'await' und Übergabe von 'updateProgress' als Callback
+        var results = await runCoreSimulation(config, updateProgress);
+        
+        SIM_LIST[ACTIVE_SIM_INDEX].results = results;
+        SIM_DATA = results; 
 
-                    switchView('avg');
-                    var btnW = document.getElementById("btnWeights");
-                    if(btnW) btnW.disabled = false;
-                    updateProgress(100);
-                } catch (e) { alert("Error: " + e.message); console.error(e); } 
-                finally { setTimeout(hideProgress, 200); }
-            }, 100);
-        } catch(e) { setTimeout(hideProgress, 200); }
-    }, 100);
+        setText("viewAvg", "Average (" + results.avg.dps.toFixed(1) + ")");
+        setText("viewMin", "Min (" + results.min.dps.toFixed(1) + ")");
+        setText("viewMax", "Max (" + results.max.dps.toFixed(1) + ")");
+
+        switchView('avg');
+        var btnW = document.getElementById("btnWeights");
+        if(btnW) btnW.disabled = false;
+        
+        updateProgress(100);
+    } catch (e) { 
+        alert("Error: " + e.message); 
+        console.error(e); 
+    } finally { 
+        setTimeout(hideProgress, 200); 
+    }
 }
 
 function runAllSims() {
@@ -83,60 +88,73 @@ function runAllSims() {
         ACTIVE_SIM_INDEX = idx;
         applyConfigToUI(SIM_LIST[idx].config);
         
-        setTimeout(function() {
+        // NEU: 'async function' innerhalb des Timeouts
+        setTimeout(async function() {
             var config = getInputs();
-            var res = runCoreSimulation(config);
+            // NEU: 'await', aber kein Callback (null), da der Balken für Gesamtfortschritt genutzt wird
+            var res = await runCoreSimulation(config, null);
             SIM_LIST[idx].results = res;
             idx++;
             step();
-        }, 100);
+        }, 50);
     }
     step();
 }
 
-function calculateWeights() {
+// HINWEIS: 'async' hinzugefügt
+async function calculateWeights() {
     showProgress("Calculating Weights...");
-    setTimeout(function() {
-        try {
-            var b = getInputs(); 
-            b.mode = "D_AVG"; b.iterations = 1; b.maxTime = 10000;
-            
-            var rB = runCoreSimulation(b).avg.dps;
+    
+    // NEU: UI Render Pause
+    await new Promise(r => setTimeout(r, 50));
 
-            var dSP = 50;
-            var cSP = JSON.parse(JSON.stringify(b)); cSP.power.sp += dSP;
-            var rSP = runCoreSimulation(cSP).avg.dps;
-            var wSP = (rSP - rB) / dSP;
-            
-            if(wSP === 0) wSP = 1;
+    try {
+        var b = getInputs(); 
+        b.mode = "D_AVG"; b.iterations = 1; b.maxTime = 10000;
+        
+        // NEU: 'await' vor jedem runCoreSimulation Aufruf
+        var resBase = await runCoreSimulation(b);
+        var rB = resBase.avg.dps;
 
-            var cCrit = JSON.parse(JSON.stringify(b)); cCrit.stats.crit += 1;
-            var wCrit = (runCoreSimulation(cCrit).avg.dps - rB) / wSP;
-            
-            var cHit = JSON.parse(JSON.stringify(b)); 
-            cHit.stats.hitBonus += 1; 
-            cHit.stats.hit = Math.min(0.99, 0.83 + cHit.stats.hitBonus/100); 
-            var wHit = (runCoreSimulation(cHit).avg.dps - rB) / wSP;
-            
-            var cHaste = JSON.parse(JSON.stringify(b)); cHaste.stats.haste += 1;
-            var wHaste = (runCoreSimulation(cHaste).avg.dps - rB) / wSP;
-            
-            var resBox = document.getElementById("weightResults");
-            if(resBox) resBox.classList.remove("hidden");
-            
-            setText("val_crit", wCrit.toFixed(2));
-            setText("val_hit", wHit.toFixed(2));
-            setText("val_haste", wHaste.toFixed(2));
-        } catch(e) { console.error(e); }
-        hideProgress();
-    }, 50);
+        var dSP = 50;
+        var cSP = JSON.parse(JSON.stringify(b)); cSP.power.sp += dSP;
+        var resSP = await runCoreSimulation(cSP); // await
+        var rSP = resSP.avg.dps;
+        var wSP = (rSP - rB) / dSP;
+        
+        if(wSP === 0) wSP = 1;
+
+        var cCrit = JSON.parse(JSON.stringify(b)); cCrit.stats.crit += 1;
+        var resCrit = await runCoreSimulation(cCrit); // await
+        var wCrit = (resCrit.avg.dps - rB) / wSP;
+        
+        var cHit = JSON.parse(JSON.stringify(b)); 
+        cHit.stats.hitBonus += 1; 
+        cHit.stats.hit = Math.min(0.99, 0.83 + cHit.stats.hitBonus/100); 
+        var resHit = await runCoreSimulation(cHit); // await
+        var wHit = (resHit.avg.dps - rB) / wSP;
+        
+        var cHaste = JSON.parse(JSON.stringify(b)); cHaste.stats.haste += 1;
+        var resHaste = await runCoreSimulation(cHaste); // await
+        var wHaste = (resHaste.avg.dps - rB) / wSP;
+        
+        var resBox = document.getElementById("weightResults");
+        if(resBox) resBox.classList.remove("hidden");
+        
+        setText("val_crit", wCrit.toFixed(2));
+        setText("val_hit", wHit.toFixed(2));
+        setText("val_haste", wHaste.toFixed(2));
+    } catch(e) { 
+        console.error(e); 
+    }
+    hideProgress();
 }
 
 // ============================================================================
 // MATH CORE
 // ============================================================================
 
-function runCoreSimulation(cfg) {
+async function runCoreSimulation(cfg, progressCallback) {
     var effResNat = Math.max(0, (cfg.enemy.level - 60)*5 + cfg.enemy.resNat - cfg.power.pen);
     var effResArc = Math.max(0, (cfg.enemy.level - 60)*5 + cfg.enemy.resArc - cfg.power.pen);
     var avgMitNat = Math.min(0.75, (effResNat / (cfg.enemy.level * 5)) * 0.75);
@@ -166,7 +184,16 @@ function runCoreSimulation(cfg) {
     var minLog = [];
     var maxLog = [];
 
+    // NEU: Batch Size berechnen (ca. 100 Updates pro Simulation)
+    var batchSize = Math.max(1, Math.floor(cfg.iterations / 100));
+
     for (var run = 0; run < cfg.iterations; run++) {
+
+        if (progressCallback && run > 0 && (run % batchSize === 0)) {
+            progressCallback((run / cfg.iterations) * 100);
+            await new Promise(r => setTimeout(r, 0)); // Kurze Pause (0ms reicht meist, um den Stack zu klären)
+        }
+
         var State = { t: 0.0, gcdEnd: 0.0, castEnd: 0.0, casting: false, spellId: null, neEnd: 0.0, aeEnd: 0.0, neCD: 0.0, aeCD: 0.0, ng: false, boat: cfg.rota.startBoat, t38End: 0.0, t3End: 0.0, fishingLastCast: "", activeMF: null, activeIS: null, pendingImpacts: [], dotCounter: 0, bindingEnd: 0.0, bindingCD: 0.0, reosEnd: 0.0, reosCD: 0.0, toepEnd: 0.0, toepCD: 0.0, roopEnd: 0.0, roopCD: 0.0, zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0, ooc: false, boon: 0 };
         var RunStats = { totalDmg: 0, totalMana: 0, dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, casts: 0, misses: 0, hits: 0, dmgCrit: 0, uptimeAE: 0, uptimeNE: 0 };
         var RunLog = [];
