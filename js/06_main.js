@@ -12,7 +12,7 @@ function init() {
     updateEnemyInfo();
     updateSpellStats();
     importSettings();
-    loadDatabase(); 
+    loadDatabase();
 }
 
 // Start
