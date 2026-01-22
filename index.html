@@ -100,6 +100,7 @@
                                     <select id="armoryRealm">
                                         <option value="Nordanaar" selected>Nordanaar</option>
                                         <option value="Tel'Abim">Tel'Abim</option>
+                                        <option value="Ambershire">Ambershire</option>
                                     </select>
                                 </div>
                             </div>
@@ -157,7 +158,7 @@
                             <div class="char-left" id="charLeftCol"></div>
 
                             <div class="char-middle">
-                                <h2 style="margin-bottom:10px; font-size:1rem;">Stat Weights (Score)</h2>
+                                <h2 style="margin-bottom:10px; font-size:1rem;">Stat Weights</h2>
                                 <div class="gp-stats-config">
                                     <div class="gp-input-group"><label>Hit</label><input type="number" id="weight_hit"
                                             value="16" onchange="recalcItemScores()"></div>
@@ -181,15 +182,19 @@
                                         <div id="gp_gs"
                                             style="font-size: 2rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255, 125, 10, 0.5);">
                                             0</div>
-                                        <div style="font-size: 0.65rem; color: #666; margin-top: -5px;">(Items + Sets
-                                            only)</div>
                                     </div>
 
                                     <div
                                         style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; width: 100%;">
                                         <div class="gp-stat-box"
                                             style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; text-align: center;">
-                                            <div style="font-size:0.75rem; color:#aaa;">Total SP</div>
+                                            <div style="font-size:0.75rem; color:#aaa;">Int</div>
+                                            <div id="gp_int" style="font-size:1.1rem; color:#fff; font-weight:600;">0
+                                            </div>
+                                        </div>
+                                        <div class="gp-stat-box"
+                                            style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; text-align: center;">
+                                            <div style="font-size:0.75rem; color:#aaa;">SP</div>
                                             <div id="gp_sp" style="font-size:1.1rem; color:#fff; font-weight:600;">0
                                             </div>
                                         </div>
@@ -209,12 +214,6 @@
                                             style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; text-align: center;">
                                             <div style="font-size:0.75rem; color:#aaa;">Haste</div>
                                             <div id="gp_haste" style="font-size:1.1rem; color:#fff; font-weight:600;">0%
-                                            </div>
-                                        </div>
-                                        <div class="gp-stat-box"
-                                            style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; text-align: center;">
-                                            <div style="font-size:0.75rem; color:#aaa;">Int</div>
-                                            <div id="gp_int" style="font-size:1.1rem; color:#fff; font-weight:600;">0
                                             </div>
                                         </div>
                                     </div>
@@ -237,6 +236,7 @@
                         <div class="grid-container">
 
                             <div class="card full-width">
+
                                 <div class="card-header">
                                     <h2>✨ Buffs & Consumables</h2>
                                 </div>
@@ -321,8 +321,14 @@
                                             </select></div>
                                     </div>
                                     <div class="input-group" id="iterGroup"><label>Number of Fights</label><input
-                                            type="number" id="simCount" value="5000"></div>
+                                            type="number" id="simCount" value="5000">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>RNG Seed (Optional)</label>
+                                        <input type="text" id="rng_seed" placeholder="Random if empty">
+                                    </div>
                                 </div>
+                                    
                             </div>
 
                             <div class="card full-width-mobile">
@@ -482,8 +488,7 @@
                                     </div>
                                     <div class="gear-section-title">On-Use Trinkets</div>
                                     <div class="checkbox-grid" style="margin-bottom: 15px;">
-                                        <label class="custom-checkbox"><input type="checkbox" id="item_reos"
-                                                disabled><span class="checkmark"></span> The Restrained Essence of
+                                        <label class="custom-checkbox"><input type="checkbox" id="item_reos" disabled><span class="checkmark"></span> The Restrained Essence of
                                             Sapphiron</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_toep"
                                                 disabled><span class="checkmark"></span> Talisman of Ephemeral
@@ -535,11 +540,11 @@
                                     <h2>Results</h2>
                                 </div>
                                 <div class="center-toggles">
-                                    <div class="view-toggles"><button class="view-btn active"
-                                            onclick="switchView('avg')" id="viewAvg">Average</button><button
-                                            class="view-btn" onclick="switchView('min')" id="viewMin">Min
-                                            DPS</button><button class="view-btn" onclick="switchView('max')"
-                                            id="viewMax">Max DPS</button></div>
+                                    <div class="view-toggles">
+                                        <button class="view-btn" onclick="switchView('min')" id="viewMin">Min DPS</button>
+                                        <button class="view-btn active" onclick="switchView('avg')" id="viewAvg">Average</button>
+                                        <button class="view-btn" onclick="switchView('max')" id="viewMax">Max DPS</button>
+                                    </div>
                                 </div>
                                 <div class="right-actions"><button onclick="generateSummaryImage()" class="btn-mini"
                                         style="margin-right:5px;">📸 Save Image</button></div>
@@ -558,16 +563,25 @@
                                     <h3>MPS</h3><span id="out_mps" class="med-number">-</span>
                                 </div>
                             </div>
-                            <div id="weightResults" class="hidden weight-box">
-                                <div class="weight-grid">
-                                    <div class="weight-item"><span class="weight-label">Reference</span><span
-                                            class="weight-value">1 SP = 1.00 EP</span></div>
-                                    <div class="weight-item"><span class="weight-label">Value of 1% Crit</span><span
-                                            class="weight-value orange"><span id="val_crit">-</span> SP</span></div>
-                                    <div class="weight-item"><span class="weight-label">Value of 1 Hit</span><span
-                                            class="weight-value blue"><span id="val_hit">-</span> SP</span></div>
-                                    <div class="weight-item"><span class="weight-label">Value of 1% Haste</span><span
-                                            class="weight-value green"><span id="val_haste">-</span> SP</span></div>
+                            <div id="weightResults" class="hidden" style="margin-bottom: 30px;">
+                                <h3 style="font-size: 0.9rem; color: #a0a0a0; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;">Stat Weights (EP Values)</h3>
+                                <div class="stats-grid">
+                                    <div class="stat-box">
+                                        <h3>Reference</h3>
+                                        <span class="med-number" style="font-size: 1.5rem; color: #888;">1 SP = 1.00</span>
+                                    </div>
+                                    <div class="stat-box">
+                                        <h3>1% Crit</h3>
+                                        <span id="val_crit" class="med-number">-</span>
+                                    </div>
+                                    <div class="stat-box">
+                                        <h3>1 Hit</h3>
+                                        <span id="val_hit" class="med-number">-</span>
+                                    </div>
+                                    <div class="stat-box">
+                                        <h3>1% Haste</h3>
+                                        <span id="val_haste" class="med-number">-</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="table-wrapper">
