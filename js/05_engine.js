@@ -163,7 +163,7 @@ function calculateWeights() {
     // Basis-Konfiguration
     var baseConfig = getInputs();
     baseConfig.mode = "S"; 
-    var iterations = 2500; 
+    var iterations = 5000; 
     baseConfig.iterations = iterations;
 
     // Check Hit Cap (16% Hit = 99% Chance vs Lvl 63)
@@ -171,8 +171,8 @@ function calculateWeights() {
     // Wir prüfen also, ob wir das Hardcap bereits erreicht haben.
     var isHitCapped = (baseConfig.stats.hit >= 0.99);
 
-    var baseSeed = baseConfig.rng_seed ? parseInt(baseConfig.rng_seed) : 1337;
-    if (isNaN(baseSeed)) baseSeed = 1337;
+    var baseSeed = 1337;//baseConfig.rng_seed ? parseInt(baseConfig.rng_seed) : 1337; keep the Stat Weigh Process constant
+    //if (isNaN(baseSeed)) baseSeed = 1337;
 
     // Szenarien
     var scenarios = [
@@ -184,7 +184,7 @@ function calculateWeights() {
             // Neu berechnen für dieses Szenario, da das Cap in getInputs schon passierte
             c.stats.hit = Math.min(0.99, c.stats.baseHitProb + (c.stats.hitBonus/100)); 
         }, skip: isHitCapped }, // Skip flag wenn am Cap
-        { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 1; } }
+        { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 5; } }
     ];
 
     // Wir speichern ALLE Einzelergebnisse des Base-Runs, 
@@ -306,6 +306,7 @@ function finalizeWeights() {
                    '<div style="font-size:0.85rem; color:#555; margin-top:4px;">(Capped)</div>';
         }
 
+        // wenn data = haste, dann durch 5 teilen
         var data = calculatedDeltas[key];
         var w = data.mean / valRef;
         var e = data.se / valRef;
