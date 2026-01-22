@@ -158,6 +158,8 @@ function showTooltip(e, item) {
     var iconUrl = getIconUrl(item.icon);
 
     var html = '<div class="tt-header"><div class="tt-icon-small" style="background-image:url(\'' + iconUrl + '\')"></div><div style="flex:1"><div class="tt-name" style="color:' + qualityColor + '">' + item.name + '</div></div></div>';
+
+    // UPDATED: Use requiredLevel instead of itemLevel
     if (item.requiredLevel) html += '<div class="tt-white">Requires Level ' + item.requiredLevel + '</div>';
 
     // UPDATED: Slot + ArmorType/WeaponType aligned right
@@ -202,35 +204,28 @@ function showTooltip(e, item) {
         }
     }
 
-    // SET INFORMATION LOGIC
+    // Set Info
     if (item.setName) {
         html += '<div class="tt-spacer"></div>';
-
         var siblings = ITEM_DB.filter(function (i) { return i.setName === item.setName; });
         var equippedCount = 0;
         for (var slot in GEAR_SELECTION) {
             var gid = GEAR_SELECTION[slot];
-            // Safety check for ID
             if (gid && (typeof gid === 'number' || typeof gid === 'string') && gid != 0) {
                 var gItem = ITEM_ID_MAP[gid];
                 if (gItem && gItem.setName === item.setName) equippedCount++;
             }
         }
-
         html += '<div class="tt-gold">' + item.setName + ' (' + equippedCount + '/' + siblings.length + ')</div>';
-
         siblings.forEach(function (sItem) {
             var isEquipped = false;
             for (var slot in GEAR_SELECTION) {
-                // Loose equality for String/Number ID match
                 if (GEAR_SELECTION[slot] == sItem.id) isEquipped = true;
             }
             var color = isEquipped ? '#ffff99' : '#888';
             html += '<div style="color:' + color + '; margin-left:10px;">' + sItem.name + '</div>';
         });
-
         html += '<div class="tt-spacer"></div>';
-
         if (item.setBonuses) {
             if (typeof item.setBonuses === 'object' && !Array.isArray(item.setBonuses)) {
                 var keys = Object.keys(item.setBonuses).sort(function (a, b) { return a - b });

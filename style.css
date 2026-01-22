@@ -249,8 +249,13 @@ header h1 {
     color: var(--text-muted);
     font-size: 0.9rem;
 }
+input[type=number] {
+    -moz-appearance: textfield;
+}
 
-input[type="number"], select {
+input[type="number"],
+select,
+input[type="text"] {
     width: 100%;
     padding: 10px 12px;
     background: #2a2a2a;
@@ -263,7 +268,9 @@ input[type="number"], select {
     box-sizing: border-box;
 }
 
-input[type="number"]:focus, select:focus {
+input[type="number"]:focus,
+select:focus,
+input[type="text"]:focus {
     outline: none;
     border-color: var(--druid-orange);
     box-shadow: 0 0 5px rgba(255, 125, 10, 0.3);
@@ -835,15 +842,17 @@ input:checked + .slider::before { transform: translateX(16px); background-color:
     display: flex;
     flex-direction: column;
 }
-.gp-input-group label {
+
+/*.gp-input-group label {
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-bottom: 4px;
-}
-.gp-input-group input {
+}*/
+
+/*.gp-input-group input {
     padding: 6px 8px;
     font-size: 0.9rem;
-}
+}*/
 
 .gp-stats-preview {
     background: #2a2a2a;
@@ -1320,3 +1329,16 @@ input:checked + .slider::before { transform: translateX(16px); background-color:
 
 .log-actions { display: flex; gap: 10px; }
 .hidden { display: none !important; }
+
+/* --- STAT WEIGHT COLORS --- */
+/* Hilfsklassen für die Einfärbung der Ergebnisse in den Stat-Boxen */
+.text-stat-orange { color: var(--druid-orange); }
+.text-stat-blue { color: #64b5f6; }
+.text-stat-green { color: var(--nature-green); }
+
+/* Entfernt den alten Rahmenstil, da wir jetzt das Grid nutzen */
+#weightResults {
+    background: transparent;
+    border: none;
+    padding: 0;
+}

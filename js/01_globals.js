@@ -17,7 +17,7 @@ var GEAR_SELECTION = {};
 var ENCHANT_SELECTION = {};
 
 var CONFIG_IDS = [
-    "maxTime", "simCount", "avcd", "calcMethod",
+    "maxTime", "simCount","rng_seed", "avcd", "calcMethod",
     "statHit", "statCrit", "statHaste",
     "sp_gen", "sp_nature", "sp_arcane", "sp_pen",
     "enemy_level", "res_arcane", "res_nature", "enemy_cos",
