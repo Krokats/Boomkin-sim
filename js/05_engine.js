@@ -176,15 +176,15 @@ function calculateWeights() {
 
     // Szenarien
     var scenarios = [
-        { id: "base", label: "Base", mod: function(c) {} },
-        { id: "sp",   label: "+50 SP", mod: function(c) { c.power.sp += 50; } },
-        { id: "crit", label: "+1% Crit", mod: function(c) { c.stats.crit += 1; } },
+        { id: "base", label: "Base", mod: function(c) {}, norm: 1 },
+        { id: "sp",   label: "+50 SP", mod: function(c) { c.power.sp += 50; } , norm: 50},
+        { id: "crit", label: "+1% Crit", mod: function(c) { c.stats.crit += 1; }, norm: 1 },
         { id: "hit",  label: "+1% Hit", mod: function(c) { 
             c.stats.hitBonus += 1; 
             // Neu berechnen für dieses Szenario, da das Cap in getInputs schon passierte
             c.stats.hit = Math.min(0.99, c.stats.baseHitProb + (c.stats.hitBonus/100)); 
-        }, skip: isHitCapped }, // Skip flag wenn am Cap
-        { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 5; } }
+        }, skip: isHitCapped, norm: 1 }, // Skip flag wenn am Cap
+        { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 5; }, norm: 5 }
     ];
 
     // Wir speichern ALLE Einzelergebnisse des Base-Runs, 
@@ -306,19 +306,22 @@ function finalizeWeights() {
                    '<div style="font-size:0.85rem; color:#555; margin-top:4px;">(Capped)</div>';
         }
 
-        // wenn data = haste, dann durch 5 teilen
         var data = calculatedDeltas[key];
-        var w = data.mean / valRef;
-        var e = data.se / valRef;
         
-        // Farbe basierend auf dem Stat wählen (definiert in style.css)
+        // Finde den Normalisierungsfaktor für dieses Szenario (z.B. 5 bei Haste)
+        var scenObj = scenarios.find(s => s.id === key);
+        var norm = (scenObj && scenObj.norm) ? scenObj.norm : 1;
+
+        // Berechnung: (Delta DPS / Normalisierung) / (DPS pro 1 SP)
+        var w = (data.mean / norm) / valRef;
+        var e = (data.se / norm) / valRef;
+        
         var colorClass = "";
         if(key === "crit") colorClass = "text-stat-orange";
         else if(key === "hit") colorClass = "text-stat-blue";
         else if(key === "haste") colorClass = "text-stat-green";
-        else colorClass = "text-stat-orange"; // Fallback
+        else colorClass = "text-stat-orange";
 
-        // Design passend zur .stat-box / .med-number Klasse
         return '<span class="med-number ' + colorClass + '">' + w.toFixed(2) + '</span>' + 
                '<div style="font-size:0.85rem; color:#888; margin-top:4px;">&plusmn;' + e.toFixed(2) + '</div>';
     };
@@ -326,13 +329,10 @@ function finalizeWeights() {
     var resBox = document.getElementById("weightResults");
     if (resBox) resBox.classList.remove("hidden");
 
-    // UI Updates
     var elCrit = document.getElementById("val_crit");
-    // Parent-Element leeren, um sauberen Neubau zu garantieren, da wir innerHTML ersetzen
     if(elCrit) {
-        elCrit.innerHTML = "";   
-        elCrit.className = ""; // Reset Klassen (entfernt med-number, damit wir Flexibilität haben)
-        elCrit.style.display = "block"; // Damit divs darin erlaubt sind
+        elCrit.className = ""; 
+        elCrit.style.display = "block"; 
         elCrit.innerHTML = renderInnerHtml("crit", false);
     }
 
