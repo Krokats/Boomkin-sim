@@ -142,11 +142,15 @@ function runAllSims() {
         applyConfigToUI(SIM_LIST[idx].config);
 
         // NEU: 'async function' innerhalb des Timeouts
+        // NEU: 'async function' innerhalb des Timeouts
         setTimeout(async function () {
             var config = getInputs();
             // NEU: 'await', aber kein Callback (null), da der Balken für Gesamtfortschritt genutzt wird
             var res = await runCoreSimulation(config, null);
-            SIM_LIST[idx].results = res;
+            
+            // FIX: Ergebnis aggregieren, damit UI Struktur (avg, min, max) passt
+            SIM_LIST[idx].results = aggregateResults([res], config);
+            
             idx++;
             step();
         }, 50);
