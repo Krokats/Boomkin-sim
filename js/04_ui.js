@@ -682,6 +682,7 @@ function switchView(type) {
     if (tbody) {
         tbody.innerHTML = "";
 
+        // Helper: Standard Damage Row with Bar
         function addRow(label, dmg, total) {
             var rawPct = (total > 0) ? (dmg / total * 100) : 0;
             var pctStr = rawPct.toFixed(1) + "%";
@@ -697,17 +698,56 @@ function switchView(type) {
             tbody.innerHTML += row;
         }
 
+        // Helper: Simple Stat Row (No Bar)
+        function addStatRow(label, valString, subVal) {
+             var row = '<tr><td class="text-left" style="font-weight:500; color:#aaa;">' + label + '</td>' +
+                '<td class="text-right" style="color:#fff">' + valString + '</td>' +
+                '<td class="text-right" style="color:var(--text-muted)">' + (subVal || "") + '</td>' +
+                '<td class="bar-col"></td></tr>';
+            tbody.innerHTML += row;
+        }
+
+        // Retrieve Spell Stats safely
+        var getStats = function(id) {
+            return (data.stats.spellStats && data.stats.spellStats[id]) ? data.stats.spellStats[id] : { count: 0, timeSum: 0, hits: 0, crits: 0 };
+        };
+        var sf = getStats("Starfire");
+        var wr = getStats("Wrath");
+
+        // 1. DAMAGES
         addRow("Starfire", data.stats.dmgStarfire, data.stats.totalDmg);
         addRow("Wrath", data.stats.dmgWrath, data.stats.totalDmg);
+
+        // 2. CAST TIMES & COUNTS
+        var sfTime = sf.count > 0 ? (sf.timeSum / sf.count).toFixed(2) + "s" : "-";
+        addStatRow("Avg. Casttime Starfire", sfTime);
+
+        var wrTime = wr.count > 0 ? (wr.timeSum / wr.count).toFixed(2) + "s" : "-";
+        addStatRow("Avg. Casttime Wrath", wrTime);
+
+        addStatRow("Cast Count Starfire", sf.count.toFixed(0));
+        addStatRow("Cast Count Wrath", wr.count.toFixed(0));
+
+        // 3. OTHER SPELLS
         addRow("Moonfire (Hit)", data.stats.dmgMFDirect, data.stats.totalDmg);
         addRow("Moonfire (Tick)", data.stats.dmgMFTick, data.stats.totalDmg);
         addRow("Insect Swarm", data.stats.dmgIS, data.stats.totalDmg);
+
         if (data.stats.dmgT36p > 0) addRow("Proc: T3 6p", data.stats.dmgT36p, data.stats.totalDmg);
         if (data.stats.dmgIdol > 0) addRow("Bonus: Idols", data.stats.dmgIdol, data.stats.totalDmg);
         if (data.stats.dmgT34p > 0) addRow("Bonus: T3 4p", data.stats.dmgT34p, data.stats.totalDmg);
         if (data.stats.dmgScythe > 0) addRow("Proc: Scythe", data.stats.dmgScythe, data.stats.totalDmg);
 
+        // 4. CRITICALS
         addRow("Critical Damage", data.stats.dmgCrit, data.stats.totalDmg);
+        
+        // Calculate Crit % for Specific Spells
+        // Note: 'hits' includes crits in our engine logic, so simple division works
+        var sfCritPct = sf.hits > 0 ? (sf.crits / sf.hits * 100).toFixed(1) + "%" : "-";
+        addStatRow("Critical Starfire", sfCritPct);
+
+        var wrCritPct = wr.hits > 0 ? (wr.crits / wr.hits * 100).toFixed(1) + "%" : "-";
+        addStatRow("Critical Wrath", wrCritPct);
     }
 
     var logLabel = document.getElementById("logTypeLabel");

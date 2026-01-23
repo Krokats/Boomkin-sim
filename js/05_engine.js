@@ -435,7 +435,12 @@ function runCoreSimulation(cfg) {
         dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
         dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, 
         casts: 0, misses: 0, hits: 0, dmgCrit: 0, 
-        uptimeAE: 0, uptimeNE: 0 
+        uptimeAE: 0, uptimeNE: 0, 
+        spellStats: {
+                "Starfire": { count: 0, timeSum: 0, hits: 0, crits: 0 },
+                "Wrath": { count: 0, timeSum: 0, hits: 0, crits: 0 },
+                "Moonfire": { count: 0, timeSum: 0, hits: 0, crits: 0 } // Initial hit
+        }
     };
     
     var RunLog = [];
@@ -671,12 +676,23 @@ function runCoreSimulation(cfg) {
         if (State.ng && (spell.id === "Wrath" || spell.id === "Starfire")) State.ng = false; 
         if (spell.id === "Starfire" && State.boat > 0) State.boat--; 
         if (spell.id === "Wrath" || spell.id === "Starfire") State.fishingLastCast = spell.id; 
-        addEvt(State.t + ct, "CAST_FINISH", { spell: spell }); 
+        
+        // FIX: Variable definieren
+        var eclActive = ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE()));
+
+        // FIX: 'ct' statt 'castTime' nutzen
+        addEvt(State.t + ct, "CAST_FINISH", { spell: spell, snap: eclActive, castTime: ct }); 
     };
 
-    var handleCastFinish = function (spell) {
+    var handleCastFinish = function (data) {
+        var spell = data.spell;
         State.casting = false; 
         State.currentSpellId = null;
+
+        if (RunStats.spellStats[spell.id]) {
+            RunStats.spellStats[spell.id].count++;
+            if (data.castTime) RunStats.spellStats[spell.id].timeSum += data.castTime;
+        }
 
         // ZHC Logic
         if (State.t < State.zhcEnd && State.zhcVal > 0) {
@@ -723,7 +739,14 @@ function runCoreSimulation(cfg) {
         else resData = getResist(spell.type); 
         
         var d = calculateDamageFull(spell, false, snap, crit, resData); 
-        RunStats.totalDmg += d.total; 
+        
+        if (RunStats.spellStats[spell.id]) {
+            RunStats.spellStats[spell.id].hits++;
+            if (crit) RunStats.spellStats[spell.id].crits++;
+        }
+
+        RunStats.totalDmg += d.total;
+
         RunStats.dmgT36p += d.t3Part; 
         if (d.crit > 0) RunStats.dmgCrit += d.crit; 
         if (spell.id === "Wrath") RunStats.dmgWrath += d.total; 
@@ -873,7 +896,8 @@ function runCoreSimulation(cfg) {
         while (State.pendingImpacts.length > 0 && State.pendingImpacts[0].t <= State.t + 0.001) {
             var evt = State.pendingImpacts.shift();
             checkTrinkets();
-            if (evt.type === "CAST_FINISH") handleCastFinish(evt.data.spell);
+            //if (evt.type === "CAST_FINISH") handleCastFinish(evt.data.spell);
+            if (evt.type === "CAST_FINISH") handleCastFinish(evt.data);
             else if (evt.type === "IMPACT") handleImpact(evt.data.spell, evt.data.crit, evt.data.snap);
             else if (evt.type === "DOT_TICK") handleTick(evt.data);
         }
@@ -931,25 +955,38 @@ function aggregateResults(results, cfg) {
         uptimeAE: 0, uptimeNE: 0
     };
 
+    var sumSpellStats = {};
+
     // Pass 1: Summen & Min/Max finden
     for (var i = 0; i < n; i++) {
         var r = results[i];
-        var d = r.totalDmg; // r ist jetzt das Ergebnis EINES Runs
+        var d = r.totalDmg; 
         
         totalDmg += d;
         
         if (d < minDmg) { minDmg = d; minRun = r; }
         if (d > maxDmg) { maxDmg = d; maxRun = r; }
         
-        // Stats addieren
+        // Allgemeine Stats addieren
         for (var key in sumStats) {
             if (r.stats[key]) sumStats[key] += r.stats[key];
+        }
+
+        // Spell Stats addieren
+        if (r.stats.spellStats) {
+            for (var s in r.stats.spellStats) {
+                if (!sumSpellStats[s]) sumSpellStats[s] = { count: 0, timeSum: 0, hits: 0, crits: 0 };
+                sumSpellStats[s].count += r.stats.spellStats[s].count;
+                sumSpellStats[s].timeSum += r.stats.spellStats[s].timeSum;
+                sumSpellStats[s].hits += r.stats.spellStats[s].hits;
+                sumSpellStats[s].crits += r.stats.spellStats[s].crits;
+            }
         }
     }
 
     var avgDpsVal = (totalDmg / n) / cfg.maxTime;
 
-    // Pass 2: Standard Error (für Stat Weights benötigt)
+    // Pass 2: Standard Error
     var sumSqDiff = 0;
     for (var i = 0; i < n; i++) {
         var dps = results[i].totalDmg / cfg.maxTime;
@@ -960,13 +997,24 @@ function aggregateResults(results, cfg) {
     var stdDev = Math.sqrt(variance);
     var stdErr = stdDev / Math.sqrt(n);
 
-    // Durchschnittswerte berechnen
+    // Durchschnittswerte berechnen (General)
     var avgStats = {};
     for (var key in sumStats) {
         avgStats[key] = sumStats[key] / n;
     }
 
-    // Logs extrahieren (nur von Min/Max Runs, um Speicher zu sparen)
+    // Durchschnittswerte berechnen (SpellStats)
+    avgStats.spellStats = {};
+    for (var s in sumSpellStats) {
+        avgStats.spellStats[s] = {
+            count: sumSpellStats[s].count / n,
+            timeSum: sumSpellStats[s].timeSum / n,
+            hits: sumSpellStats[s].hits / n,
+            crits: sumSpellStats[s].crits / n
+        };
+    }
+
+    // Logs extrahieren
     var avgLog = [];
     if (n === 1) avgLog = minRun.log; 
 
