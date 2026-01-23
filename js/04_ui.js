@@ -25,6 +25,35 @@ function setupUIListeners() {
             iterInput.parentElement.style.opacity = "0.5";
         }
     }
+    // PATCH 1.18.1 LOGIC: Game Version & Idols
+    var patchSel = document.getElementById('sim_patch');
+    if (patchSel) {
+        patchSel.addEventListener('change', function() {
+            updatePatchUI();
+            saveCurrentState();
+        });
+    }
+
+    // IDOL EXCLUSIVITY FOR 1.18.1
+    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang"];
+    idolIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', function(e) {
+                // Nur aktiv wenn Patch 1.18.1 ausgewählt ist
+                var p = document.getElementById('sim_patch');
+                if (p && p.value === '1.18.1' && e.target.checked) {
+                    idolIds.forEach(function(otherId) {
+                        if (otherId !== id) {
+                            var other = document.getElementById(otherId);
+                            if (other) other.checked = false;
+                        }
+                    });
+                }
+                saveCurrentState();
+            });
+        }
+    });
 
     var enemyInputs = ['enemy_level', 'res_arcane', 'res_nature', 'sp_pen'];
     enemyInputs.forEach(function (id) {
@@ -161,11 +190,13 @@ function applyConfigToUI(cfg) {
                 }
             }
         }
+       
     }
 
     calculateGearStats();
     updateEnemyInfo();
     updateSpellStats();
+     updatePatchUI();
 }
 
 function saveCurrentState() {
@@ -696,8 +727,22 @@ function switchView(type) {
 function renderCombatLog(logData) {
     if (!logData || logData.length === 0) return;
     var cfg = getInputs();
+
+    // SHOW BoaT COLUMN ONLY IN 1.18 (OLD PATCH)
+    var showBoat = (cfg.sim_patch === "1.18");
+
     var thead = document.getElementById("logHeader");
-    var baseCols = `<th style="width: 50px;">Time</th><th style="width: 50px;">Event</th><th class="col-left" style="width: 90px;">Spell</th><th style="width: 40px;">CastT</th><th style="width: 30px;">Res</th><th style="width: 50px; text-align:right;">Norm</th><th style="width: 50px; text-align:right;">Ecl</th><th style="width: 50px; text-align:right;">Crit</th><th style="width: 40px;">MF(s)</th><th style="width: 40px;">IS(s)</th><th style="width: 30px;">BoaT</th><th style="width: 30px;">NG</th><th style="width: 30px;">OoC</th><th style="width: 30px;">NB</th><th style="width: 40px;">SP</th><th style="width: 30px;">T3.6</th><th style="width: 30px;">T3.8</th><th style="width: 40px; color:#00b0ff;">Mana</th>`;
+
+    // Dynamic Header construction
+    var baseCols = `<th style="width: 50px;">Time</th><th style="width: 50px;">Event</th><th class="col-left" style="width: 90px;">Spell</th><th style="width: 40px;">CastT</th><th style="width: 30px;">Res</th><th style="width: 50px; text-align:right;">Norm</th><th style="width: 50px; text-align:right;">Ecl</th><th style="width: 50px; text-align:right;">Crit</th><th style="width: 40px;">MF(s)</th><th style="width: 40px;">IS(s)</th>`;
+    
+    // Condition: BoaT Header
+    if (showBoat) {
+        baseCols += `<th style="width: 30px;">BoaT</th>`;
+    }
+
+    baseCols += `<th style="width: 30px;">NG</th><th style="width: 30px;">OoC</th><th style="width: 30px;">NB</th><th style="width: 40px;">SP</th><th style="width: 30px;">T3.6</th><th style="width: 30px;">T3.8</th><th style="width: 40px; color:#00b0ff;">Mana</th>`;
+
     if (cfg.gear.binding) baseCols += `<th style="width: 40px; color:#e91e63;">Bind</th>`;
     if (cfg.gear.reos) baseCols += `<th style="width: 40px; color:#e91e63;">REoS</th>`;
     if (cfg.gear.toep) baseCols += `<th style="width: 40px; color:#e91e63;">ToEP</th>`;
@@ -705,8 +750,11 @@ function renderCombatLog(logData) {
     if (cfg.gear.zhc) baseCols += `<th style="width: 40px; color:#e91e63;">ZHC</th>`;
     baseCols += `<th class="col-left">Info</th>`;
     thead.innerHTML = `<tr>${baseCols}</tr>`;
-    var tbody = document.getElementById("logBody"); tbody.innerHTML = "";
+
+    var tbody = document.getElementById("logBody");
+    tbody.innerHTML = "";
     var limit = logData.length > 500 ? 500 : logData.length;
+
     for (var i = 0; i < limit; i++) {
         var entry = logData[i];
         var rowClass = "";
@@ -717,6 +765,7 @@ function renderCombatLog(logData) {
         if (entry.evt === "PROC") rowClass = "log-row-proc";
         if (entry.isAE) rowClass += " row-arcane";
         if (entry.isNE) rowClass += " row-nature";
+
         var boatStr = entry.boat > 0 ? `<span class="col-boat">${entry.boat}</span>` : "-";
         var ngStr = (entry.ng === "YES") ? `<span class="col-ng">YES</span>` : "-";
         var oocStr = (entry.ooc === "YES") ? `<span class="col-ooc">YES</span>` : "-";
@@ -724,7 +773,17 @@ function renderCombatLog(logData) {
         var valNorm = entry.dmgNorm > 0 ? Math.floor(entry.dmgNorm) : "-";
         var valEcl = entry.dmgEcl > 0 ? `<span class="col-ecl">+${Math.floor(entry.dmgEcl)}</span>` : "-";
         var valCrit = (entry.evt === "TICK") ? "-" : (entry.dmgCrit > 0 ? `<span class="col-crit">+${Math.floor(entry.dmgCrit)}</span>` : "-");
-        var html = `<tr class="${rowClass}"><td class="log-time">${entry.t}</td><td>${entry.evt}</td><td class="col-left">${entry.spell}</td><td>${entry.castTime}</td><td class="col-sp">${entry.res}</td><td class="col-right col-norm">${valNorm}</td><td class="col-right col-ecl">${valEcl}</td><td class="col-right col-crit">${valCrit}</td><td>${entry.mfRem}</td><td>${entry.isRem}</td><td>${boatStr}</td><td>${ngStr}</td><td>${oocStr}</td><td>${boonStr}</td><td class="col-sp">${entry.sp}</td><td>${entry.t36}</td><td>${entry.t38}</td><td class="col-mana">${entry.mana}</td>`;
+
+        // Dynamic Row construction
+        var html = `<tr class="${rowClass}"><td class="log-time">${entry.t}</td><td>${entry.evt}</td><td class="col-left">${entry.spell}</td><td>${entry.castTime}</td><td class="col-sp">${entry.res}</td><td class="col-right col-norm">${valNorm}</td><td class="col-right col-ecl">${valEcl}</td><td class="col-right col-crit">${valCrit}</td><td>${entry.mfRem}</td><td>${entry.isRem}</td>`;
+
+        // Condition: BoaT Cell
+        if (showBoat) {
+            html += `<td>${boatStr}</td>`;
+        }
+
+        html += `<td>${ngStr}</td><td>${oocStr}</td><td>${boonStr}</td><td class="col-sp">${entry.sp}</td><td>${entry.t36}</td><td>${entry.t38}</td><td class="col-mana">${entry.mana}</td>`;
+
         if (cfg.gear.binding) html += `<td>${entry.bBind}</td>`;
         if (cfg.gear.reos) html += `<td>${entry.bReos}</td>`;
         if (cfg.gear.toep) html += `<td>${entry.bToep}</td>`;
@@ -1029,5 +1088,36 @@ function applyImportData(importedItems, race, charName) {
     showToast("Imported data for " + charName);
 
     return { matched: matchCount };
+}
+
+function updatePatchUI() {
+    var p = document.getElementById('sim_patch');
+    var ver = p ? p.value : "1.18";
+    
+    // 1. Disable BoaT Stacks Input for 1.18.1 (Passiv)
+    var boatInput = document.getElementById('start_boat');
+    if (boatInput) {
+        if (ver === '1.18.1') {
+            boatInput.disabled = true;
+            boatInput.parentElement.style.opacity = "0.5";
+            boatInput.value = 0; // Reset visual value
+        } else {
+            boatInput.disabled = false;
+            boatInput.parentElement.style.opacity = "1";
+        }
+    }
+    
+    // 2. Ensure Single Idol Selection when switching to 1.18.1
+    if (ver === '1.18.1') {
+        var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang"];
+        var found = false;
+        idolIds.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && el.checked) {
+                if (found) el.checked = false; // Deselect others if one is already found
+                found = true;
+            }
+        });
+    }
 }
 

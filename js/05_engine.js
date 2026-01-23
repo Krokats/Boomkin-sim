@@ -21,6 +21,7 @@ function getInputs() {
     var strat = stratEl ? stratEl.value : "START";
 
     return {
+        sim_patch: document.getElementById("sim_patch") ? document.getElementById("sim_patch").value : "1.18", 
         mode: m, iterations: (m.startsWith("D")) ? 1 : (rawSims > 0 ? rawSims : 1), maxTime: getVal("maxTime"), avcd: getVal("avcd") / 1000,
         rng_seed: document.getElementById("rng_seed") ? document.getElementById("rng_seed").value : "",
         rota: {
@@ -33,7 +34,7 @@ function getInputs() {
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl },
         gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), binding: getVal("item_binding"), scythe: getVal("item_scythe"), reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), trinket_strat: strat },
-        talents: { nEProc: 50, aEProc: 30, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.665 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }
+        talents: { nEProc: 50, aEProc: 30, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }
     };
 }
 
@@ -128,6 +129,7 @@ async function runSimulation() {
 function runAllSims() {
     showProgress("Running All...");
     var idx = 0;
+    
     function step() {
         if (idx >= SIM_LIST.length) {
             updateProgress(100);
@@ -135,21 +137,46 @@ function runAllSims() {
             showOverview();
             return;
         }
+        
         var pct = (idx / SIM_LIST.length) * 100;
         updateProgress(pct);
 
         ACTIVE_SIM_INDEX = idx;
         applyConfigToUI(SIM_LIST[idx].config);
 
-        // NEU: 'async function' innerhalb des Timeouts
-        // NEU: 'async function' innerhalb des Timeouts
-        setTimeout(async function () {
+        // UI Update abwarten, dann rechnen
+        setTimeout(function () {
             var config = getInputs();
-            // NEU: 'await', aber kein Callback (null), da der Balken für Gesamtfortschritt genutzt wird
-            var res = await runCoreSimulation(config, null);
             
-            // FIX: Ergebnis aggregieren, damit UI Struktur (avg, min, max) passt
-            SIM_LIST[idx].results = aggregateResults([res], config);
+            // 1. Iterationsanzahl bestimmen
+            // (getInputs setzt iterations bereits auf 1, wenn Mode != S ist)
+            var count = config.iterations;
+
+            // 2. Seed vorbereiten (String Hash zu Int)
+            var baseSeed = 0;
+            if (config.rng_seed && config.rng_seed.toString().trim().length > 0) {
+                var str = config.rng_seed.toString().trim();
+                for (var k = 0; k < str.length; k++) {
+                    baseSeed = ((baseSeed << 5) - baseSeed) + str.charCodeAt(k);
+                    baseSeed |= 0;
+                }
+            } else {
+                baseSeed = Math.floor(Math.random() * 0xFFFFFFFF);
+            }
+
+            // 3. Batch Loop durchführen (Synchron für "Run All", um Overhead zu meiden)
+            var batchResults = [];
+            for (var j = 0; j < count; j++) {
+                var runCfg = Object.assign({}, config);
+                // Seed pro Iteration hochzählen
+                runCfg.seed = baseSeed + j;
+                
+                var res = runCoreSimulation(runCfg);
+                batchResults.push(res);
+            }
+            
+            // 4. Ergebnisse aggregieren (Avg, Min, Max bilden)
+            SIM_LIST[idx].results = aggregateResults(batchResults, config);
             
             idx++;
             step();
@@ -628,6 +655,16 @@ function runCoreSimulation(cfg) {
         if (State.ooc) { cost = 0; State.ooc = false; note = "OoC"; } 
         else if (spell.id === "Wrath" && State.boon > 0) { cost = cost / 2; State.boon--; note = "Boon"; } 
         RunStats.totalMana += cost; 
+
+        // 1.18.1 BoaT: Wrath returns Mana if IS is up
+        if (cfg.sim_patch === "1.18.1" && spell.id === "Wrath" && State.activeIS && State.activeIS.exp > State.t) {
+            var boatManaFactor = 0.30; // 30% Base (3/3 Talents)
+            if (cfg.gear.t35_5p) boatManaFactor *= 1.5; // T3.5 Bonus -> 45%
+            var returnAmt = cost * boatManaFactor; 
+            RunStats.totalMana -= returnAmt;
+            note += (note ? " / " : "") + "BoaT: +" + Math.floor(returnAmt) + " Mana";
+        }
+
         State.currentSpellId = spell.id; 
         RunStats.casts++; 
         log(State.t, "CAST_START", spell.name, "-", null, ct.toFixed(2), note, cost); 
@@ -654,7 +691,18 @@ function runCoreSimulation(cfg) {
         }
         
         RunStats.hits++; 
-        var isCrit = RNG.check(cfg.stats.crit, "crit"); 
+        
+        // CRIT CHECK
+        var finalCritChance = cfg.stats.crit;
+        // 1.18.1 BoaT: Starfire Crit if MF is up
+        if (cfg.sim_patch === "1.18.1" && spell.id === "Starfire" && State.activeMF && State.activeMF.exp > State.t) {
+            var boatCritBonus = 6.0; // 6% Base (3/3 Talents)
+            if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9%
+            finalCritChance += boatCritBonus;
+        }
+
+        var isCrit = RNG.check(finalCritChance, "crit");
+
         var eclActive = ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE())); 
         
         if (spell.isDot) { 
@@ -752,8 +800,11 @@ function runCoreSimulation(cfg) {
         if (payload.spellId === "InsectSwarm") RunStats.dmgIS += d.total; 
         if (payload.spellId === "Moonfire") RunStats.dmgMFTick += d.total; 
         
-        if (payload.spellId === "Moonfire" && cfg.talents.boon && RNG.check(30, "boon") && State.boon < 3) State.boon++; 
-        if (payload.spellId === "InsectSwarm" && RNG.check(cfg.talents.boatChance * 100, "procBoaT") && State.boat < 3) State.boat++; 
+        // OLD BoaT Procs (Only 1.18)
+        if (cfg.sim_patch === "1.18") {
+            if (payload.spellId === "Moonfire" && cfg.talents.boon && RNG.check(30, "boon") && State.boon < 3) State.boon++; 
+            if (payload.spellId === "InsectSwarm" && RNG.check(cfg.talents.boatChance * 100, "procBoaT") && State.boat < 3) State.boat++; 
+        }
         
         if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
             State.t3End = State.t + 6.0; 
