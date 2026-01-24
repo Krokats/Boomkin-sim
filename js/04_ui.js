@@ -1146,8 +1146,24 @@ function updatePatchUI() {
             boatInput.parentElement.style.opacity = "1";
         }
     }
+
+    // 2. Disable External DoTs if not 1.18.1
+    var extIds = ["enemy_ext_mf", "enemy_ext_is"];
+    extIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            if (ver !== '1.18.1') {
+                el.checked = false; // Force false
+                el.disabled = true; // Prevent input
+                if(el.parentElement) el.parentElement.style.opacity = "0.5"; // Visual feedback
+            } else {
+                el.disabled = false;
+                if(el.parentElement) el.parentElement.style.opacity = "1";
+            }
+        }
+    });
     
-    // 2. Ensure Single Idol Selection when switching to 1.18.1
+    // 3. Ensure Single Idol Selection when switching to 1.18.1
     if (ver === '1.18.1') {
         var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang"];
         var found = false;

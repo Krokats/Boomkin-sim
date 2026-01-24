@@ -28,11 +28,12 @@ function getInputs() {
             castIS: getVal("rota_is"), castMF: getVal("rota_mf"),
             castSF: getVal("rota_starfire"), castW: getVal("rota_wrath"),
             eclDOT: getVal("rota_eclDot"), spellInterrupt: getVal("rota_interrupt"),
-            fishMeth: getVal("rota_fish"), startBoat: getVal("start_boat"), wrathFlight: getVal("wrath_flight")
+            fishMeth: getVal("rota_fish"), startBoat: getVal("start_boat"), wrathFlight: getVal("wrath_flight"),
+            dotCutoff: getVal("rota_dot_cutoff") // NEU
         },
         stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), baseHitProb: baseHit },
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
-        enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl },
+        enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
         gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), binding: getVal("item_binding"), scythe: getVal("item_scythe"), reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), trinket_strat: strat },
         talents: { nEProc: 50, aEProc: 30, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }
     };
@@ -393,6 +394,10 @@ function runCoreSimulation(cfg) {
     // 1. RNG Setup
     var rngHandler = new RNGHandler(cfg.seed);
 
+    if (cfg.sim_patch !== "1.18.1") {
+        cfg.enemy.extMF = 0;
+        cfg.enemy.extIS = 0;
+    }
     // 2. Statische Werte vorbereiten
     var effResNat = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resNat - cfg.power.pen);
     var effResArc = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resArc - cfg.power.pen);
@@ -500,8 +505,8 @@ function runCoreSimulation(cfg) {
             ooc: (State.ooc ? "YES" : "-"), boon: (State.boon > 0 ? State.boon : "-"), 
             sp: dispSP, mana: (mana !== undefined ? mana : "-"), 
             info: info || "", 
-            mfRem: (State.activeMF && State.activeMF.exp > time) ? (State.activeMF.exp - time).toFixed(1) : "-",
-            isRem: (State.activeIS && State.activeIS.exp > time) ? (State.activeIS.exp - time).toFixed(1) : "-",
+            mfRem: cfg.enemy.extMF ? "EXT" : ((State.activeMF && State.activeMF.exp > time) ? (State.activeMF.exp - time).toFixed(1) : "-"),
+            isRem: cfg.enemy.extIS ? "EXT" : ((State.activeIS && State.activeIS.exp > time) ? (State.activeIS.exp - time).toFixed(1) : "-"),
             t36: (State.t3End > time) ? (State.t3End - time).toFixed(1) : "-",
             t38: (State.t38End > time) ? (State.t38End - time).toFixed(1) : "-",
             bBind: (State.bindingEnd > time) ? (State.bindingEnd - time).toFixed(1) : "-",
@@ -661,8 +666,9 @@ function runCoreSimulation(cfg) {
         else if (spell.id === "Wrath" && State.boon > 0) { cost = cost / 2; State.boon--; note = "Boon"; } 
         RunStats.totalMana += cost; 
 
-        // 1.18.1 BoaT: Wrath returns Mana if IS is up
-        if (cfg.sim_patch === "1.18.1" && spell.id === "Wrath" && State.activeIS && State.activeIS.exp > State.t) {
+        // 1.18.1 BoaT: Wrath returns Mana if IS is up (Self or External)
+        var isISActive = (State.activeIS && State.activeIS.exp > State.t) || cfg.enemy.extIS;
+        if (cfg.sim_patch === "1.18.1" && spell.id === "Wrath" && isISActive) {
             var boatManaFactor = 0.30; // 30% Base (3/3 Talents)
             if (cfg.gear.t35_5p) boatManaFactor *= 1.5; // T3.5 Bonus -> 45%
             var returnAmt = cost * boatManaFactor; 
@@ -710,9 +716,10 @@ function runCoreSimulation(cfg) {
         
         // CRIT CHECK
         var finalCritChance = cfg.stats.crit;
-        // 1.18.1 BoaT: Starfire Crit if MF is up
-        if (cfg.sim_patch === "1.18.1" && spell.id === "Starfire" && State.activeMF && State.activeMF.exp > State.t) {
-            var boatCritBonus = 6.0; // 6% Base (3/3 Talents)
+        // 1.18.1 BoaT: Starfire Crit if MF is up (Self or External)
+        var isMFActive = (State.activeMF && State.activeMF.exp > State.t) || cfg.enemy.extMF;
+        if (cfg.sim_patch === "1.18.1" && spell.id === "Starfire" && isMFActive) {
+            var boatCritBonus = 15.0; // 6% Base (3/3 Talents)
             if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9%
             finalCritChance += boatCritBonus;
         }
@@ -851,26 +858,28 @@ function runCoreSimulation(cfg) {
     var decideSpell = function () {
         var aeUp = Math.max(0, State.aeEnd - State.t);
         var neUp = Math.max(0, State.neEnd - State.t);
-        var isMF = State.activeMF && State.activeMF.exp > State.t;
-        var isIS = State.activeIS && State.activeIS.exp > State.t;
+        var isMF = (State.activeMF && State.activeMF.exp > State.t) || cfg.enemy.extMF;
+        var isIS = (State.activeIS && State.activeIS.exp > State.t) || cfg.enemy.extIS;
+        var timeRemaining = cfg.maxTime - State.t;
+        var allowDots = timeRemaining > cfg.rota.dotCutoff;
 
         if (aeUp > 0) {
             var sfCast = getCastTime(Spells.Starfire.id, Spells.Starfire.baseCast);
             if (aeUp > sfCast && cfg.rota.castSF) return Spells.Starfire;
-            if (cfg.rota.castMF && cfg.rota.eclDOT && (!isMF || State.activeMF.exp - State.t < 2)) return Spells.Moonfire;
+            if (cfg.rota.castMF && allowDots && cfg.rota.eclDOT && (!isMF || (State.activeMF && State.activeMF.exp - State.t < 2))) return Spells.Moonfire;
             if (cfg.rota.castSF) return Spells.Starfire;
             if (cfg.rota.castW) return Spells.Wrath;
             return null;
         } else if (neUp > 0) {
             var wCast = getCastTime(Spells.Wrath.id, Spells.Wrath.baseCast);
             if (neUp > wCast && cfg.rota.castW) return Spells.Wrath;
-            if (cfg.rota.castIS && cfg.rota.eclDOT && (!isIS || State.activeIS.exp - State.t < 2)) return Spells.InsectSwarm;
+            if (cfg.rota.castIS && allowDots && cfg.rota.eclDOT && (!isIS || (State.activeIS && State.activeIS.exp - State.t < 2))) return Spells.InsectSwarm;
             if (cfg.rota.castW) return Spells.Wrath;
             if (cfg.rota.castSF) return Spells.Starfire;
             return null;
         } else {
-            if (cfg.rota.castIS && (!isIS || State.activeIS.exp < State.t + 1.5)) return Spells.InsectSwarm;
-            if (cfg.rota.castMF && (!isMF || State.activeMF.exp < State.t + 1.5)) return Spells.Moonfire;
+            if (cfg.rota.castIS && allowDots && (!isIS || (State.activeIS && State.activeIS.exp < State.t + 1.5))) return Spells.InsectSwarm;
+            if (cfg.rota.castMF && allowDots && (!isMF || (State.activeMF && State.activeMF.exp < State.t + 1.5))) return Spells.Moonfire;
             var aeCD = Math.max(0, State.aeCD - State.t);
             var neCD = Math.max(0, State.neCD - State.t);
             if (aeCD > 0 && neCD === 0 && cfg.rota.castSF) return Spells.Starfire;
