@@ -11,6 +11,9 @@ var SIM_DATA = null;
 var CURRENT_VIEW = 'avg';
 var toastTimer = null;
 
+var GLOBAL_DPS_MIN = 0;
+var GLOBAL_DPS_MAX = 0;
+
 var ITEM_DB = [];
 var ENCHANT_DB = [];
 var GEAR_SELECTION = {};
@@ -50,8 +53,13 @@ const RACE_STATS = {
 };
 
 // Simulation Object Constructor
-function SimObject(id, name) { this.id = id; this.name = name; this.config = {}; this.results = null; }
-
+// Simulation Object Constructor
+function SimObject(id, name) { 
+    this.id = id; 
+    this.name = name; 
+    this.config = {}; 
+    this.results = null; // Hier werden DPS und Stat Weights individuell pro Sim gespeichert
+}
 // ============================================================================
 // PIXEL ART DATA (LOADING SCREEN)
 // ============================================================================

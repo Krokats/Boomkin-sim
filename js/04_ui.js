@@ -5,9 +5,12 @@
 // ============================================================================
 // UI SETUP & EVENT LISTENERS
 // ============================================================================
+var CURRENT_LOG_PAGE = 0;
+var LOG_ENTRIES_PER_PAGE = 50;
 
 function setupUIListeners() {
     var methodSelect = document.getElementById('calcMethod');
+    setupCollapsibleCards();
     var iterInput = document.getElementById('simCount');
     if (methodSelect && iterInput) {
         methodSelect.addEventListener('change', function () {
@@ -113,6 +116,22 @@ function setupUIListeners() {
             if (e.target === modal) {
                 closeItemModal();
                 closeEnchantModal();
+            }
+        });
+    });
+}
+
+
+function setupCollapsibleCards() {
+    var headers = document.querySelectorAll('.card-header');
+    headers.forEach(function(header) {
+        header.addEventListener('click', function(e) {
+            // Verhindern, dass Klicks auf Buttons im Header die Karte zuklappen
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            
+            var card = header.closest('.card');
+            if (card) {
+                card.classList.toggle('collapsed');
             }
         });
     });
@@ -240,35 +259,65 @@ function deleteSim(index) {
 }
 
 function switchSim(index) {
+    if (index < 0 || index >= SIM_LIST.length) return;
     saveCurrentState();
     ACTIVE_SIM_INDEX = index;
 
+    var sim = SIM_LIST[index];
     var nameInput = document.getElementById('simName');
+    
+    // Setze den Namen im Header
     if (nameInput) {
-        nameInput.value = SIM_LIST[index].name;
+        nameInput.value = sim.name;
         nameInput.disabled = false;
         nameInput.style.color = "var(--druid-orange)";
     }
 
-    applyConfigToUI(SIM_LIST[index].config);
+    // Lade die Konfiguration in das UI
+    applyConfigToUI(sim.config);
 
+    // Ansichten umschalten
     document.getElementById('comparisonView').classList.add('hidden');
     document.getElementById('singleSimView').classList.remove('hidden');
+    // Update Name in Results Header
+    var resNameEl = document.getElementById('resultSimName');
+    if(resNameEl) resNameEl.innerText = sim.name;
 
-    var res = SIM_LIST[index].results;
+    var res = sim.results;
+    var weightResBox = document.getElementById("weightResults");
+
     if (res) {
         SIM_DATA = res;
         document.getElementById('resultsArea').classList.remove('hidden');
         switchView('avg');
-        var btnW = document.getElementById("btnWeights"); if (btnW) btnW.disabled = false;
+        
+        // Anzeige der Stat Weights aktualisieren
+        if (weightResBox) {
+            if (res.statWeights) {
+                weightResBox.classList.remove("hidden");
+                // Befülle die HTML-Container mit den gespeicherten Werten
+                if (document.getElementById("val_crit")) document.getElementById("val_crit").innerHTML = res.statWeights.crit || "";
+                if (document.getElementById("val_hit")) document.getElementById("val_hit").innerHTML = res.statWeights.hit || "";
+                if (document.getElementById("val_haste")) document.getElementById("val_haste").innerHTML = res.statWeights.haste || "";
+            } else {
+                weightResBox.classList.add("hidden");
+            }
+        }
+
+        var btnW = document.getElementById("btnWeights");
+        if (btnW) btnW.disabled = false;
+
         setText("viewAvg", "Average (" + res.avg.dps.toFixed(1) + ")");
         setText("viewMin", "Min (" + res.min.dps.toFixed(1) + ")");
         setText("viewMax", "Max (" + res.max.dps.toFixed(1) + ")");
     } else {
         SIM_DATA = null;
         document.getElementById('resultsArea').classList.add('hidden');
-        var btnW = document.getElementById("btnWeights"); if (btnW) btnW.disabled = true;
+        if (weightResBox) weightResBox.classList.add("hidden");
+        var btnW = document.getElementById("btnWeights");
+        if (btnW) btnW.disabled = true;
     }
+    
     renderSidebar();
 }
 
@@ -488,7 +537,9 @@ function importSettings() {
                 if (Array.isArray(data)) {
                     SIM_LIST = [];
                     data.forEach(d => {
-                        var s = new SimObject(Date.now(), d.n || d.name);
+                        // KORREKTUR: Name explizit aus d.n (vom Export-Objekt) nehmen
+                        var simName = d.n || d.name || "Simulation " + (SIM_LIST.length + 1);
+                        var s = new SimObject(Date.now() + Math.random(), simName);
 
                         if (d.d) s.config = unpackConfig(d.d);
                         else s.config = d.config || d;
@@ -498,6 +549,10 @@ function importSettings() {
 
                     if (SIM_LIST.length > 0) {
                         ACTIVE_SIM_INDEX = 0;
+                        // KORREKTUR: Den Namen auch im UI-Input setzen
+                        var nameInput = document.getElementById('simName');
+                        if (nameInput) nameInput.value = SIM_LIST[0].name;
+                        
                         applyConfigToUI(SIM_LIST[0].config);
                         renderSidebar();
                         showOverview();
@@ -516,6 +571,7 @@ function renderSidebar() { var c = document.getElementById('sidebar'); if (!c) r
 
 function showOverview() {
     saveCurrentState();
+    updateGlobalDpsRange();
     document.getElementById('singleSimView').classList.add('hidden');
     document.getElementById('comparisonView').classList.remove('hidden');
 
@@ -632,14 +688,23 @@ function generateSummaryImage() {
     if (c.item_scythe == 1) addLi(ulTrink, "Scythe of Elune");
     addLi(ulTrink, "Strat: " + (c.trinket_strat === "START" ? "On Start" : "On Eclipse"));
 
+    var sourceChart = document.getElementById("dpsChart");
+    var targetContainer = document.getElementById("sumChartContainer");
+    if (sourceChart && targetContainer) {
+        targetContainer.innerHTML = sourceChart.innerHTML;
+
     showToast("Generating...");
     var card = document.getElementById("summaryCard");
     html2canvas(card, { scale: 2, backgroundColor: null, useCORS: true }).then(function (canvas) {
+        // Aufräumen nach Generierung
+        if (targetContainer) targetContainer.innerHTML = "";
+        
         var link = document.createElement('a');
         link.download = 'moonkin_sim_summary.png';
         link.href = canvas.toDataURL();
         link.click();
     });
+}
 }
 
 // ============================================================================
@@ -648,8 +713,13 @@ function generateSummaryImage() {
 
 function switchView(type) {
     if (!SIM_DATA) return;
+    CURRENT_LOG_PAGE = 0;
     CURRENT_VIEW = type;
     document.getElementById("resultsArea").classList.remove("hidden");
+
+    // NEU: Verteilungsgrafik immer aktualisieren
+    updateGlobalDpsRange();
+    renderDPSDistribution(SIM_DATA);
 
     var btns = document.querySelectorAll('.view-btn');
     for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
@@ -699,9 +769,13 @@ function switchView(type) {
         }
 
         // Helper: Simple Stat Row (No Bar)
-        function addStatRow(label, valString, subVal) {
-             var row = '<tr><td class="text-left" style="font-weight:500; color:#aaa;">' + label + '</td>' +
-                '<td class="text-right" style="color:#fff">' + valString + '</td>' +
+        function addStatRow(label, valString, subVal, isHeader) {
+            if (isHeader) {
+                tbody.innerHTML += '<tr class="section-header"><td colspan="4">' + label + '</td></tr>';
+                return;
+            }
+            var row = '<tr><td class="text-left" style="font-weight:500; color:#aaa;">' + label + '</td>' +
+                '<td class="text-right stat-value">' + valString + '</td>' +
                 '<td class="text-right" style="color:var(--text-muted)">' + (subVal || "") + '</td>' +
                 '<td class="bar-col"></td></tr>';
             tbody.innerHTML += row;
@@ -714,40 +788,41 @@ function switchView(type) {
         var sf = getStats("Starfire");
         var wr = getStats("Wrath");
 
-        // 1. DAMAGES
+        // --- SECTION 1: ACTIVE DAMAGE SOURCES ---
+        addStatRow("Active Damage Sources", "", "", true);
         addRow("Starfire", data.stats.dmgStarfire, data.stats.totalDmg);
         addRow("Wrath", data.stats.dmgWrath, data.stats.totalDmg);
-
-        // 2. CAST TIMES & COUNTS
-        var sfTime = sf.count > 0 ? (sf.timeSum / sf.count).toFixed(2) + "s" : "-";
-        addStatRow("Avg. Casttime Starfire", sfTime);
-
-        var wrTime = wr.count > 0 ? (wr.timeSum / wr.count).toFixed(2) + "s" : "-";
-        addStatRow("Avg. Casttime Wrath", wrTime);
-
-        addStatRow("Cast Count Starfire", sf.count.toFixed(0));
-        addStatRow("Cast Count Wrath", wr.count.toFixed(0));
-
-        // 3. OTHER SPELLS
         addRow("Moonfire (Hit)", data.stats.dmgMFDirect, data.stats.totalDmg);
         addRow("Moonfire (Tick)", data.stats.dmgMFTick, data.stats.totalDmg);
         addRow("Insect Swarm", data.stats.dmgIS, data.stats.totalDmg);
 
-        if (data.stats.dmgT36p > 0) addRow("Proc: T3 6p", data.stats.dmgT36p, data.stats.totalDmg);
-        if (data.stats.dmgIdol > 0) addRow("Bonus: Idols", data.stats.dmgIdol, data.stats.totalDmg);
-        if (data.stats.dmgT34p > 0) addRow("Bonus: T3 4p", data.stats.dmgT34p, data.stats.totalDmg);
-        if (data.stats.dmgScythe > 0) addRow("Proc: Scythe", data.stats.dmgScythe, data.stats.totalDmg);
+        // --- SECTION 2: PROCS & BONUSES (Only if active) ---
+        var hasProcs = (data.stats.dmgT36p > 0 || data.stats.dmgIdol > 0 || data.stats.dmgT34p > 0 || data.stats.dmgScythe > 0);
+        if (hasProcs) {
+            addStatRow("Procs & Bonuses", "", "", true);
+            if (data.stats.dmgT36p > 0) addRow("Proc: T3 6p", data.stats.dmgT36p, data.stats.totalDmg);
+            if (data.stats.dmgIdol > 0) addRow("Bonus: Idols", data.stats.dmgIdol, data.stats.totalDmg);
+            if (data.stats.dmgT34p > 0) addRow("Bonus: T3 4p", data.stats.dmgT34p, data.stats.totalDmg);
+            if (data.stats.dmgScythe > 0) addRow("Proc: Scythe", data.stats.dmgScythe, data.stats.totalDmg);
+        }
 
-        // 4. CRITICALS
-        addRow("Critical Damage", data.stats.dmgCrit, data.stats.totalDmg);
+        // --- SECTION 3: PERFORMANCE METRICS ---
+        addStatRow("Performance Metrics", "", "", true);
+        addRow("Critical Damage (Total)", data.stats.dmgCrit, data.stats.totalDmg);
         
-        // Calculate Crit % for Specific Spells
-        // Note: 'hits' includes crits in our engine logic, so simple division works
         var sfCritPct = sf.hits > 0 ? (sf.crits / sf.hits * 100).toFixed(1) + "%" : "-";
-        addStatRow("Critical Starfire", sfCritPct);
+        addStatRow("Starfire Crit Rate", sfCritPct, sf.crits.toFixed(0) + " Crits");
 
         var wrCritPct = wr.hits > 0 ? (wr.crits / wr.hits * 100).toFixed(1) + "%" : "-";
-        addStatRow("Critical Wrath", wrCritPct);
+        addStatRow("Wrath Crit Rate", wrCritPct, wr.crits.toFixed(0) + " Crits");
+
+        // --- SECTION 4: CASTING STATS ---
+        addStatRow("Casting Stats", "", "", true);
+        var sfTime = sf.count > 0 ? (sf.timeSum / sf.count).toFixed(2) + "s" : "-";
+        addStatRow("Avg. Cast Starfire", sfTime, sf.count.toFixed(1) + " Casts");
+
+        var wrTime = wr.count > 0 ? (wr.timeSum / wr.count).toFixed(2) + "s" : "-";
+        addStatRow("Avg. Cast Wrath", wrTime, wr.count.toFixed(1) + " Casts");
     }
 
     var logLabel = document.getElementById("logTypeLabel");
@@ -756,7 +831,9 @@ function switchView(type) {
             logLabel.innerText = "(No Log)";
             if (document.getElementById("logBody")) document.getElementById("logBody").innerHTML = "<tr><td colspan='22' style='text-align:center; padding:20px; color:#666;'>Log available in Min/Max view or Single runs.</td></tr>";
         } else {
-            logLabel.innerText = "(" + type.toUpperCase() + ")";
+            // Geänderte Beschriftung für den Average-View
+            var labelSuffix = type === 'avg' ? "REPRESENTATIVE RUN" : type.toUpperCase();
+            logLabel.innerText = "(" + labelSuffix + ")";
             renderCombatLog(data.log);
         }
         var logSec = document.getElementById("combatLogSection");
@@ -767,22 +844,16 @@ function switchView(type) {
 function renderCombatLog(logData) {
     if (!logData || logData.length === 0) return;
     var cfg = getInputs();
-
-    // SHOW BoaT COLUMN ONLY IN 1.18 (OLD PATCH)
     var showBoat = (cfg.sim_patch === "1.18");
 
+    // Container und Header-Referenzen
     var thead = document.getElementById("logHeader");
-
-    // Dynamic Header construction
-    var baseCols = `<th style="width: 50px;">Time</th><th style="width: 50px;">Event</th><th class="col-left" style="width: 90px;">Spell</th><th style="width: 40px;">CastT</th><th style="width: 30px;">Res</th><th style="width: 50px; text-align:right;">Norm</th><th style="width: 50px; text-align:right;">Ecl</th><th style="width: 50px; text-align:right;">Crit</th><th style="width: 40px;">MF(s)</th><th style="width: 40px;">IS(s)</th>`;
+    var tbody = document.getElementById("logBody");
     
-    // Condition: BoaT Header
-    if (showBoat) {
-        baseCols += `<th style="width: 30px;">BoaT</th>`;
-    }
-
+    // Header-Erstellung (Bleibt identisch mit Ihrem Code)
+    var baseCols = `<th style="width: 50px;">Time</th><th style="width: 50px;">Event</th><th class="col-left" style="width: 90px;">Spell</th><th style="width: 40px;">CastT</th><th style="width: 30px;">Res</th><th style="width: 50px; text-align:right;">Norm</th><th style="width: 50px; text-align:right;">Ecl</th><th style="width: 50px; text-align:right;">Crit</th><th style="width: 40px;">MF(s)</th><th style="width: 40px;">IS(s)</th>`;
+    if (showBoat) baseCols += `<th style="width: 30px;">BoaT</th>`;
     baseCols += `<th style="width: 30px;">NG</th><th style="width: 30px;">OoC</th><th style="width: 30px;">NB</th><th style="width: 40px;">SP</th><th style="width: 30px;">T3.6</th><th style="width: 30px;">T3.8</th><th style="width: 40px; color:#00b0ff;">Mana</th>`;
-
     if (cfg.gear.binding) baseCols += `<th style="width: 40px; color:#e91e63;">Bind</th>`;
     if (cfg.gear.reos) baseCols += `<th style="width: 40px; color:#e91e63;">REoS</th>`;
     if (cfg.gear.toep) baseCols += `<th style="width: 40px; color:#e91e63;">ToEP</th>`;
@@ -791,12 +862,19 @@ function renderCombatLog(logData) {
     baseCols += `<th class="col-left">Info</th>`;
     thead.innerHTML = `<tr>${baseCols}</tr>`;
 
-    var tbody = document.getElementById("logBody");
-    tbody.innerHTML = "";
-    var limit = logData.length > 500 ? 500 : logData.length;
+    // PAGINIERUNG LOGIK
+    var totalPages = Math.ceil(logData.length / LOG_ENTRIES_PER_PAGE);
+    if (CURRENT_LOG_PAGE >= totalPages) CURRENT_LOG_PAGE = 0;
 
-    for (var i = 0; i < limit; i++) {
-        var entry = logData[i];
+    var start = CURRENT_LOG_PAGE * LOG_ENTRIES_PER_PAGE;
+    var end = start + LOG_ENTRIES_PER_PAGE;
+    var pageData = logData.slice(start, end);
+
+    tbody.innerHTML = "";
+
+    // Zeilen rendern (Logik identisch mit Ihrem Code, nutzt nun 'pageData')
+    for (var i = 0; i < pageData.length; i++) {
+        var entry = pageData[i];
         var rowClass = "";
         if (entry.evt === "IMPACT") rowClass = "log-row-impact";
         if (entry.evt === "TICK") rowClass = "log-row-tick";
@@ -814,16 +892,9 @@ function renderCombatLog(logData) {
         var valEcl = entry.dmgEcl > 0 ? `<span class="col-ecl">+${Math.floor(entry.dmgEcl)}</span>` : "-";
         var valCrit = (entry.evt === "TICK") ? "-" : (entry.dmgCrit > 0 ? `<span class="col-crit">+${Math.floor(entry.dmgCrit)}</span>` : "-");
 
-        // Dynamic Row construction
         var html = `<tr class="${rowClass}"><td class="log-time">${entry.t}</td><td>${entry.evt}</td><td class="col-left">${entry.spell}</td><td>${entry.castTime}</td><td class="col-sp">${entry.res}</td><td class="col-right col-norm">${valNorm}</td><td class="col-right col-ecl">${valEcl}</td><td class="col-right col-crit">${valCrit}</td><td>${entry.mfRem}</td><td>${entry.isRem}</td>`;
-
-        // Condition: BoaT Cell
-        if (showBoat) {
-            html += `<td>${boatStr}</td>`;
-        }
-
+        if (showBoat) html += `<td>${boatStr}</td>`;
         html += `<td>${ngStr}</td><td>${oocStr}</td><td>${boonStr}</td><td class="col-sp">${entry.sp}</td><td>${entry.t36}</td><td>${entry.t38}</td><td class="col-mana">${entry.mana}</td>`;
-
         if (cfg.gear.binding) html += `<td>${entry.bBind}</td>`;
         if (cfg.gear.reos) html += `<td>${entry.bReos}</td>`;
         if (cfg.gear.toep) html += `<td>${entry.bToep}</td>`;
@@ -831,6 +902,39 @@ function renderCombatLog(logData) {
         if (cfg.gear.zhc) html += `<td>${entry.bZhc}</td>`;
         html += `<td class="col-left">${entry.info}</td></tr>`;
         tbody.innerHTML += html;
+    }
+
+    // Pagination-Controls hinzufügen
+    renderLogPagination(logData.length);
+}
+
+function renderLogPagination(totalEntries) {
+    var container = document.getElementById("combatLogSection");
+    // Prüfen ob Paginierungs-Element bereits existiert, sonst erstellen
+    var nav = document.getElementById("logPaginationNav");
+    if (!nav) {
+        nav = document.createElement("div");
+        nav.id = "logPaginationNav";
+        nav.style.cssText = "display:flex; justify-content:center; align-items:center; gap:15px; margin: 15px 0; font-size:0.9rem;";
+        // Vor dem Log-Container einfügen
+        var logCont = document.querySelector(".log-container");
+        container.insertBefore(nav, logCont);
+    }
+
+    var totalPages = Math.ceil(totalEntries / LOG_ENTRIES_PER_PAGE);
+    
+    nav.innerHTML = `
+        <button class="btn-mini" onclick="changeLogPage(-1)" ${CURRENT_LOG_PAGE === 0 ? 'disabled' : ''}>&lt; Prev</button>
+        <span style="color:var(--text-muted)">Page <strong>${CURRENT_LOG_PAGE + 1}</strong> of ${totalPages} (${totalEntries} entries)</span>
+        <button class="btn-mini" onclick="changeLogPage(1)" ${CURRENT_LOG_PAGE >= totalPages - 1 ? 'disabled' : ''}>Next &gt;</button>
+    `;
+}
+
+function changeLogPage(delta) {
+    CURRENT_LOG_PAGE += delta;
+    // Da wir das logData-Array nicht global haben, nutzen wir die aktuelle View-Daten
+    if (SIM_DATA && CURRENT_VIEW && SIM_DATA[CURRENT_VIEW]) {
+        renderCombatLog(SIM_DATA[CURRENT_VIEW].log);
     }
 }
 
@@ -1174,6 +1278,109 @@ function updatePatchUI() {
                 found = true;
             }
         });
+    }
+}
+
+/**
+ * Zeichnet die DPS-Verteilung als Histogramm (Glockenkurve)
+ */
+function renderDPSDistribution(data) {
+    var chart = document.getElementById('dpsChart');
+    if (!chart || !data || !data.dpsDistribution) return;
+
+    chart.innerHTML = ""; 
+    var dpsValues = data.dpsDistribution;
+    
+    // 1. Verwende globale statt lokaler Min/Max Werte für die Skalierung
+    var min = GLOBAL_DPS_MIN;
+    var max = GLOBAL_DPS_MAX;
+    var range = max - min;
+    
+    // Beschriftungen zeigen weiterhin lokale Werte der aktuellen Sim
+    setText("distMinLabel", Math.floor(min) + " DPS");
+    setText("distMaxLabel", Math.floor(max) + " DPS");
+
+    // 2. Buckets erstellen
+    var bucketCount = 60; 
+    var buckets = new Array(bucketCount).fill(0);
+    var step = (range > 0) ? (range / bucketCount) : 1;
+
+    dpsValues.forEach(function(val) {
+        var idx = Math.floor((val - min) / step);
+        if (idx >= bucketCount) idx = bucketCount - 1;
+        if (idx < 0) idx = 0;
+        buckets[idx]++;
+    });
+
+    var maxBucket = Math.max(...buckets);
+    var avgDps = data.avg.dps;
+    var minDpsVal = data.min.dps; // NEU
+    var maxDpsVal = data.max.dps; // NEU
+
+    // 3. Balken rendern
+    buckets.forEach(function(count, i) {
+        var heightPct = (maxBucket > 0) ? (count / maxBucket) * 100 : 0;
+        var bar = document.createElement('div');
+        bar.className = 'dist-bar';
+        bar.style.height = heightPct + "%";
+        
+        var bucketStart = min + (i * step);
+        var bucketEnd = bucketStart + step;
+        
+        // Highlight für Durchschnitt
+        if (avgDps >= bucketStart && avgDps <= bucketEnd) {
+            bar.classList.add('highlight');
+        }
+        // NEU: Highlight für Min (Blau)
+        if (minDpsVal >= bucketStart && minDpsVal <= bucketEnd) {
+            bar.classList.add('highlight-min');
+        }
+        // NEU: Highlight für Max (Grün)
+        if (maxDpsVal >= bucketStart && maxDpsVal <= bucketEnd) {
+            bar.classList.add('highlight-max');
+        }
+
+        chart.appendChild(bar);
+    });
+
+    // Stabilitäts-Label Update (bleibt gleich...)
+    if (data.varianceCV !== undefined) {
+        var cv = data.varianceCV;
+        var rating = "";
+        var color = "";
+        if (cv < 7) { rating = "Stable"; color = "#4caf50"; }
+        else if (cv < 12) { rating = "Moderate"; color = "#ffb74d"; }
+        else { rating = "Volatile"; color = "#f44336"; }
+        var vLabel = document.getElementById("out_variance");
+        // Änderung: Label auf "CV" (Coefficient of Variation) gesetzt
+        if (vLabel) vLabel.innerHTML = `CV: <span style="color:${color}">${cv.toFixed(1)}% (${rating})</span>`;
+    }
+}
+
+// NEU: Berechnet den globalen DPS-Bereich über alle Simulationen für einheitliche Charts
+function updateGlobalDpsRange() {
+    var min = Infinity;
+    var max = -Infinity;
+    var found = false;
+
+    SIM_LIST.forEach(function(sim) {
+        if (sim.results && sim.results.dpsDistribution) {
+            found = true;
+            sim.results.dpsDistribution.forEach(function(val) {
+                if (val < min) min = val;
+                if (val > max) max = val;
+            });
+        }
+    });
+
+    if (!found) {
+        GLOBAL_DPS_MIN = 0;
+        GLOBAL_DPS_MAX = 2000; // Fallback
+    } else {
+        // Kleiner Puffer von 5%, damit die Balken nicht am Rand kleben
+        var padding = (max - min) * 0.05;
+        GLOBAL_DPS_MIN = Math.max(0, min - padding);
+        GLOBAL_DPS_MAX = max + padding;
     }
 }
 

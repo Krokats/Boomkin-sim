@@ -1330,6 +1330,68 @@ input:checked + .slider::before { transform: translateX(16px); background-color:
 .log-actions { display: flex; gap: 10px; }
 .hidden { display: none !important; }
 
+/* --- DPS DISTRIBUTION CHART --- */
+#dpsChart {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 5px;
+    border: 1px solid #333;
+    overflow: hidden;
+}
+
+.dist-bar {
+    flex: 1;
+    background: var(--text-muted);
+    opacity: 0.6;
+    transition: height 0.5s ease-out, background 0.3s;
+    min-width: 1px;
+}
+
+.dist-bar:hover {
+    opacity: 1;
+    background: var(--druid-orange) !important;
+}
+
+.dist-bar.highlight {
+    background: var(--druid-orange);
+    opacity: 1;
+    box-shadow: 0 0 5px rgba(255, 125, 10, 0.5);
+    z-index: 2;
+}
+
+/* NEU: Hervorhebung für Min und Max DPS im Chart */
+.dist-bar.highlight-min {
+    background: #90caf9 !important; /* Blau analog zu Min-Spalte */
+    opacity: 1;
+    z-index: 2;
+}
+
+.dist-bar.highlight-max {
+    background: #a5d6a7 !important; /* Grün analog zu Max-Spalte */
+    opacity: 1;
+    z-index: 2;
+}
+
+/* Tooltip-ähnliche Info für die Balken (optional) */
+.dist-bar-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    position: relative;
+}
+
+/* Anpassung für den Dist-Container in der Card */
+#distContainer {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+#distContainer .card-header {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+
+
 /* --- STAT WEIGHT COLORS --- */
 /* Hilfsklassen für die Einfärbung der Ergebnisse in den Stat-Boxen */
 .text-stat-orange { color: var(--druid-orange); }
@@ -1342,3 +1404,121 @@ input:checked + .slider::before { transform: translateX(16px); background-color:
     border: none;
     padding: 0;
 }
+
+/* --- COLLAPSIBLE CARDS --- */
+/* Zeiger und Layout für Header */
+.card-header {
+    cursor: pointer;
+    position: relative;
+    padding-right: 40px; /* Platz für den Pfeil */
+    user-select: none;
+}
+
+/* Der Pfeil (Chevron) */
+.card-header::after {
+    content: '▼';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+}
+
+/* Rotation des Pfeils, wenn eingeklappt */
+.card.collapsed .card-header::after {
+    transform: translateY(-50%) rotate(-90deg);
+}
+
+/* Ausblenden des Bodys, wenn eingeklappt */
+.card.collapsed .card-body {
+    display: none;
+}
+
+/* Entfernen der unteren Linie im Header, wenn eingeklappt */
+.card.collapsed .card-header {
+    border-bottom: none;
+    transition: border-bottom 0.2s delay 0.2s; /* Kleiner Delay für smootheres Feeling */
+}
+
+/* --- SUMMARY CHART STYLING --- */
+/* Container im Export-Bild */
+.sum-chart-container {
+    width: 100%;
+    height: 100px; /* Feste Höhe für das Bild */
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-end;
+    padding: 5px;
+    box-sizing: border-box;
+    gap: 1px;
+    overflow: hidden; /* Sicherstellen, dass nichts übersteht */
+}
+
+/* Anpassung der Balken innerhalb des Summary-Containers */
+.sum-chart-container .dist-bar {
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+    min-width: 2px; /* Etwas breiter im Bild für Sichtbarkeit */
+}
+
+/* --- NESTED CARDS (Sub-Sections) --- */
+
+/* Header für innere Karten (Nicht einklappbar) */
+.sub-card-header {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Kein Pointer, da nicht klickbar */
+    cursor: default; 
+}
+
+.sub-card-header h2 {
+    margin: 0;
+    font-size: 1.1rem; /* Etwas kleiner als der Haupt-Header */
+    color: var(--druid-orange); /* Behält die Farbe bei */
+}
+
+/* Anpassung für Karten innerhalb einer Karte */
+.card .card {
+    box-shadow: none; /* Kein doppelter Schatten */
+    background: rgba(0, 0, 0, 0.2); /* Etwas dunklerer Hintergrund zur Abgrenzung */
+    border: 1px solid #333;
+}
+
+/* --- RESULT TABLE RESTRUCTURING --- */
+
+/* Klasse für Sektions-Header innerhalb der Tabelle */
+.result-table tr.section-header td {
+    background: rgba(255, 125, 10, 0.05); /* Dezenter Druiden-Orange Schimmer */
+    color: var(--druid-orange);
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border-color);
+    padding-top: 15px;
+    padding-bottom: 8px;
+    text-align: left !important;
+}
+
+/* Anpassung der Zell-Abstände für bessere Lesbarkeit in Gruppen */
+.result-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Highlight für die Performance-Werte (Rechte Spalten ohne Balken) */
+.result-table td.stat-value {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: var(--text-color);
+}
+

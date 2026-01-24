@@ -304,172 +304,176 @@
                                 </div>
                             </div>
 
-                            <div class="card">
+                            <div class="card full-width">
                                 <div class="card-header">
-                                    <h2>⚙️ General</h2>
+                                    <h2>⚙️ Configuration</h2>
                                 </div>
                                 <div class="card-body">
-                                    <div class="input-group">
-                                        <label>Game Version</label>
-                                        <div class="select-wrapper">
-                                            <select id="sim_patch">
-                                                <option value="1.18">1.18 (Current)</option>
-                                                <option value="1.18.1">1.18.1 (PTR/Next)</option>
-                                            </select>
+                                    <div class="grid-container" style="margin:0; padding:0;">
+                                        
+                                        <div class="card">
+                                            <div class="sub-card-header"> <h2>⚙️ General</h2>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="input-group">
+                                                    <label>Game Version</label>
+                                                    <div class="select-wrapper">
+                                                        <select id="sim_patch">
+                                                            <option value="1.18">1.18 (Current)</option>
+                                                            <option value="1.18.1">1.18.1 (PTR/Next)</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="input-group"><label>Fight Duration (s)</label><input type="number"
+                                                        id="maxTime" value="120"></div>
+                                                <div class="input-group"><label>Cast Delay (ms)</label><input type="number"
+                                                        id="avcd" value="30"></div>
+                                                <div class="input-group"><label>Calculation Method</label>
+                                                    <div class="select-wrapper"><select id="calcMethod">
+                                                            <option value="S">Stochastic (RNG)</option>
+                                                        </select></div>
+                                                </div>
+                                                <div class="input-group" id="iterGroup"><label>Number of Fights</label><input
+                                                        type="number" id="simCount" value="5000">
+                                                </div>
+                                                <div class="input-group">
+                                                    <label>RNG Seed (Optional)</label>
+                                                    <input type="text" id="rng_seed" placeholder="Random if empty">
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="input-group"><label>Fight Duration (s)</label><input type="number"
-                                            id="maxTime" value="120"></div>
-                                    <div class="input-group"><label>Cast Delay (ms)</label><input type="number"
-                                            id="avcd" value="30"></div>
-                                    <div class="input-group"><label>Calculation Method</label>
-                                        <div class="select-wrapper"><select id="calcMethod">
-                                                <option value="S">Stochastic (RNG)</option>
-                                                <!--<option value="D_CYC">Deterministic (Counter)</option>
-                                                <option value="D_AVG">Deterministic (Average)</option>-->
-                                            </select></div>
-                                    </div>
-                                    <div class="input-group" id="iterGroup"><label>Number of Fights</label><input
-                                            type="number" id="simCount" value="5000">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>RNG Seed (Optional)</label>
-                                        <input type="text" id="rng_seed" placeholder="Random if empty">
-                                    </div>
-                                </div>
-                                    
-                            </div>
 
-                            <div class="card full-width-mobile">
-                                <div class="card-header">
-                                    <h2>📊 Player Stats (Total)</h2>
-                                </div>
-                                <div class="card-body">
-                                    <div class="input-group">
-                                        <label>Race</label>
-                                        <div class="select-wrapper">
-                                            <select id="char_race">
-                                                <option value="Tauren">Tauren</option>
-                                                <option value="NightElf">Night Elf</option>
-                                            </select>
+                                        <div class="card full-width-mobile">
+                                            <div class="sub-card-header"> <h2>📊 Player Stats (Total)</h2>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="input-group">
+                                                    <label>Race</label>
+                                                    <div class="select-wrapper">
+                                                        <select id="char_race">
+                                                            <option value="Tauren">Tauren</option>
+                                                            <option value="NightElf">Night Elf</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="spell-row">
+                                                    <div class="multi-input">
+                                                        <div class="input-wrapper"><label>Hit %</label><input type="number"
+                                                                id="statHit" value="0" min="0" max="16" disabled></div>
+                                                        <div class="input-wrapper"><label>Crit %</label><input type="number"
+                                                                id="statCrit" value="0" step="0.1" disabled></div>
+                                                        <div class="input-wrapper"><label>Haste %</label><input type="number"
+                                                                id="statHaste" value="0" step="0.1" disabled></div>
+                                                    </div>
+                                                </div>
+                                                <hr class="separator">
+                                                <div class="spell-row">
+                                                    <div class="multi-input">
+                                                        <div class="input-wrapper flex-2"><label>Total SP</label><input
+                                                                type="number" id="sp_gen" value="0" disabled></div>
+                                                        <div class="input-wrapper"><label>Nature SP</label><input type="number"
+                                                                id="sp_nature" value="0" disabled></div>
+                                                        <div class="input-wrapper"><label>Arcane SP</label><input type="number"
+                                                                id="sp_arcane" value="0" disabled></div>
+                                                    </div>
+                                                </div>
+                                                <div class="input-group" style="margin-top:15px; margin-bottom:0;"><label>Spell
+                                                        Penetration</label><input type="number" id="sp_pen" value="0"></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="spell-row">
-                                        <div class="multi-input">
-                                            <div class="input-wrapper"><label>Hit %</label><input type="number"
-                                                    id="statHit" value="0" min="0" max="16" disabled></div>
-                                            <div class="input-wrapper"><label>Crit %</label><input type="number"
-                                                    id="statCrit" value="0" step="0.1" disabled></div>
-                                            <div class="input-wrapper"><label>Haste %</label><input type="number"
-                                                    id="statHaste" value="0" step="0.1" disabled></div>
-                                        </div>
-                                    </div>
-                                    <hr class="separator">
-                                    <div class="spell-row">
-                                        <div class="multi-input">
-                                            <div class="input-wrapper flex-2"><label>Total SP</label><input
-                                                    type="number" id="sp_gen" value="0" disabled></div>
-                                            <div class="input-wrapper"><label>Nature SP</label><input type="number"
-                                                    id="sp_nature" value="0" disabled></div>
-                                            <div class="input-wrapper"><label>Arcane SP</label><input type="number"
-                                                    id="sp_arcane" value="0" disabled></div>
-                                        </div>
-                                    </div>
-                                    <div class="input-group" style="margin-top:15px; margin-bottom:0;"><label>Spell
-                                            Penetration</label><input type="number" id="sp_pen" value="0"></div>
-                                </div>
-                            </div>
 
-                            <div class="card">
-                                <div class="card-header">
-                                    <h2>💀 Enemy</h2>
-                                </div>
-                                <div class="card-body">
-                                    <div class="input-group"><label>Target Level</label>
-                                        <div class="select-wrapper"><select id="enemy_level">
-                                                <option value="60">Level 60</option>
-                                                <option value="61">Level 61</option>
-                                                <option value="62">Level 62</option>
-                                                <option value="63" selected>Level 63 (Boss)</option>
-                                            </select></div>
-                                    </div>
-                                    <div class="spell-row">
-                                        <div class="multi-input">
-                                            <div class="input-wrapper"><label>Arcane Res (Added)</label><input
-                                                    type="number" id="res_arcane" value="0"></div>
-                                            <div class="input-wrapper"><label>Nature Res (Added)</label><input
-                                                    type="number" id="res_nature" value="0"></div>
-                                        </div>
-                                    </div>
-                                    <div class="gear-section-title" style="margin-top: 15px;">External Debuffs (Other Druid)</div>
-                                    <div class="checkbox-grid">
-                                        <label class="custom-checkbox"><input type="checkbox" id="enemy_ext_mf"><span
-                                                class="checkmark"></span> Moonfire active</label>
-                                        <label class="custom-checkbox"><input type="checkbox" id="enemy_ext_is"><span
-                                                class="checkmark"></span> Insect Swarm active</label>
-                                    </div>
-                                    <div class="toggle-wrapper" style="margin-top:20px;"><label class="toggle"><input
-                                                type="checkbox" id="enemy_cos" checked><span class="slider"></span><span
-                                                class="label-text">Curse of Shadow (+10% Arc)</span></label></div>
+                                        <div class="card">
+                                            <div class="sub-card-header"> <h2>💀 Enemy</h2>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="input-group"><label>Target Level</label>
+                                                    <div class="select-wrapper"><select id="enemy_level">
+                                                            <option value="60">Level 60</option>
+                                                            <option value="61">Level 61</option>
+                                                            <option value="62">Level 62</option>
+                                                            <option value="63" selected>Level 63 (Boss)</option>
+                                                        </select></div>
+                                                </div>
+                                                <div class="spell-row">
+                                                    <div class="multi-input">
+                                                        <div class="input-wrapper"><label>Arcane Res (Added)</label><input
+                                                                type="number" id="res_arcane" value="0"></div>
+                                                        <div class="input-wrapper"><label>Nature Res (Added)</label><input
+                                                                type="number" id="res_nature" value="0"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="gear-section-title" style="margin-top: 15px;">External Debuffs (Other Druid)</div>
+                                                <div class="checkbox-grid">
+                                                    <label class="custom-checkbox"><input type="checkbox" id="enemy_ext_mf"><span
+                                                            class="checkmark"></span> Moonfire active</label>
+                                                    <label class="custom-checkbox"><input type="checkbox" id="enemy_ext_is"><span
+                                                            class="checkmark"></span> Insect Swarm active</label>
+                                                </div>
+                                                <div class="toggle-wrapper" style="margin-top:20px;"><label class="toggle"><input
+                                                            type="checkbox" id="enemy_cos" checked><span class="slider"></span><span
+                                                            class="label-text">Curse of Shadow (+10% Arc)</span></label></div>
 
-                                    <div class="enemy-info-box">
-                                        <div class="enemy-stat-row"><span>Base Hit Chance:</span> <span
-                                                id="info_hit_chance" class="enemy-stat-val">83% (Needs 16%)</span></div>
-                                        <div class="enemy-stat-row"><span>Base Resist:</span> <span id="info_base_res"
-                                                class="enemy-stat-val">15</span></div>
-                                        <div class="bucket-bar-container">
-                                            <span class="bucket-label">Partial Resist Probability (Nature /
-                                                Arcane):</span>
-                                            <div class="enemy-stat-val" id="info_buckets_text"
-                                                style="font-size:0.75rem; margin-bottom:4px;">-</div>
-                                            <div class="bucket-bar" id="bucket_bar_nat"></div>
+                                                <div class="enemy-info-box">
+                                                    <div class="enemy-stat-row"><span>Base Hit Chance:</span> <span
+                                                            id="info_hit_chance" class="enemy-stat-val">83% (Needs 16%)</span></div>
+                                                    <div class="enemy-stat-row"><span>Base Resist:</span> <span id="info_base_res"
+                                                            class="enemy-stat-val">15</span></div>
+                                                    <div class="bucket-bar-container">
+                                                        <span class="bucket-label">Partial Resist Probability (Nature /
+                                                            Arcane):</span>
+                                                        <div class="enemy-stat-val" id="info_buckets_text"
+                                                            style="font-size:0.75rem; margin-bottom:4px;">-</div>
+                                                        <div class="bucket-bar" id="bucket_bar_nat"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card full-width-mobile">
-                                <div class="card-header">
-                                    <h2>🔄 Rotation & Talents</h2>
-                                </div>
-                                <div class="card-body">
-                                    <div class="input-group"><label>Fishing Spell</label>
-                                        <div class="select-wrapper"><select id="rota_fish">
-                                                <option value="F1">Alternate: Start with Starfire</option>
-                                                <option value="F2">Alternate: Start with Wrath</option>
-                                                <option value="W">Only Wrath</option>
-                                                <option value="SF">Only Starfire</option>
-                                            </select></div>
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Stop DoTs (Time Rem. &lt; X)</label>
-                                        <input type="number" id="rota_dot_cutoff" value="15">
-                                    </div>
-                                    <div class="spell-row">
-                                        <div class="multi-input">
-                                            <div class="input-wrapper"><label>Start BoaT</label><input type="number"
-                                                    id="start_boat" value="0" min="0" max="3"></div>
-                                            <div class="input-wrapper"><label>Wrath Flight</label><input type="number"
-                                                    id="wrath_flight" value="1.0" step="0.1"></div>
+
+                                        <div class="card full-width-mobile">
+                                            <div class="sub-card-header"> <h2>🔄 Rotation & Talents</h2>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="input-group"><label>Fishing Spell</label>
+                                                    <div class="select-wrapper"><select id="rota_fish">
+                                                            <option value="F1">Alternate: Start with Starfire</option>
+                                                            <option value="F2">Alternate: Start with Wrath</option>
+                                                            <option value="W">Only Wrath</option>
+                                                            <option value="SF">Only Starfire</option>
+                                                        </select></div>
+                                                </div>
+                                                <div class="input-group">
+                                                    <label>Stop DoTs (Time Rem. &lt; X)</label>
+                                                    <input type="number" id="rota_dot_cutoff" value="15">
+                                                </div>
+                                                <div class="spell-row">
+                                                    <div class="multi-input">
+                                                        <div class="input-wrapper"><label>Start BoaT</label><input type="number"
+                                                                id="start_boat" value="0" min="0" max="3"></div>
+                                                        <div class="input-wrapper"><label>Wrath Flight</label><input type="number"
+                                                                id="wrath_flight" value="1.0" step="0.1"></div>
+                                                    </div>
+                                                </div>
+                                                <hr class="separator">
+                                                <div class="toggle-grid"><label class="toggle"><input type="checkbox"
+                                                            id="rota_starfire" checked><span class="slider"></span><span
+                                                            class="label-text">Starfire</span></label><label class="toggle"><input
+                                                            type="checkbox" id="rota_wrath" checked><span
+                                                            class="slider"></span><span
+                                                            class="label-text">Wrath</span></label><label class="toggle"><input
+                                                            type="checkbox" id="rota_is" checked><span class="slider"></span><span
+                                                            class="label-text">Insect Swarm</span></label><label
+                                                        class="toggle"><input type="checkbox" id="rota_mf" checked><span
+                                                            class="slider"></span><span
+                                                            class="label-text">Moonfire</span></label><label class="toggle"><input
+                                                            type="checkbox" id="rota_eclDot" checked><span
+                                                            class="slider"></span><span class="label-text">DoT End of
+                                                            Eclipse</span></label><label class="toggle"><input type="checkbox"
+                                                            id="rota_interrupt" checked><span class="slider"></span><span
+                                                            class="label-text">Cancel wrong Spell</span></label></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <hr class="separator">
-                                    <div class="toggle-grid"><label class="toggle"><input type="checkbox"
-                                                id="rota_starfire" checked><span class="slider"></span><span
-                                                class="label-text">Starfire</span></label><label class="toggle"><input
-                                                type="checkbox" id="rota_wrath" checked><span
-                                                class="slider"></span><span
-                                                class="label-text">Wrath</span></label><label class="toggle"><input
-                                                type="checkbox" id="rota_is" checked><span class="slider"></span><span
-                                                class="label-text">Insect Swarm</span></label><label
-                                            class="toggle"><input type="checkbox" id="rota_mf" checked><span
-                                                class="slider"></span><span
-                                                class="label-text">Moonfire</span></label><label class="toggle"><input
-                                                type="checkbox" id="rota_eclDot" checked><span
-                                                class="slider"></span><span class="label-text">DoT End of
-                                                Eclipse</span></label><label class="toggle"><input type="checkbox"
-                                                id="rota_interrupt" checked><span class="slider"></span><span
-                                                class="label-text">Cancel wrong Spell</span></label></div>
-                                </div>
+
+                                    </div> </div>
                             </div>
 
                             <div class="card full-width">
@@ -558,7 +562,7 @@
                         <div id="resultsArea" class="hidden">
                             <div class="results-header">
                                 <div class="left-actions">
-                                    <h2>Results</h2>
+                                    <h2>Results <span id="resultSimName" style="font-size:0.6em; color:#888; font-weight:normal; margin-left:10px;"></span></h2>
                                 </div>
                                 <div class="center-toggles">
                                     <div class="view-toggles">
@@ -569,6 +573,21 @@
                                 </div>
                                 <div class="right-actions"><button onclick="generateSummaryImage()" class="btn-mini"
                                         style="margin-right:5px;">📸 Save Image</button></div>
+                            </div>
+                            <div class="card full-width" id="distContainer" style="margin-bottom: 20px;">
+                                <div class="card-header" style="padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+                                    <h3 style="font-size: 0.9rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">DPS Distribution</h3>
+                                    <span id="out_variance" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">Coefficient of Variation (CV): -</span>
+                                </div>
+                                <div class="card-body" style="padding: 10px 20px;">
+                                    <div id="dpsChart" style="height: 120px; width: 100%; display: flex; align-items: flex-end; gap: 1px;">
+                                        </div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #666; margin-top: 5px;">
+                                        <span id="distMinLabel">Min</span>
+                                        <span style="color: var(--druid-orange); font-weight: bold;">Average & Representative Combat</span>
+                                        <span id="distMaxLabel">Max</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="stats-grid">
                                 <div class="stat-box primary">
@@ -656,7 +675,7 @@
             </div>
             <div class="summary-meta">
                 <div id="sumDate">Date</div>
-                <div>Krokat's Sim v0.5a</div>
+                <div>Krokat's Sim 1.18</div>
             </div>
         </div>
         <div class="summary-hero-row">
@@ -671,6 +690,7 @@
                 <div class="hero-sub" id="sumMethod">RNG</div>
             </div>
         </div>
+        <div id="sumChartContainer" class="sum-chart-container"></div>
         <div class="summary-grid">
             <div class="sum-col">
                 <div class="sum-sec-title">Player Stats</div>

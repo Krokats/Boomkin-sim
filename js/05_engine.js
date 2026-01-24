@@ -100,6 +100,11 @@ async function runSimulation() {
                 // 3. Finalize
                 var aggregated = aggregateResults(allResults, config);
 
+                if (aggregated.closestRunIndex !== null) {
+                    aggregated.avg.log = allResults[aggregated.closestRunIndex].log;
+                    aggregated.avg.stats = allResults[aggregated.closestRunIndex].stats;
+                }
+
                 SIM_LIST[ACTIVE_SIM_INDEX].results = aggregated;
                 SIM_DATA = aggregated;
 
@@ -340,11 +345,9 @@ function finalizeWeights() {
 
         var data = calculatedDeltas[key];
         
-        // Finde den Normalisierungsfaktor für dieses Szenario (z.B. 5 bei Haste)
         var scenObj = scenarios.find(s => s.id === key);
         var norm = (scenObj && scenObj.norm) ? scenObj.norm : 1;
 
-        // Berechnung: (Delta DPS / Normalisierung) / (DPS pro 1 SP)
         var w = (data.mean / norm) / valRef;
         var e = (data.se / norm) / valRef;
         
@@ -358,28 +361,38 @@ function finalizeWeights() {
                '<div style="font-size:0.85rem; color:#888; margin-top:4px;">&plusmn;' + e.toFixed(2) + '</div>';
     };
 
+    // KERN-FIX: Speichere die Ergebnisse als Strings im Objekt der aktuellen Simulation
+    if (SIM_LIST[ACTIVE_SIM_INDEX].results) {
+        SIM_LIST[ACTIVE_SIM_INDEX].results.statWeights = {
+            crit: renderInnerHtml("crit", false),
+            hit: renderInnerHtml("hit", isHitCapped),
+            haste: renderInnerHtml("haste", false)
+        };
+    }
+
     var resBox = document.getElementById("weightResults");
     if (resBox) resBox.classList.remove("hidden");
 
+    // UI-Elemente mit den gerade berechneten Daten befüllen
     var elCrit = document.getElementById("val_crit");
     if(elCrit) {
         elCrit.className = ""; 
         elCrit.style.display = "block"; 
-        elCrit.innerHTML = renderInnerHtml("crit", false);
+        elCrit.innerHTML = SIM_LIST[ACTIVE_SIM_INDEX].results.statWeights.crit;
     }
 
     var elHit = document.getElementById("val_hit");
     if(elHit) {
         elHit.className = "";
         elHit.style.display = "block";
-        elHit.innerHTML = renderInnerHtml("hit", isHitCapped);
+        elHit.innerHTML = SIM_LIST[ACTIVE_SIM_INDEX].results.statWeights.hit;
     }
 
     var elHaste = document.getElementById("val_haste");
     if(elHaste) {
         elHaste.className = "";
         elHaste.style.display = "block";
-        elHaste.innerHTML = renderInnerHtml("haste", false);
+        elHaste.innerHTML = SIM_LIST[ACTIVE_SIM_INDEX].results.statWeights.haste;
     }
 }
 
@@ -719,7 +732,7 @@ function runCoreSimulation(cfg) {
         // 1.18.1 BoaT: Starfire Crit if MF is up (Self or External)
         var isMFActive = (State.activeMF && State.activeMF.exp > State.t) || cfg.enemy.extMF;
         if (cfg.sim_patch === "1.18.1" && spell.id === "Starfire" && isMFActive) {
-            var boatCritBonus = 15.0; // 6% Base (3/3 Talents)
+            var boatCritBonus = 6.0; // 6% Base (3/3 Talents)
             if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9%
             finalCritChance += boatCritBonus;
         }
@@ -955,7 +968,11 @@ function aggregateResults(results, cfg) {
     var minDmg = Infinity, maxDmg = -1;
     var minRun = null, maxRun = null;
     
-    // Summen-Objekt für Stats initialisieren
+    // NEU: Hilfsvariablen für Median-Suche und Varianz
+    var dpsDistribution = [];
+    var closestRunIndex = null;
+    var smallestDiff = Infinity;
+
     var sumStats = {
         totalDmg: 0, totalMana: 0, 
         dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
@@ -970,18 +987,18 @@ function aggregateResults(results, cfg) {
     for (var i = 0; i < n; i++) {
         var r = results[i];
         var d = r.totalDmg; 
+        var currentDPS = d / cfg.maxTime; // NEU: DPS dieses Laufs
         
+        dpsDistribution.push(currentDPS); // NEU: Für die Glockenkurve
         totalDmg += d;
         
         if (d < minDmg) { minDmg = d; minRun = r; }
         if (d > maxDmg) { maxDmg = d; maxRun = r; }
         
-        // Allgemeine Stats addieren
         for (var key in sumStats) {
             if (r.stats[key]) sumStats[key] += r.stats[key];
         }
 
-        // Spell Stats addieren
         if (r.stats.spellStats) {
             for (var s in r.stats.spellStats) {
                 if (!sumSpellStats[s]) sumSpellStats[s] = { count: 0, timeSum: 0, hits: 0, crits: 0 };
@@ -995,24 +1012,32 @@ function aggregateResults(results, cfg) {
 
     var avgDpsVal = (totalDmg / n) / cfg.maxTime;
 
+    // NEU: Pass 1.5 - Den Lauf finden, der am nächsten am Durchschnitt liegt
+    for (var i = 0; i < n; i++) {
+        var diff = Math.abs(dpsDistribution[i] - avgDpsVal);
+        if (diff < smallestDiff) {
+            smallestDiff = diff;
+            closestRunIndex = i;
+        }
+    }
+
     // Pass 2: Standard Error
     var sumSqDiff = 0;
     for (var i = 0; i < n; i++) {
-        var dps = results[i].totalDmg / cfg.maxTime;
+        var dps = dpsDistribution[i];
         var diff = dps - avgDpsVal;
         sumSqDiff += (diff * diff);
     }
     var variance = (n > 1) ? sumSqDiff / (n - 1) : 0;
     var stdDev = Math.sqrt(variance);
     var stdErr = stdDev / Math.sqrt(n);
+    var cv = (avgDpsVal > 0) ? (stdDev / avgDpsVal) * 100 : 0; // Variationskoeffizient in %
 
-    // Durchschnittswerte berechnen (General)
     var avgStats = {};
     for (var key in sumStats) {
         avgStats[key] = sumStats[key] / n;
     }
 
-    // Durchschnittswerte berechnen (SpellStats)
     avgStats.spellStats = {};
     for (var s in sumSpellStats) {
         avgStats.spellStats[s] = {
@@ -1023,14 +1048,13 @@ function aggregateResults(results, cfg) {
         };
     }
 
-    // Logs extrahieren
-    var avgLog = [];
-    if (n === 1) avgLog = minRun.log; 
-
     return {
-        avg: { stats: avgStats, dps: avgDpsVal, dpsSE: stdErr, log: avgLog },
+        avg: { stats: avgStats, dps: avgDpsVal, dpsSE: stdErr, log: [] },
         min: { stats: minRun.stats, dps: minRun.totalDmg / cfg.maxTime, log: minRun.log },
-        max: { stats: maxRun.stats, dps: maxRun.totalDmg / cfg.maxTime, log: maxRun.log }
+        max: { stats: maxRun.stats, dps: maxRun.totalDmg / cfg.maxTime, log: maxRun.log },
+        dpsDistribution: dpsDistribution, // NEU: Für Visualisierung
+        closestRunIndex: closestRunIndex,   // NEU: Index für den repräsentativen Log
+        varianceCV: cv // NEU
     };
 }
 
