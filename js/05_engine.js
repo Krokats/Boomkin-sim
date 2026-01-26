@@ -407,7 +407,7 @@ function runCoreSimulation(cfg) {
     // 1. RNG Setup
     var rngHandler = new RNGHandler(cfg.seed);
 
-    if (cfg.sim_patch !== "1.18.1") {
+    if (cfg.sim_patch !== "1.18.1a" || cfg.sim_patch !== "1.18.1b") {
         cfg.enemy.extMF = 0;
         cfg.enemy.extIS = 0;
     }
@@ -580,8 +580,8 @@ function runCoreSimulation(cfg) {
         var base = baseCast; 
         if (State.ng && (spellId === "Wrath" || spellId === "Starfire")) base -= 0.5; 
         if (spellId === "Starfire") { 
-            if (State.boat > 0) base -= cfg.talents.boatReduc; 
-            if (cfg.gear.idolEoF) base -= 0.2; 
+            if (cfg.sim_patch === "1.18" && State.boat > 0) base -= cfg.talents.boatReduc; 
+            if (cfg.gear.idolEoF) base -= 0.2;
         } 
         if (base < 0) base = 0; 
         var haste = cfg.stats.haste; 
@@ -595,10 +595,16 @@ function runCoreSimulation(cfg) {
         var currentSP = getCurrentSP(spell.type); 
         var baseRaw = (isTick) ? (spell.tickBase + spell.tickCoeff * currentSP) : (spell.base + spell.coeff * currentSP); 
         
-        var baseClassMod = 0.10; 
-        if (spell.id === "InsectSwarm") baseClassMod = 0.25; 
-        if (spell.id === "Moonfire" && !isTick) baseClassMod = 0.20; 
-        if (spell.id === "Moonfire" && isTick) baseClassMod = 0.35; 
+        // --- MOONFURY CHANGE (1.18.1b: 10% -> 12%) ---
+        var baseMoonfury = 0.10;
+        if (cfg.sim_patch === "1.18.1b") baseMoonfury = 0.12;
+        var diff = baseMoonfury - 0.10; // 0.00 or 0.02
+
+        var baseClassMod = baseMoonfury; 
+        // Add diff to existing hardcoded overrides to maintain relation
+        if (spell.id === "InsectSwarm") baseClassMod = 0.25 + diff; 
+        if (spell.id === "Moonfire" && !isTick) baseClassMod = 0.20 + diff; 
+        if (spell.id === "Moonfire" && isTick) baseClassMod = 0.35 + diff;
         
         var currentEclMod = useEcl ? eclFactor : 0; 
         var idolMod = 0; 
@@ -676,12 +682,12 @@ function runCoreSimulation(cfg) {
         var cost = spell.cost; 
         var note = ""; 
         if (State.ooc) { cost = 0; State.ooc = false; note = "OoC"; } 
-        else if (spell.id === "Wrath" && State.boon > 0) { cost = cost / 2; State.boon--; note = "Boon"; } 
-        RunStats.totalMana += cost; 
+        else if (cfg.sim_patch === "1.18" && spell.id === "Wrath" && State.boon > 0) { cost = cost / 2; State.boon--; note = "Boon"; } 
+        RunStats.totalMana += cost;
 
         // 1.18.1 BoaT: Wrath returns Mana if IS is up (Self or External)
         var isISActive = (State.activeIS && State.activeIS.exp > State.t) || cfg.enemy.extIS;
-        if (cfg.sim_patch === "1.18.1" && spell.id === "Wrath" && isISActive) {
+        if ((cfg.sim_patch === "1.18.1a" || cfg.sim_patch === "1.18.1b") && spell.id === "Wrath" && isISActive) {
             var boatManaFactor = 0.30; // 30% Base (3/3 Talents)
             if (cfg.gear.t35_5p) boatManaFactor *= 1.5; // T3.5 Bonus -> 45%
             var returnAmt = cost * boatManaFactor; 
@@ -693,7 +699,7 @@ function runCoreSimulation(cfg) {
         RunStats.casts++; 
         log(State.t, "CAST_START", spell.name, "-", null, ct.toFixed(2), note, cost); 
         if (State.ng && (spell.id === "Wrath" || spell.id === "Starfire")) State.ng = false; 
-        if (spell.id === "Starfire" && State.boat > 0) State.boat--; 
+        if (cfg.sim_patch === "1.18" && spell.id === "Starfire" && State.boat > 0) State.boat--;
         if (spell.id === "Wrath" || spell.id === "Starfire") State.fishingLastCast = spell.id; 
         
         // FIX: Variable definieren
@@ -731,9 +737,14 @@ function runCoreSimulation(cfg) {
         var finalCritChance = cfg.stats.crit;
         // 1.18.1 BoaT: Starfire Crit if MF is up (Self or External)
         var isMFActive = (State.activeMF && State.activeMF.exp > State.t) || cfg.enemy.extMF;
-        if (cfg.sim_patch === "1.18.1" && spell.id === "Starfire" && isMFActive) {
+        // Check for both 1.18.1 AND 1.18.1b
+        if ((cfg.sim_patch === "1.18.1a" || cfg.sim_patch === "1.18.1b") && spell.id === "Starfire" && isMFActive) {
             var boatCritBonus = 6.0; // 6% Base (3/3 Talents)
-            if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9%
+            
+            // UPDATE 1.18.1b: Increased to 9% base
+            if (cfg.sim_patch === "1.18.1b") boatCritBonus = 9.0;
+
+            if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9% (or 13.5% in 1.18.1b)
             finalCritChance += boatCritBonus;
         }
 

@@ -45,7 +45,7 @@ function setupUIListeners() {
             el.addEventListener('change', function(e) {
                 // Nur aktiv wenn Patch 1.18.1 ausgewählt ist
                 var p = document.getElementById('sim_patch');
-                if (p && p.value === '1.18.1' && e.target.checked) {
+                if (p && (p.value === '1.18.1a' || p.value === '1.18.1b') && e.target.checked) {
                     idolIds.forEach(function(otherId) {
                         if (otherId !== id) {
                             var other = document.getElementById(otherId);
@@ -1241,7 +1241,7 @@ function updatePatchUI() {
     // 1. Disable BoaT Stacks Input for 1.18.1 (Passiv)
     var boatInput = document.getElementById('start_boat');
     if (boatInput) {
-        if (ver === '1.18.1') {
+        if (ver === '1.18.1a'|| ver === '1.18.1b') {
             boatInput.disabled = true;
             boatInput.parentElement.style.opacity = "0.5";
             boatInput.value = 0; // Reset visual value
@@ -1256,7 +1256,7 @@ function updatePatchUI() {
     extIds.forEach(function(id) {
         var el = document.getElementById(id);
         if (el) {
-            if (ver !== '1.18.1') {
+            if (ver !== '1.18.1a' && ver !== '1.18.1b') {
                 el.checked = false; // Force false
                 el.disabled = true; // Prevent input
                 if(el.parentElement) el.parentElement.style.opacity = "0.5"; // Visual feedback
@@ -1268,7 +1268,7 @@ function updatePatchUI() {
     });
     
     // 3. Ensure Single Idol Selection when switching to 1.18.1
-    if (ver === '1.18.1') {
+    if (ver === '1.18.1a' || ver === '1.18.1b') {
         var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang"];
         var found = false;
         idolIds.forEach(function(id) {
