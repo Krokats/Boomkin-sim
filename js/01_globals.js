@@ -23,6 +23,7 @@ var CONFIG_IDS = [
     "sim_patch", "maxTime", "simCount","rng_seed", "avcd", "calcMethod",
     "statHit", "statCrit", "statHaste",
     "sp_gen", "sp_nature", "sp_arcane", "sp_pen",
+    "stat_override_eclipse", "stat_proc_nature", "stat_proc_arcane",
     "enemy_level", "res_arcane", "res_nature", "enemy_cos", "enemy_ext_mf", "enemy_ext_is",
     "rota_fish", "start_boat", "wrath_flight", "rota_dot_cutoff",
     "rota_is", "rota_mf", "rota_eclDot", "rota_interrupt",

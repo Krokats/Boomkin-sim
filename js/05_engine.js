@@ -20,6 +20,11 @@ function getInputs() {
     var stratEl = document.getElementById("trinket_strat");
     var strat = stratEl ? stratEl.value : "START";
 
+    // Eclipse Override Logic
+    var useOver = getVal("stat_override_eclipse");
+    var valNE = useOver ? getVal("stat_proc_nature") : 50;
+    var valAE = useOver ? getVal("stat_proc_arcane") : 30;
+
     return {
         sim_patch: document.getElementById("sim_patch") ? document.getElementById("sim_patch").value : "1.18", 
         mode: m, iterations: (m.startsWith("D")) ? 1 : (rawSims > 0 ? rawSims : 1), maxTime: getVal("maxTime"), avcd: getVal("avcd") / 1000,
@@ -35,8 +40,7 @@ function getInputs() {
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
         gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), binding: getVal("item_binding"), scythe: getVal("item_scythe"), reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), trinket_strat: strat },
-        talents: { nEProc: 50, aEProc: 30, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }
-    };
+        talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }};
 }
 
 // ============================================================================

@@ -91,6 +91,26 @@ function setupUIListeners() {
         });
     }
 
+    // ECLIPSE OVERRIDE LISTENER
+    var elEclOver = document.getElementById('stat_override_eclipse');
+    if (elEclOver) {
+        elEclOver.addEventListener('change', function () {
+            var elNat = document.getElementById('stat_proc_nature');
+            var elArc = document.getElementById('stat_proc_arcane');
+            if (elNat && elArc) {
+                var active = elEclOver.checked;
+                elNat.disabled = !active;
+                elArc.disabled = !active;
+                // Wenn deaktiviert, visuell auf Standard zurücksetzen
+                if (!active) {
+                    elNat.value = 50;
+                    elArc.value = 30;
+                }
+            }
+            saveCurrentState();
+        });
+    }
+
     // Robust Buff & Config Listener Attachment
     CONFIG_IDS.forEach(function (id) {
         var el = document.getElementById(id);
@@ -216,6 +236,15 @@ function applyConfigToUI(cfg) {
     updateEnemyInfo();
     updateSpellStats();
      updatePatchUI();
+
+     // Sync Eclipse UI State
+    var elEclOver = document.getElementById('stat_override_eclipse');
+    var elNat = document.getElementById('stat_proc_nature');
+    var elArc = document.getElementById('stat_proc_arcane');
+    if (elEclOver && elNat && elArc) {
+        elNat.disabled = !elEclOver.checked;
+        elArc.disabled = !elEclOver.checked;
+    }
 }
 
 function saveCurrentState() {

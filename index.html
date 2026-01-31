@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krokat's Boomkinsim 1.18</title>
+    <title>Krokat's Boomkinsim 1.18.1</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap"
         rel="stylesheet">
@@ -380,6 +380,26 @@
                                                 </div>
                                                 <div class="input-group" style="margin-top:15px; margin-bottom:0;"><label>Spell
                                                         Penetration</label><input type="number" id="sp_pen" value="0"></div>
+                                                 <hr class="separator">
+                                                <div class="toggle-wrapper" style="margin-bottom: 15px;">
+                                                    <label class="toggle">
+                                                        <input type="checkbox" id="stat_override_eclipse">
+                                                        <span class="slider"></span>
+                                                        <span class="label-text">Overwrite Eclipse Procs</span>
+                                                    </label>
+                                                </div>
+                                                <div class="spell-row">
+                                                    <div class="multi-input">
+                                                        <div class="input-wrapper">
+                                                            <label>Nature Proc %</label>
+                                                            <input type="number" id="stat_proc_nature" value="50" disabled>
+                                                        </div>
+                                                        <div class="input-wrapper">
+                                                            <label>Arcane Proc %</label>
+                                                            <input type="number" id="stat_proc_arcane" value="30" disabled>
+                                                        </div>
+                                                    </div>
+                                                </div>       
                                             </div>
                                         </div>
 
