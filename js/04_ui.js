@@ -31,7 +31,7 @@ function setupUIListeners() {
     // PATCH 1.18.1 LOGIC: Game Version & Idols
     var patchSel = document.getElementById('sim_patch');
     if (patchSel) {
-        patchSel.addEventListener('change', function() {
+        patchSel.addEventListener('change', function () {
             updatePatchUI();
             saveCurrentState();
         });
@@ -39,14 +39,14 @@ function setupUIListeners() {
 
     // IDOL EXCLUSIVITY FOR 1.18.1
     var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang"];
-    idolIds.forEach(function(id) {
+    idolIds.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) {
-            el.addEventListener('change', function(e) {
+            el.addEventListener('change', function (e) {
                 // Nur aktiv wenn Patch 1.18.1 ausgewählt ist
                 var p = document.getElementById('sim_patch');
                 if (p && (p.value === '1.18.1a' || p.value === '1.18.1b') && e.target.checked) {
-                    idolIds.forEach(function(otherId) {
+                    idolIds.forEach(function (otherId) {
                         if (otherId !== id) {
                             var other = document.getElementById(otherId);
                             if (other) other.checked = false;
@@ -144,11 +144,11 @@ function setupUIListeners() {
 
 function setupCollapsibleCards() {
     var headers = document.querySelectorAll('.card-header');
-    headers.forEach(function(header) {
-        header.addEventListener('click', function(e) {
+    headers.forEach(function (header) {
+        header.addEventListener('click', function (e) {
             // Verhindern, dass Klicks auf Buttons im Header die Karte zuklappen
             if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-            
+
             var card = header.closest('.card');
             if (card) {
                 card.classList.toggle('collapsed');
@@ -229,15 +229,23 @@ function applyConfigToUI(cfg) {
                 }
             }
         }
-       
+
     }
+
+    // Update Interrupt Threshold Display
+    var elThresh = document.getElementById("rota_interrupt_thresh");
+    var elThreshDisp = document.getElementById("disp_interrupt_thresh");
+    if (elThresh && elThreshDisp) {
+        elThreshDisp.innerText = elThresh.value + "%";
+    }
+
 
     calculateGearStats();
     updateEnemyInfo();
     updateSpellStats();
-     updatePatchUI();
+    updatePatchUI();
 
-     // Sync Eclipse UI State
+    // Sync Eclipse UI State
     var elEclOver = document.getElementById('stat_override_eclipse');
     var elNat = document.getElementById('stat_proc_nature');
     var elArc = document.getElementById('stat_proc_arcane');
@@ -294,7 +302,7 @@ function switchSim(index) {
 
     var sim = SIM_LIST[index];
     var nameInput = document.getElementById('simName');
-    
+
     // Setze den Namen im Header
     if (nameInput) {
         nameInput.value = sim.name;
@@ -310,7 +318,7 @@ function switchSim(index) {
     document.getElementById('singleSimView').classList.remove('hidden');
     // Update Name in Results Header
     var resNameEl = document.getElementById('resultSimName');
-    if(resNameEl) resNameEl.innerText = sim.name;
+    if (resNameEl) resNameEl.innerText = sim.name;
 
     var res = sim.results;
     var weightResBox = document.getElementById("weightResults");
@@ -319,7 +327,7 @@ function switchSim(index) {
         SIM_DATA = res;
         document.getElementById('resultsArea').classList.remove('hidden');
         switchView('avg');
-        
+
         // Anzeige der Stat Weights aktualisieren
         if (weightResBox) {
             if (res.statWeights) {
@@ -346,7 +354,7 @@ function switchSim(index) {
         var btnW = document.getElementById("btnWeights");
         if (btnW) btnW.disabled = true;
     }
-    
+
     renderSidebar();
 }
 
@@ -581,7 +589,7 @@ function importSettings() {
                         // KORREKTUR: Den Namen auch im UI-Input setzen
                         var nameInput = document.getElementById('simName');
                         if (nameInput) nameInput.value = SIM_LIST[0].name;
-                        
+
                         applyConfigToUI(SIM_LIST[0].config);
                         renderSidebar();
                         showOverview();
@@ -722,18 +730,18 @@ function generateSummaryImage() {
     if (sourceChart && targetContainer) {
         targetContainer.innerHTML = sourceChart.innerHTML;
 
-    showToast("Generating...");
-    var card = document.getElementById("summaryCard");
-    html2canvas(card, { scale: 2, backgroundColor: null, useCORS: true }).then(function (canvas) {
-        // Aufräumen nach Generierung
-        if (targetContainer) targetContainer.innerHTML = "";
-        
-        var link = document.createElement('a');
-        link.download = 'moonkin_sim_summary.png';
-        link.href = canvas.toDataURL();
-        link.click();
-    });
-}
+        showToast("Generating...");
+        var card = document.getElementById("summaryCard");
+        html2canvas(card, { scale: 2, backgroundColor: null, useCORS: true }).then(function (canvas) {
+            // Aufräumen nach Generierung
+            if (targetContainer) targetContainer.innerHTML = "";
+
+            var link = document.createElement('a');
+            link.download = 'moonkin_sim_summary.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
 }
 
 // ============================================================================
@@ -811,7 +819,7 @@ function switchView(type) {
         }
 
         // Retrieve Spell Stats safely
-        var getStats = function(id) {
+        var getStats = function (id) {
             return (data.stats.spellStats && data.stats.spellStats[id]) ? data.stats.spellStats[id] : { count: 0, timeSum: 0, hits: 0, crits: 0 };
         };
         var sf = getStats("Starfire");
@@ -838,7 +846,7 @@ function switchView(type) {
         // --- SECTION 3: PERFORMANCE METRICS ---
         addStatRow("Performance Metrics", "", "", true);
         addRow("Critical Damage (Total)", data.stats.dmgCrit, data.stats.totalDmg);
-        
+
         var sfCritPct = sf.hits > 0 ? (sf.crits / sf.hits * 100).toFixed(1) + "%" : "-";
         addStatRow("Starfire Crit Rate", sfCritPct, sf.crits.toFixed(0) + " Crits");
 
@@ -878,7 +886,7 @@ function renderCombatLog(logData) {
     // Container und Header-Referenzen
     var thead = document.getElementById("logHeader");
     var tbody = document.getElementById("logBody");
-    
+
     // Header-Erstellung (Bleibt identisch mit Ihrem Code)
     var baseCols = `<th style="width: 50px;">Time</th><th style="width: 50px;">Event</th><th class="col-left" style="width: 90px;">Spell</th><th style="width: 40px;">CastT</th><th style="width: 30px;">Res</th><th style="width: 50px; text-align:right;">Norm</th><th style="width: 50px; text-align:right;">Ecl</th><th style="width: 50px; text-align:right;">Crit</th><th style="width: 40px;">MF(s)</th><th style="width: 40px;">IS(s)</th>`;
     if (showBoat) baseCols += `<th style="width: 30px;">BoaT</th>`;
@@ -951,7 +959,7 @@ function renderLogPagination(totalEntries) {
     }
 
     var totalPages = Math.ceil(totalEntries / LOG_ENTRIES_PER_PAGE);
-    
+
     nav.innerHTML = `
         <button class="btn-mini" onclick="changeLogPage(-1)" ${CURRENT_LOG_PAGE === 0 ? 'disabled' : ''}>&lt; Prev</button>
         <span style="color:var(--text-muted)">Page <strong>${CURRENT_LOG_PAGE + 1}</strong> of ${totalPages} (${totalEntries} entries)</span>
@@ -1135,7 +1143,7 @@ async function runArmoryImport() {
     var targetUrl = `https://turtlecraft.gg/armory/${realm}/${name}`;
     var proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
     //var proxyUrl = targetUrl; // CORS Proxy disabled for demo purposes
-    
+
     try {
         var response = await fetch(proxyUrl);
         if (!response.ok) {
@@ -1267,11 +1275,11 @@ function applyImportData(importedItems, race, charName) {
 function updatePatchUI() {
     var p = document.getElementById('sim_patch');
     var ver = p ? p.value : "1.18";
-    
+
     // 1. Disable BoaT Stacks Input for 1.18.1 (Passiv)
     var boatInput = document.getElementById('start_boat');
     if (boatInput) {
-        if (ver === '1.18.1a'|| ver === '1.18.1b') {
+        if (ver === '1.18.1a' || ver === '1.18.1b') {
             boatInput.disabled = true;
             boatInput.parentElement.style.opacity = "0.5";
             boatInput.value = 0; // Reset visual value
@@ -1283,25 +1291,25 @@ function updatePatchUI() {
 
     // 2. Disable External DoTs if not 1.18.1
     var extIds = ["enemy_ext_mf", "enemy_ext_is"];
-    extIds.forEach(function(id) {
+    extIds.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) {
             if (ver !== '1.18.1a' && ver !== '1.18.1b') {
                 el.checked = false; // Force false
                 el.disabled = true; // Prevent input
-                if(el.parentElement) el.parentElement.style.opacity = "0.5"; // Visual feedback
+                if (el.parentElement) el.parentElement.style.opacity = "0.5"; // Visual feedback
             } else {
                 el.disabled = false;
-                if(el.parentElement) el.parentElement.style.opacity = "1";
+                if (el.parentElement) el.parentElement.style.opacity = "1";
             }
         }
     });
-    
+
     // 3. Ensure Single Idol Selection when switching to 1.18.1
     if (ver === '1.18.1a' || ver === '1.18.1b') {
         var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang"];
         var found = false;
-        idolIds.forEach(function(id) {
+        idolIds.forEach(function (id) {
             var el = document.getElementById(id);
             if (el && el.checked) {
                 if (found) el.checked = false; // Deselect others if one is already found
@@ -1318,24 +1326,24 @@ function renderDPSDistribution(data) {
     var chart = document.getElementById('dpsChart');
     if (!chart || !data || !data.dpsDistribution) return;
 
-    chart.innerHTML = ""; 
+    chart.innerHTML = "";
     var dpsValues = data.dpsDistribution;
-    
+
     // 1. Verwende globale statt lokaler Min/Max Werte für die Skalierung
     var min = GLOBAL_DPS_MIN;
     var max = GLOBAL_DPS_MAX;
     var range = max - min;
-    
+
     // Beschriftungen zeigen weiterhin lokale Werte der aktuellen Sim
     setText("distMinLabel", Math.floor(min) + " DPS");
     setText("distMaxLabel", Math.floor(max) + " DPS");
 
     // 2. Buckets erstellen
-    var bucketCount = 60; 
+    var bucketCount = 60;
     var buckets = new Array(bucketCount).fill(0);
     var step = (range > 0) ? (range / bucketCount) : 1;
 
-    dpsValues.forEach(function(val) {
+    dpsValues.forEach(function (val) {
         var idx = Math.floor((val - min) / step);
         if (idx >= bucketCount) idx = bucketCount - 1;
         if (idx < 0) idx = 0;
@@ -1348,15 +1356,15 @@ function renderDPSDistribution(data) {
     var maxDpsVal = data.max.dps; // NEU
 
     // 3. Balken rendern
-    buckets.forEach(function(count, i) {
+    buckets.forEach(function (count, i) {
         var heightPct = (maxBucket > 0) ? (count / maxBucket) * 100 : 0;
         var bar = document.createElement('div');
         bar.className = 'dist-bar';
         bar.style.height = heightPct + "%";
-        
+
         var bucketStart = min + (i * step);
         var bucketEnd = bucketStart + step;
-        
+
         // Highlight für Durchschnitt
         if (avgDps >= bucketStart && avgDps <= bucketEnd) {
             bar.classList.add('highlight');
@@ -1393,10 +1401,10 @@ function updateGlobalDpsRange() {
     var max = -Infinity;
     var found = false;
 
-    SIM_LIST.forEach(function(sim) {
+    SIM_LIST.forEach(function (sim) {
         if (sim.results && sim.results.dpsDistribution) {
             found = true;
-            sim.results.dpsDistribution.forEach(function(val) {
+            sim.results.dpsDistribution.forEach(function (val) {
                 if (val < min) min = val;
                 if (val > max) max = val;
             });

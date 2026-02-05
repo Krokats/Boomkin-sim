@@ -26,7 +26,7 @@ var CONFIG_IDS = [
     "stat_override_eclipse", "stat_proc_nature", "stat_proc_arcane",
     "enemy_level", "res_arcane", "res_nature", "enemy_cos", "enemy_ext_mf", "enemy_ext_is",
     "rota_fish", "start_boat", "wrath_flight", "rota_dot_cutoff",
-    "rota_is", "rota_mf", "rota_eclDot", "rota_interrupt",
+    "rota_is", "rota_mf", "rota_eclDot", "rota_interrupt", "rota_interrupt_thresh",
     "rota_starfire", "rota_wrath",
     "t3_4p", "t3_6p", "t3_8p", "t35_5p",
     "idolEoF", "idolMoon", "idolProp", "idolMoonfang",

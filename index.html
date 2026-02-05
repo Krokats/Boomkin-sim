@@ -491,7 +491,19 @@
                                                             Eclipse</span></label><label class="toggle"><input type="checkbox"
                                                             id="rota_interrupt" checked><span class="slider"></span><span
                                                             class="label-text">Cancel wrong Spell</span></label></div>
+                                                <div class="input-group" style="margin-top: 15px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                                <label style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                                    <span>Interrupt Threshold</span>
+                                                    <span id="disp_interrupt_thresh" style="color:var(--druid-orange); font-weight:bold;">100%</span>
+                                                </label>
+                                                <input type="range" id="rota_interrupt_thresh" min="0" max="100" value="100" style="width:100%; cursor:pointer;" 
+                                                    oninput="document.getElementById('disp_interrupt_thresh').innerText = this.value + '%'">
+                                                <div style="font-size:0.75rem; color:#888; margin-top:5px;">
+                                                    If set to 50%, casts will only be interrupted if they are less than 50% completed.
+                                                </div>
                                             </div>
+                                            </div>
+                                            
                                         </div>
 
                                     </div> </div>

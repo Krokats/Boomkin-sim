@@ -34,7 +34,8 @@ function getInputs() {
             castSF: getVal("rota_starfire"), castW: getVal("rota_wrath"),
             eclDOT: getVal("rota_eclDot"), spellInterrupt: getVal("rota_interrupt"),
             fishMeth: getVal("rota_fish"), startBoat: getVal("start_boat"), wrathFlight: getVal("wrath_flight"),
-            dotCutoff: getVal("rota_dot_cutoff") // NEU
+            dotCutoff: getVal("rota_dot_cutoff"), 
+            interruptThresh: getVal("rota_interrupt_thresh") 
         },
         stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), baseHitProb: baseHit },
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
@@ -446,7 +447,7 @@ function runCoreSimulation(cfg) {
 
     // 3. Kampf-Status & Stats (Nur für diesen EINEN Run)
     var State = { 
-        t: 0.0, gcdEnd: 0.0, castEnd: 0.0, casting: false, spellId: null, currentSpellId: null,
+        t: 0.0, gcdEnd: 0.0, castEnd: 0.0, castStart: 0.0, casting: false, spellId: null, currentSpellId: null,
         neEnd: 0.0, aeEnd: 0.0, neCD: 0.0, aeCD: 0.0, 
         ng: false, boat: cfg.rota.startBoat, t38End: 0.0, t3End: 0.0, 
         fishingLastCast: "", activeMF: null, activeIS: null, 
@@ -685,6 +686,7 @@ function runCoreSimulation(cfg) {
         checkTrinkets(); 
         var ct = getCastTime(spell.id, spell.baseCast); 
         State.casting = true; 
+        State.castStart = State.t;
         State.castEnd = State.t + ct + cfg.avcd; 
         State.gcdEnd = State.t + 1.5 + cfg.avcd; 
         if (spell.id === "Wrath") State.gcdEnd = State.t + 1.5 + cfg.avcd; 
@@ -822,21 +824,34 @@ function runCoreSimulation(cfg) {
         if (cfg.talents.onCrit && !crit) canProc = false; 
         
         if (canProc) { 
+            // Helper für Interrupt-Entscheidung
+            var canInterrupt = true;
+            if (State.casting) {
+                var totalDur = State.castEnd - State.castStart;
+                var elapsed = State.t - State.castStart;
+                var pct = 0;
+                if (totalDur > 0) pct = (elapsed / totalDur) * 100;
+                // Wenn Fortschritt größer als Schwelle -> Nicht abbrechen
+                if (pct > cfg.rota.interruptThresh) canInterrupt = false;
+            }
+
             if (spell.id === "Starfire" && !isAE() && State.t >= State.neCD && RNG.check(cfg.talents.nEProc, "procNE")) { 
                 State.neEnd = State.t + cfg.talents.neDuration; 
                 State.neCD = State.t + cfg.talents.neICD; 
                 triggeredEclipse = true; 
                 log(State.t, "PROC", "Nature Eclipse", "Proc", null, null, "SF -> NE"); 
-                if (cfg.rota.spellInterrupt && State.casting && (State.currentSpellId === "Starfire" || State.currentSpellId === "Moonfire")) cancelCurrentCast(); 
+                // Check mit canInterrupt
+                if (cfg.rota.spellInterrupt && canInterrupt && State.casting && (State.currentSpellId === "Starfire" || State.currentSpellId === "Moonfire")) cancelCurrentCast(); 
             } 
             if (spell.id === "Wrath" && !isNE() && State.t >= State.aeCD && RNG.check(cfg.talents.aEProc, "procAE")) { 
                 State.aeEnd = State.t + cfg.talents.aeDuration; 
                 State.aeCD = State.t + cfg.talents.aeICD; 
                 triggeredEclipse = true; 
                 log(State.t, "PROC", "Arcane Eclipse", "Proc", null, null, "Wrath -> AE"); 
-                if (cfg.rota.spellInterrupt && State.casting && (State.currentSpellId === "Wrath" || State.currentSpellId === "InsectSwarm")) cancelCurrentCast(); 
+                // Check mit canInterrupt
+                if (cfg.rota.spellInterrupt && canInterrupt && State.casting && (State.currentSpellId === "Wrath" || State.currentSpellId === "InsectSwarm")) cancelCurrentCast(); 
             } 
-        } 
+        }
         
         if (triggeredEclipse) { 
             if (cfg.gear.t3_8p) State.t38End = State.t + 8.0; 
