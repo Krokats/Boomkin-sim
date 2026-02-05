@@ -553,6 +553,7 @@ function runCoreSimulation(cfg) {
             State.casting = false; 
             State.currentSpellId = null; 
             State.castEnd = State.t + cfg.avcd;
+            State.gcdEnd = State.t + cfg.avcd;
             log(State.t, "INTERRUPT", "Cancel", "-", null, null, "Wrong Eclipse");
         } 
     };
@@ -959,7 +960,7 @@ function runCoreSimulation(cfg) {
             else if (evt.type === "DOT_TICK") handleTick(evt.data);
         }
         var gcdReady = State.t >= (State.gcdEnd - 0.001) && State.t >= (State.castEnd - 0.001);
-        if (!State.isCasting && gcdReady && State.t < cfg.maxTime) {
+        if (!State.casting && gcdReady && State.t < cfg.maxTime) {
             var spell = decideSpell();
             if (spell) performCast(spell);
             else { State.t += 0.1; }
