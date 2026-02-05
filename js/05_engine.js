@@ -215,6 +215,10 @@ function calculateWeights() {
     var baseSeed = 1337;//baseConfig.rng_seed ? parseInt(baseConfig.rng_seed) : 1337; keep the Stat Weigh Process constant
     //if (isNaN(baseSeed)) baseSeed = 1337;
 
+    //var FightTime = 500; 
+    //baseConfig.dur = FightTime;
+
+
     // Szenarien
     var scenarios = [
         { id: "base", label: "Base", mod: function(c) {}, norm: 1 },
@@ -225,7 +229,7 @@ function calculateWeights() {
             // Neu berechnen für dieses Szenario, da das Cap in getInputs schon passierte
             c.stats.hit = Math.min(0.99, c.stats.baseHitProb + (c.stats.hitBonus/100)); 
         }, skip: isHitCapped, norm: 1 }, // Skip flag wenn am Cap
-        { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 5; }, norm: 5 }
+        { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 1; }, norm: 1 }
     ];
 
     // Wir speichern ALLE Einzelergebnisse des Base-Runs, 
@@ -547,7 +551,8 @@ function runCoreSimulation(cfg) {
             State.pendingImpacts.splice(idx, 1); 
             State.casting = false; 
             State.currentSpellId = null; 
-            log(State.t, "INTERRUPT", "Cancel", "-", null, null, "Wrong Eclipse"); 
+            State.castEnd = State.t + cfg.avcd;
+            log(State.t, "INTERRUPT", "Cancel", "-", null, null, "Wrong Eclipse");
         } 
     };
 
