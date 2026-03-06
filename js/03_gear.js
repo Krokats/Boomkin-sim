@@ -563,6 +563,38 @@ function calculateItemScore(item, slotNameOverride) {
     var intVal = item.intellect || 0;
     score += (intVal / 60) * wCrit;
 
+    // --- ON-USE & PROC TRINKET LOGIC ---
+    var fightLength = parseFloat(document.getElementById("maxTime") ? document.getElementById("maxTime").value : 120);
+    if (fightLength <= 0) fightLength = 120; // Fallback
+    
+    var avgBonusSP = 0;
+    var avgBonusHaste = 0; // NEU: Für Haste-Trinkets
+    
+    // Umbenannt zu getOnUseAvg, da wir damit nun auch Haste berechnen
+    function getOnUseAvg(bonusVal, duration, cooldown) {
+        var fullUses = Math.floor(fightLength / cooldown);
+        var remainingTime = fightLength - (fullUses * cooldown);
+        var activeTime = (fullUses * duration) + Math.min(remainingTime, duration);
+        return (activeTime / fightLength) * bonusVal;
+    }
+
+    if (item.name === "The Restrained Essence of Sapphiron") avgBonusSP += getOnUseAvg(130, 20, 120);
+    if (item.name === "Talisman of Ephemeral Power") avgBonusSP += getOnUseAvg(175, 15, 90);
+    if (item.name === "Remains of Overwhelming Power") avgBonusSP += getOnUseAvg(55, 60, 300);
+    if (item.name === "Zandalarian Hero Charm") avgBonusSP += getOnUseAvg(102, 20, 120); 
+    
+    // Procs
+    if (item.name === "Bindings of Contained Magic" || item.id === 23201) {
+        avgBonusSP += 10; 
+    }
+    if (item.name === "Scythe of Elune") {
+        avgBonusSP += 30; // ~30 SP Äquivalent für 5% Proc (500-650 Dmg)
+        avgBonusHaste += getOnUseAvg(10, 8, 600); // 10% Haste für 8s, 10 Min (600s) CD
+    }
+
+    score += avgBonusSP * wSP;
+    score += avgBonusHaste * wHaste; // NEU: Durchschnittliche Haste zum Score addieren
+
     // 2. SET BONUS LOGIC
     if (item.setName) {
         // Determine which slot we are simulating for
@@ -714,9 +746,9 @@ function calculateGearStats() {
                 charStats.haste += hasteVal;
 
                 // Add to Gear Only (GS)
-                // For GS, sum all SP types
+                // For GS, sum all SP types (Arcane und Nature zählen nur zu 50%)
                 gearOnlyStats.int += intVal;
-                gearOnlyStats.sp += (spVal + spArc + spNat);
+                gearOnlyStats.sp += (spVal + (spArc / 2) + (spNat / 2));
                 gearOnlyStats.crit += critVal;
                 gearOnlyStats.hit += hitVal;
                 gearOnlyStats.haste += hasteVal;
@@ -880,6 +912,27 @@ function calculateGearStats() {
 
     // For Gear Score Display: Only Gear Int / 60
     var gearCritFromInt = gearOnlyStats.int / 60;
+
+    // --- ON-USE & PROC TRINKET LOGIC FOR GEAR SCORE ---
+    var fightLength = parseFloat(document.getElementById("maxTime") ? document.getElementById("maxTime").value : 120);
+    if (fightLength <= 0) fightLength = 120;
+    
+    function getGlobalOnUseAvg(bonusVal, duration, cooldown) {
+        var fullUses = Math.floor(fightLength / cooldown);
+        var remainingTime = fightLength - (fullUses * cooldown);
+        var activeTime = (fullUses * duration) + Math.min(remainingTime, duration);
+        return (activeTime / fightLength) * bonusVal;
+    }
+
+    if (hasReos) gearOnlyStats.sp += getGlobalOnUseAvg(130, 20, 120);
+    if (hasToep) gearOnlyStats.sp += getGlobalOnUseAvg(175, 15, 90);
+    if (hasRoop) gearOnlyStats.sp += getGlobalOnUseAvg(55, 60, 180);
+    if (hasZhc) gearOnlyStats.sp += getGlobalOnUseAvg(102, 20, 120);
+    if (hasBinding) gearOnlyStats.sp += 10; 
+    if (hasScythe) {
+        gearOnlyStats.sp += 30; // SP Äquivalent für Proc
+        gearOnlyStats.haste += getGlobalOnUseAvg(10, 8, 600); // Haste On-Use
+    }
 
     // CALCULATE TOTAL GEAR SCORE FOR DISPLAY (Purely from Items+Sets)
     var wHit = parseFloat(document.getElementById("weight_hit") ? document.getElementById("weight_hit").value : 16);

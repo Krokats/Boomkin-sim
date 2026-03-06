@@ -122,9 +122,19 @@ function setupUIListeners() {
         var el = document.getElementById(id);
         if (el) {
             el.addEventListener('change', function () {
-                if (id.startsWith("buff_")) calculateGearStats();
+                // maxTime hinzugefügt, damit bei Änderung neu gerechnet wird
+                if (id.startsWith("buff_") || id === "maxTime") calculateGearStats();
+                if (id === "maxTime") recalcItemScores();
                 saveCurrentState();
             });
+            
+            // NEU: Für echtes Live-Update schon während dem Tippen in der Fight Duration
+            if (id === "maxTime") {
+                el.addEventListener('input', function() {
+                    calculateGearStats();
+                    recalcItemScores();
+                });
+            }
         }
     });
 

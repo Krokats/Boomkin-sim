@@ -266,6 +266,10 @@ function calculateWeights() {
         }
 
         var scen = scenarios[currentScenIdx];
+
+        // NEU: Update Progress Text
+        var pText = document.getElementById("progressText");
+        if (pText) pText.innerText = "Calculating: " + scen.label + "...";
         
         // HIT CAP LOGIC: Wenn wir am Cap sind, Hit überspringen
         if (scen.skip) {
@@ -386,7 +390,7 @@ function finalizeWeights() {
                '<div style="font-size:0.85rem; color:#888; margin-top:4px;">&plusmn;' + e.toFixed(2) + '</div>';
     };
 
-    // --- MARGINAL HASTE SCALING BERECHNEN (ALS DIAGRAMM) ---
+    // --- MARGINAL & CUMULATIVE HASTE SCALING BERECHNEN (ALS DIAGRAMM) ---
     var hasteStepsHtml = "";
     var prevTotalEP = 0;
     var hasteStepsCount = parseInt(document.getElementById("weight_haste_steps") ? document.getElementById("weight_haste_steps").value : 5);
@@ -394,6 +398,7 @@ function finalizeWeights() {
     
     var stepEPs = [];
     var maxMarginal = 0;
+    var maxCumulative = 0; // NEU: Max-Wert für das kumulative Diagramm
 
     for(var s = 1; s <= hasteStepsCount; s++) {
         var stepData = calculatedDeltas["haste_step_" + s];
@@ -403,38 +408,51 @@ function finalizeWeights() {
         var marginalEP = totalEP - prevTotalEP;
         prevTotalEP = totalEP;
         
-        stepEPs.push({ step: s, ep: marginalEP });
+        // Speichere beide Werte
+        stepEPs.push({ step: s, marginal: marginalEP, cumulative: totalEP });
         if(marginalEP > maxMarginal) maxMarginal = marginalEP;
+        if(totalEP > maxCumulative) maxCumulative = totalEP;
     }
 
-    // Chart HTML aufbauen (Zentrierte Darstellung auf der X-Achse)
-    var chartHtml = '<div style="height: 140px; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin-top: 10px;">';
+    // Hilfsfunktion zum Generieren der Charts
+    function buildChart(isMarginal) {
+        var chartHtml = '<div style="height: 140px; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin-top: 10px;">';
+        var maxVal = isMarginal ? maxMarginal : maxCumulative;
 
-    stepEPs.forEach(function(item) {
-        var isBreakpoint = (baseHasteEP > 0 && item.ep > baseHasteEP * 1.2);
-        // Höhe berechnen (mind. 2% für kleine Werte, damit ein Strich sichtbar bleibt)
-        var heightPct = maxMarginal > 0 ? (item.ep / maxMarginal) * 100 : 0;
-        if(heightPct < 2 && item.ep > 0) heightPct = 2; 
-        
-        var bgColor = isBreakpoint ? 'var(--druid-orange)' : 'var(--text-muted)';
-        var opacity = isBreakpoint ? '1' : '0.6';
-        var textColor = isBreakpoint ? 'var(--druid-orange)' : '#e0e0e0';
+        stepEPs.forEach(function(item) {
+            var val = isMarginal ? item.marginal : item.cumulative;
+            var isBreakpoint = (baseHasteEP > 0 && item.marginal > baseHasteEP * 1.2); // Breakpoints immer anhand des marginalen Sprungs markieren
+            
+            var heightPct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+            if(heightPct < 2 && val > 0) heightPct = 2; 
+            
+            var bgColor = isBreakpoint ? 'var(--druid-orange)' : 'var(--text-muted)';
+            var opacity = isBreakpoint ? '1' : '0.6';
+            var textColor = isBreakpoint ? 'var(--druid-orange)' : '#e0e0e0';
 
-        // 'flex: 1' wurde durch 'width: 45px' ersetzt, damit die Balken nicht stretchen
-        chartHtml += '<div style="width: 45px; flex-shrink: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">' + 
-                     '<span style="font-size: 0.70rem; font-weight: bold; color: ' + textColor + ';">' + item.ep.toFixed(1) + '</span>' + 
-                     '<div style="flex-grow: 1; display: flex; align-items: flex-end; width: 100%; justify-content: center; margin: 4px 0;">' + 
-                         '<div style="width: 80%; max-width: 35px; background: ' + bgColor + '; opacity: ' + opacity + '; height: ' + heightPct + '%; border-radius: 3px 3px 0 0; transition: height 0.5s ease-out;"></div>' + 
-                     '</div>' + 
-                     '<span style="font-size: 0.70rem; color: #888;">+' + item.step + '%</span>' +
-                     '</div>';
-    });
-    chartHtml += '</div>';
-    
-    // Kleine Legende unter dem Diagramm
-    chartHtml += '<div style="text-align: center; font-size: 0.7rem; color: #666; margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">Bars represent the marginal EP value for each +1% Haste step. Breakpoints are highlighted in orange.</div>';
+            chartHtml += '<div style="width: 45px; flex-shrink: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">' + 
+                         '<span style="font-size: 0.70rem; font-weight: bold; color: ' + textColor + ';">' + val.toFixed(1) + '</span>' + 
+                         '<div style="flex-grow: 1; display: flex; align-items: flex-end; width: 100%; justify-content: center; margin: 4px 0;">' + 
+                             '<div style="width: 80%; max-width: 35px; background: ' + bgColor + '; opacity: ' + opacity + '; height: ' + heightPct + '%; border-radius: 3px 3px 0 0; transition: height 0.5s ease-out;"></div>' + 
+                         '</div>' + 
+                         '<span style="font-size: 0.70rem; color: #888;">+' + item.step + '%</span>' +
+                         '</div>';
+        });
+        chartHtml += '</div>';
+        return chartHtml;
+    }
 
-    hasteStepsHtml = chartHtml;
+    // Beide Diagramme generieren (Marginal standardmäßig sichtbar, Cumulative versteckt)
+    var marginalChart = '<div id="chart_marginal">' + buildChart(true) + '<div style="text-align: center; font-size: 0.7rem; color: #666; margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">Bars represent the marginal EP value for each +1% Haste step. Breakpoints are highlighted in orange.</div></div>';
+    var cumulativeChart = '<div id="chart_cumulative" style="display:none;">' + buildChart(false) + '<div style="text-align: center; font-size: 0.7rem; color: #666; margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">Bars represent the cumulative EP value up to that Haste step. Breakpoints are highlighted in orange.</div></div>';
+
+    // Toggle Button (Inline JS, um globale UI-Skripte nicht aufzublähen)
+    var toggleBtn = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">' +
+                    '<span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">View Mode:</span>' +
+                    '<button class="btn-mini" onclick="var m=document.getElementById(\'chart_marginal\'); var c=document.getElementById(\'chart_cumulative\'); if(m.style.display===\'none\'){m.style.display=\'block\'; c.style.display=\'none\'; this.innerText=\'Show Cumulative EP\';} else {m.style.display=\'none\'; c.style.display=\'block\'; this.innerText=\'Show Marginal EP\';}">Show Cumulative EP</button>' +
+                    '</div>';
+
+    hasteStepsHtml = toggleBtn + marginalChart + cumulativeChart;
 
     // KERN-FIX: Speichere die Ergebnisse als Strings im Objekt der aktuellen Simulation
     if (SIM_LIST[ACTIVE_SIM_INDEX].results) {
@@ -527,7 +545,9 @@ function runCoreSimulation(cfg) {
         pendingImpacts: [], dotCounter: 0, 
         bindingEnd: 0.0, bindingCD: 0.0, reosEnd: 0.0, reosCD: 0.0, 
         toepEnd: 0.0, toepCD: 0.0, roopEnd: 0.0, roopCD: 0.0, 
-        zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0, ooc: false, boon: 0 
+        zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0, 
+        scytheEnd: 0.0, scytheCD: 0.0,
+        ooc: false, boon: 0 
     };
 
     var RunStats = { 
@@ -655,8 +675,9 @@ function runCoreSimulation(cfg) {
         if (use) {
             if (cfg.gear.reos && State.t >= State.reosCD) { State.reosEnd = State.t + 20.0; State.reosCD = State.t + 120.0; log(State.t, "USE", "Essence of Sapphiron", "", null, null, "+130 SP"); }
             if (cfg.gear.toep && State.t >= State.toepCD) { State.toepEnd = State.t + 15.0; State.toepCD = State.t + 90.0; log(State.t, "USE", "Talisman (ToEP)", "", null, null, "+175 SP"); }
-            if (cfg.gear.roop && State.t >= State.roopCD) { State.roopEnd = State.t + 60.0; State.roopCD = State.t + 180.0; log(State.t, "USE", "Remains of Overwhelming Power", "", null, null, "+55 SP"); }
+            if (cfg.gear.roop && State.t >= State.roopCD) { State.roopEnd = State.t + 60.0; State.roopCD = State.t + 300.0; log(State.t, "USE", "Remains of Overwhelming Power", "", null, null, "+55 SP"); }
             if (cfg.gear.zhc && State.t >= State.zhcCD) { State.zhcEnd = State.t + 20.0; State.zhcCD = State.t + 120.0; State.zhcVal = 204; log(State.t, "USE", "Zandalarian Hero Charm", "", null, null, "+204 SP"); }
+            if (cfg.gear.scythe && State.t >= State.scytheCD) { State.scytheEnd = State.t + 8.0; State.scytheCD = State.t + 600.0; log(State.t, "USE", "Scythe of Elune", "", null, null, "+10% Haste"); }
         }
     };
 
@@ -670,7 +691,9 @@ function runCoreSimulation(cfg) {
         if (base < 0) base = 0; 
         var haste = cfg.stats.haste; 
         if (cfg.gear.t3_8p && State.t < State.t38End) haste += 10; 
-        return Math.max(0, base / (1 + haste / 100)); 
+        // NEU: Scythe of Elune Haste Buff
+        if (cfg.gear.scythe && State.t < State.scytheEnd) haste += 10;
+        return Math.max(0, base / (1 + haste / 100));
     };
 
     // Calculate Damage
