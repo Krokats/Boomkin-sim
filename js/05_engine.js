@@ -21,12 +21,13 @@ function getInputs() {
     var strat = stratEl ? stratEl.value : "START";
 
     // Eclipse Override Logic
+    var patchVer = document.getElementById("sim_patch") ? document.getElementById("sim_patch").value : "1.18";
     var useOver = getVal("stat_override_eclipse");
-    var valNE = useOver ? getVal("stat_proc_nature") : 50;
-    var valAE = useOver ? getVal("stat_proc_arcane") : 30;
+    var valNE = useOver ? getVal("stat_proc_nature") : (patchVer === "1.18.1c" ? 60 : 50);
+    var valAE = useOver ? getVal("stat_proc_arcane") : (patchVer === "1.18.1c" ? 40 : 30);
 
     return {
-        sim_patch: document.getElementById("sim_patch") ? document.getElementById("sim_patch").value : "1.18", 
+        sim_patch: patchVer,
         mode: m, iterations: (m.startsWith("D")) ? 1 : (rawSims > 0 ? rawSims : 1), maxTime: getVal("maxTime"), avcd: getVal("avcd") / 1000,
         rng_seed: document.getElementById("rng_seed") ? document.getElementById("rng_seed").value : "",
         rota: {
@@ -233,6 +234,21 @@ function calculateWeights() {
         { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 1; }, norm: 1 }
     ];
 
+    // Dynamische Haste-Szenarien hinzufügen
+    var hasteSteps = parseInt(document.getElementById("weight_haste_steps") ? document.getElementById("weight_haste_steps").value : 5);
+    if (isNaN(hasteSteps) || hasteSteps < 1) hasteSteps = 1;
+
+    for (var s = 1; s <= hasteSteps; s++) {
+        (function(step) {
+            scenarios.push({
+                id: "haste_step_" + step,
+                label: "+" + step + "% Haste",
+                mod: function(c) { c.stats.haste += step; },
+                norm: 1 // norm=1, da wir den absoluten DPS-Gewinn für die gesamten +X% wollen
+            });
+        })(s);
+    }
+
     // Wir speichern ALLE Einzelergebnisse des Base-Runs, 
     // um die Differenz pro Seed berechnen zu können (Paired Difference Test).
     // Das reduziert den statistischen Fehler massiv.
@@ -370,12 +386,63 @@ function finalizeWeights() {
                '<div style="font-size:0.85rem; color:#888; margin-top:4px;">&plusmn;' + e.toFixed(2) + '</div>';
     };
 
+    // --- MARGINAL HASTE SCALING BERECHNEN (ALS DIAGRAMM) ---
+    var hasteStepsHtml = "";
+    var prevTotalEP = 0;
+    var hasteStepsCount = parseInt(document.getElementById("weight_haste_steps") ? document.getElementById("weight_haste_steps").value : 5);
+    var baseHasteEP = (calculatedDeltas["haste"].mean / 1) / valRef; 
+    
+    var stepEPs = [];
+    var maxMarginal = 0;
+
+    for(var s = 1; s <= hasteStepsCount; s++) {
+        var stepData = calculatedDeltas["haste_step_" + s];
+        if(!stepData) continue;
+        
+        var totalEP = stepData.mean / valRef;
+        var marginalEP = totalEP - prevTotalEP;
+        prevTotalEP = totalEP;
+        
+        stepEPs.push({ step: s, ep: marginalEP });
+        if(marginalEP > maxMarginal) maxMarginal = marginalEP;
+    }
+
+    // Chart HTML aufbauen (Zentrierte Darstellung auf der X-Achse)
+    var chartHtml = '<div style="height: 140px; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin-top: 10px;">';
+
+    stepEPs.forEach(function(item) {
+        var isBreakpoint = (baseHasteEP > 0 && item.ep > baseHasteEP * 1.2);
+        // Höhe berechnen (mind. 2% für kleine Werte, damit ein Strich sichtbar bleibt)
+        var heightPct = maxMarginal > 0 ? (item.ep / maxMarginal) * 100 : 0;
+        if(heightPct < 2 && item.ep > 0) heightPct = 2; 
+        
+        var bgColor = isBreakpoint ? 'var(--druid-orange)' : 'var(--text-muted)';
+        var opacity = isBreakpoint ? '1' : '0.6';
+        var textColor = isBreakpoint ? 'var(--druid-orange)' : '#e0e0e0';
+
+        // 'flex: 1' wurde durch 'width: 45px' ersetzt, damit die Balken nicht stretchen
+        chartHtml += '<div style="width: 45px; flex-shrink: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">' + 
+                     '<span style="font-size: 0.70rem; font-weight: bold; color: ' + textColor + ';">' + item.ep.toFixed(1) + '</span>' + 
+                     '<div style="flex-grow: 1; display: flex; align-items: flex-end; width: 100%; justify-content: center; margin: 4px 0;">' + 
+                         '<div style="width: 80%; max-width: 35px; background: ' + bgColor + '; opacity: ' + opacity + '; height: ' + heightPct + '%; border-radius: 3px 3px 0 0; transition: height 0.5s ease-out;"></div>' + 
+                     '</div>' + 
+                     '<span style="font-size: 0.70rem; color: #888;">+' + item.step + '%</span>' +
+                     '</div>';
+    });
+    chartHtml += '</div>';
+    
+    // Kleine Legende unter dem Diagramm
+    chartHtml += '<div style="text-align: center; font-size: 0.7rem; color: #666; margin-top: 10px; border-top: 1px solid #333; padding-top: 5px;">Bars represent the marginal EP value for each +1% Haste step. Breakpoints are highlighted in orange.</div>';
+
+    hasteStepsHtml = chartHtml;
+
     // KERN-FIX: Speichere die Ergebnisse als Strings im Objekt der aktuellen Simulation
     if (SIM_LIST[ACTIVE_SIM_INDEX].results) {
         SIM_LIST[ACTIVE_SIM_INDEX].results.statWeights = {
             crit: renderInnerHtml("crit", false),
             hit: renderInnerHtml("hit", isHitCapped),
-            haste: renderInnerHtml("haste", false)
+            haste: renderInnerHtml("haste", false),
+            hasteStepsHtml: hasteStepsHtml // HTML für das Diagramm speichern
         };
     }
 
@@ -403,6 +470,12 @@ function finalizeWeights() {
         elHaste.style.display = "block";
         elHaste.innerHTML = SIM_LIST[ACTIVE_SIM_INDEX].results.statWeights.haste;
     }
+
+    // NEU: Haste Steps Container befüllen
+    var elHasteSteps = document.getElementById("haste_steps_container");
+    if(elHasteSteps && SIM_LIST[ACTIVE_SIM_INDEX].results.statWeights.hasteStepsHtml) {
+        elHasteSteps.innerHTML = SIM_LIST[ACTIVE_SIM_INDEX].results.statWeights.hasteStepsHtml;
+    }
 }
 
     runNextScenario();
@@ -416,7 +489,7 @@ function runCoreSimulation(cfg) {
     // 1. RNG Setup
     var rngHandler = new RNGHandler(cfg.seed);
 
-    if (cfg.sim_patch !== "1.18.1a" || cfg.sim_patch !== "1.18.1b") {
+    if (!cfg.sim_patch.startsWith("1.18.1")) {
         cfg.enemy.extMF = 0;
         cfg.enemy.extIS = 0;
     }
@@ -608,7 +681,7 @@ function runCoreSimulation(cfg) {
         
         // --- MOONFURY CHANGE (1.18.1b: 10% -> 12%) ---
         var baseMoonfury = 0.10;
-        if (cfg.sim_patch === "1.18.1b") baseMoonfury = 0.12;
+        if (cfg.sim_patch === "1.18.1b" || cfg.sim_patch === "1.18.1c" ) baseMoonfury = 0.12;
         var diff = baseMoonfury - 0.10; // 0.00 or 0.02
 
         var baseClassMod = baseMoonfury; 
@@ -699,7 +772,7 @@ function runCoreSimulation(cfg) {
 
         // 1.18.1 BoaT: Wrath returns Mana if IS is up (Self or External)
         var isISActive = (State.activeIS && State.activeIS.exp > State.t) || cfg.enemy.extIS;
-        if ((cfg.sim_patch === "1.18.1a" || cfg.sim_patch === "1.18.1b") && spell.id === "Wrath" && isISActive) {
+        if (cfg.sim_patch.startsWith("1.18.1") && spell.id === "Wrath" && isISActive) {
             var boatManaFactor = 0.30; // 30% Base (3/3 Talents)
             if (cfg.gear.t35_5p) boatManaFactor *= 1.5; // T3.5 Bonus -> 45%
             var returnAmt = cost * boatManaFactor; 
@@ -749,14 +822,14 @@ function runCoreSimulation(cfg) {
         var finalCritChance = cfg.stats.crit;
         // 1.18.1 BoaT: Starfire Crit if MF is up (Self or External)
         var isMFActive = (State.activeMF && State.activeMF.exp > State.t) || cfg.enemy.extMF;
-        // Check for both 1.18.1 AND 1.18.1b
-        if ((cfg.sim_patch === "1.18.1a" || cfg.sim_patch === "1.18.1b") && spell.id === "Starfire" && isMFActive) {
+        // Check for both 1.18.1 AND 1.18.1b, 1.18.1c
+        if (cfg.sim_patch.startsWith("1.18.1") && spell.id === "Starfire" && isMFActive) {
             var boatCritBonus = 6.0; // 6% Base (3/3 Talents)
             
             // UPDATE 1.18.1b: Increased to 9% base
-            if (cfg.sim_patch === "1.18.1b") boatCritBonus = 9.0;
+            if (cfg.sim_patch === "1.18.1b" || cfg.sim_patch === "1.18.1c") boatCritBonus = 9.0;
 
-            if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9% (or 13.5% in 1.18.1b)
+            if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9% (or 13.5% in 1.18.1b and c)
             finalCritChance += boatCritBonus;
         }
 

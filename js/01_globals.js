@@ -20,7 +20,7 @@ var GEAR_SELECTION = {};
 var ENCHANT_SELECTION = {};
 
 var CONFIG_IDS = [
-    "sim_patch", "maxTime", "simCount","rng_seed", "avcd", "calcMethod",
+    "weight_haste_steps","sim_patch", "maxTime", "simCount","rng_seed", "avcd", "calcMethod",
     "statHit", "statCrit", "statHaste",
     "sp_gen", "sp_nature", "sp_arcane", "sp_pen",
     "stat_override_eclipse", "stat_proc_nature", "stat_proc_arcane",

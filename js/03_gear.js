@@ -544,11 +544,11 @@ function calculateItemScore(item, slotNameOverride) {
     var e = item.effects || {};
 
     // 1. BASE STATS
-    // SP + AP + NP
+    // SP + AP/2 + NP/2
     var sp = (e.spellPower || 0);
     var ap = (e.arcaneSpellPower || 0);
     var np = (e.natureSpellPower || 0);
-    score += (sp + ap + np) * wSP;
+    score += (sp + ap/2 + np/2) * wSP;
 
     // Hit * HW
     score += (e.spellHit || 0) * wHit;
@@ -598,8 +598,8 @@ function calculateItemScore(item, slotNameOverride) {
 
                     var bScore = 0;
                     bScore += (b.spellPower || 0) * wSP;
-                    bScore += (b.arcaneSpellPower || 0) * wSP;
-                    bScore += (b.natureSpellPower || 0) * wSP;
+                    bScore += (b.arcaneSpellPower/2 || 0) * wSP;
+                    bScore += (b.natureSpellPower/2 || 0) * wSP;
                     bScore += (b.spellCrit || 0) * wCrit;
                     bScore += (b.spellHit || 0) * wHit;
                     bScore += (b.attackSpeed || 0) * wHaste;
@@ -631,7 +631,7 @@ function calculateEnchantScore(ench) {
     var sp = (stats.spellPower || 0);
     var ap = (stats.arcaneSpellPower || 0);
     var np = (stats.natureSpellPower || 0);
-    score += (sp + ap + np) * wSP;
+    score += (sp + ap/2 + np/2) * wSP;
 
     // Hit * HW
     score += (stats.spellHit || 0) * wHit;
@@ -779,8 +779,6 @@ function calculateGearStats() {
                 charStats.crit += critVal;
                 charStats.hit += hitVal;
                 charStats.haste += hasteVal;
-
-                // Add to Gear Only (GS) - NO (per instruction)
             }
         }
     }

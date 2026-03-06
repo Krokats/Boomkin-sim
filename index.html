@@ -320,8 +320,9 @@
                                                     <div class="select-wrapper">
                                                         <select id="sim_patch">
                                                             <option value="1.18">1.18 (Current)</option>
-                                                            <option value="1.18.1a">1.18.1a (PTR/Next)</option>
+                                                            <option value="1.18.1a">1.18.1a (Rev. 0)</option>
                                                             <option value="1.18.1b">1.18.1b (Rev. 1)</option>
+                                                            <option value="1.18.1c">1.18.1c (Rev. 2)</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -339,7 +340,19 @@
                                                 </div>
                                                 <div class="input-group">
                                                     <label>RNG Seed (Optional)</label>
-                                                    <input type="text" id="rng_seed" placeholder="Random if empty">
+                                                    <input type="text" id="rng_seed" value="1337">
+                                                </div>
+
+                                                <div class="input-group" style="margin-top: 15px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.1); width: 100%;">
+                                                    <label style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                                        <span>Haste Weight Steps</span>
+                                                        <span id="disp_haste_steps" style="color:var(--druid-orange); font-weight:bold;">5</span>
+                                                    </label>
+                                                    <input type="range" id="weight_haste_steps" min="1" max="10" value="5" style="width:100%; cursor:pointer;" 
+                                                        oninput="document.getElementById('disp_haste_steps').innerText = this.value">
+                                                    <div style="font-size:0.75rem; color:#888; margin-top:5px;">
+                                                        Calculates the marginal EP value for each +1% Haste up to the selected amount (Stat-Weight calculation).
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -656,6 +669,9 @@
                                         <span id="val_haste" class="med-number">-</span>
                                     </div>
                                 </div>
+                                <h3 style="font-size: 0.9rem; color: #a0a0a0; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;">Marginal Haste Scaling</h3>
+                                <div id="haste_steps_container" style="width: 100%; padding-top: 10px;">
+                                    </div>
                             </div>
                             <div class="table-wrapper">
                                 <table class="result-table">
