@@ -725,6 +725,7 @@ function calculateGearStats() {
     var setCounts = {};
 
     // Counters for Auto-Checkbox Logic
+    var countT3 = 0;
     var countT35 = 0;
     var hasBinding = false;
     var hasScythe = false;
