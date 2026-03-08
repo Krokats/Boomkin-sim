@@ -30,7 +30,8 @@ var CONFIG_IDS = [
     "rota_starfire", "rota_wrath",
     "t3_4p", "t3_6p", "t3_8p", "t35_5p",
     "idolEoF", "idolMoon", "idolProp", "idolMoonfang",
-    "item_binding", "item_scythe", "item_reos", "item_toep", "item_roop", "item_zhc", "trinket_strat",
+    "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", 
+    "item_reos", "item_toep", "item_roop", "item_zhc", "trinket_strat",
     "char_race",
     // BUFFS
     "buff_moonkin", "buff_atiesh_druid", "buff_atiesh_mage", "buff_atiesh_warlock",

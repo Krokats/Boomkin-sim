@@ -591,6 +591,22 @@ function calculateItemScore(item, slotNameOverride) {
         avgBonusSP += 30; // ~30 SP Äquivalent für 5% Proc (500-650 Dmg)
         avgBonusHaste += getOnUseAvg(10, 8, 600); // 10% Haste für 8s, 10 Min (600s) CD
     }
+    // NEU: Approximationen für neue Procs (nur für den Gear Score im UI)
+    if (item.name === "Spellwoven Nobility Drape") {
+        score += (150 / 60) * 0.25 * wCrit; // ca. 25% Uptime von 150 Int (in Crit umgerechnet)
+    }
+    if (item.name === "Harness of the High Thane") {
+        avgBonusSP += 40; // ca. 40 SP Äquivalent für +48 Dmg nach Crit
+    }
+    if (item.name === "True Band of Sulfuras") {
+        avgBonusHaste += 1.0; // ca. 20% Uptime von 5% Haste
+    }
+    if (item.name === "Sigil of the Ancient Accord") {
+        avgBonusSP += 30; // ca. 30 SP Äquivalent (8% Proc von 400 dmg)
+    }
+    if (item.name === "Chromie's Broken Pocket Watch") {
+        avgBonusHaste -= 6.0; // Negativer Effekt! ca. 60% Uptime von -10% Haste
+    }
 
     score += avgBonusSP * wSP;
     score += avgBonusHaste * wHaste; // NEU: Durchschnittliche Haste zum Score addieren
@@ -709,10 +725,14 @@ function calculateGearStats() {
     var setCounts = {};
 
     // Counters for Auto-Checkbox Logic
-    var countT3 = 0;
     var countT35 = 0;
     var hasBinding = false;
     var hasScythe = false;
+    var hasNobility = false;
+    var hasThane = false;
+    var hasSulfuras = false;
+    var hasSigil = false;
+    var hasChromie = false;
     var hasReos = false;
     var hasToep = false;
     var hasRoop = false;
@@ -764,8 +784,14 @@ function calculateGearStats() {
                 if (item.setName === "Regalia of the Talon") countT35++;
 
                 // Specific Items (Names Corrected)
+                // Specific Items (Names Corrected)
                 if (item.name === "Bindings of Contained Magic" || item.id === 23201) hasBinding = true;
                 if (item.name === "Scythe of Elune") hasScythe = true;
+                if (item.name === "Spellwoven Nobility Drape") hasNobility = true;
+                if (item.name === "Harness of the High Thane") hasThane = true;
+                if (item.name === "True Band of Sulfuras") hasSulfuras = true;
+                if (item.name === "Sigil of the Ancient Accord") hasSigil = true;
+                if (item.name === "Chromie's Broken Pocket Watch") hasChromie = true;
                 if (item.name === "The Restrained Essence of Sapphiron") hasReos = true;
                 if (item.name === "Talisman of Ephemeral Power") hasToep = true;
                 if (item.name === "Remains of Overwhelming Power") hasRoop = true;
@@ -782,6 +808,11 @@ function calculateGearStats() {
 
     var elBind = document.getElementById('item_binding'); if (elBind) elBind.checked = hasBinding;
     var elScythe = document.getElementById('item_scythe'); if (elScythe) elScythe.checked = hasScythe;
+    var elNobility = document.getElementById('item_nobility'); if (elNobility) elNobility.checked = hasNobility;
+    var elThane = document.getElementById('item_thane'); if (elThane) elThane.checked = hasThane;
+    var elSulfuras = document.getElementById('item_sulfuras'); if (elSulfuras) elSulfuras.checked = hasSulfuras;
+    var elSigil = document.getElementById('item_sigil'); if (elSigil) elSigil.checked = hasSigil;
+    var elChromie = document.getElementById('item_chromie'); if (elChromie) elChromie.checked = hasChromie;
     var elReos = document.getElementById('item_reos'); if (elReos) elReos.checked = hasReos;
     var elToep = document.getElementById('item_toep'); if (elToep) elToep.checked = hasToep;
     var elRoop = document.getElementById('item_roop'); if (elRoop) elRoop.checked = hasRoop;
@@ -933,6 +964,11 @@ function calculateGearStats() {
         gearOnlyStats.sp += 30; // SP Äquivalent für Proc
         gearOnlyStats.haste += getGlobalOnUseAvg(10, 8, 600); // Haste On-Use
     }
+    if (hasNobility) gearOnlyStats.crit += (150 / 60) * 0.25; // Statische Approximation für Score
+    if (hasThane) gearOnlyStats.sp += 40;
+    if (hasSulfuras) gearOnlyStats.haste += 1.0;
+    if (hasSigil) gearOnlyStats.sp += 30;
+    if (hasChromie) gearOnlyStats.haste -= 6.0;
 
     // CALCULATE TOTAL GEAR SCORE FOR DISPLAY (Purely from Items+Sets)
     var wHit = parseFloat(document.getElementById("weight_hit") ? document.getElementById("weight_hit").value : 16);

@@ -41,7 +41,7 @@ function getInputs() {
         stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), baseHitProb: baseHit },
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
-        gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), binding: getVal("item_binding"), scythe: getVal("item_scythe"), reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), trinket_strat: strat },
+        gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), binding: getVal("item_binding"), scythe: getVal("item_scythe"), nobility: getVal("item_nobility"), thane: getVal("item_thane"), sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), trinket_strat: strat },
         talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }};
 }
 
@@ -547,14 +547,15 @@ function runCoreSimulation(cfg) {
         toepEnd: 0.0, toepCD: 0.0, roopEnd: 0.0, roopCD: 0.0, 
         zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0, 
         scytheEnd: 0.0, scytheCD: 0.0,
-        ooc: false, boon: 0 
+        nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
+        ooc: false, boon: 0
     };
 
     var RunStats = { 
         totalDmg: 0, totalMana: 0, 
         dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
-        dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, 
-        casts: 0, misses: 0, hits: 0, dmgCrit: 0, 
+        dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0,
+        casts: 0, misses: 0, hits: 0, dmgCrit: 0,
         uptimeAE: 0, uptimeNE: 0, 
         spellStats: {
                 "Starfire": { count: 0, timeSum: 0, hits: 0, crits: 0 },
@@ -568,7 +569,7 @@ function runCoreSimulation(cfg) {
     // 4. Internes RNG Objekt (Hybrid: Seeded für 'S', Akkumulator für Deterministic)
     var RNG = {
         mode: cfg.mode,
-        acc: { hit: 0, crit: 0, procNE: 0, procAE: 0, procBoaT: 0, procT36p: 0, binding: 0, scythe: 0, ooc: 0, boon: 0 },
+        acc: { hit: 0, crit: 0, procNE: 0, procAE: 0, procBoaT: 0, procT36p: 0, binding: 0, scythe: 0, procNobility: 0, procSulfuras: 0, procSigil: 0, procChromie: 0, ooc: 0, boon: 0 },
         
         // Prüft prozentuale Chance (0-100)
         check: function (chance, id) {
@@ -693,6 +694,8 @@ function runCoreSimulation(cfg) {
         if (cfg.gear.t3_8p && State.t < State.t38End) haste += 10; 
         // NEU: Scythe of Elune Haste Buff
         if (cfg.gear.scythe && State.t < State.scytheEnd) haste += 10;
+        if (cfg.gear.sulfuras && State.t < State.sulfurasEnd) haste += 5;
+        if (cfg.gear.chromie && State.t < State.chromieEnd) haste -= 10;
         return Math.max(0, base / (1 + haste / 100));
     };
 
@@ -834,6 +837,7 @@ function runCoreSimulation(cfg) {
         }
 
         if (!RNG.checkHit(cfg.stats.hit)) { 
+            if (State.thaneActive) State.thaneActive = false;
             RunStats.misses++; 
             log(State.t, "MISS", spell.name, "Miss", null, null, "-"); 
             return; 
@@ -854,6 +858,10 @@ function runCoreSimulation(cfg) {
 
             if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9% (or 13.5% in 1.18.1b and c)
             finalCritChance += boatCritBonus;
+        }
+
+        if (cfg.gear.nobility && State.t < State.nobilityEnd) {
+            finalCritChance += 2.5; // 150 Int = 2.5% Crit
         }
 
         var isCrit = RNG.check(finalCritChance, "crit");
@@ -878,6 +886,12 @@ function runCoreSimulation(cfg) {
         else resData = getResist(spell.type); 
         
         var d = calculateDamageFull(spell, false, snap, crit, resData); 
+
+        if (State.thaneActive) {
+            State.thaneActive = false;
+            d.total += 48;
+            d.norm += 48; // Dem flachen Schaden zugerechnet
+        }
         
         if (RunStats.spellStats[spell.id]) {
             RunStats.spellStats[spell.id].hits++;
@@ -887,7 +901,7 @@ function runCoreSimulation(cfg) {
         RunStats.totalDmg += d.total;
 
         RunStats.dmgT36p += d.t3Part; 
-        if (d.crit > 0) RunStats.dmgCrit += d.crit; 
+        if (d.crit > 0) RunStats.dmgCrit += d.crit;
         if (spell.id === "Wrath") RunStats.dmgWrath += d.total; 
         if (spell.id === "Starfire") RunStats.dmgStarfire += d.total; 
         if (spell.id === "Moonfire") RunStats.dmgMFDirect += d.total; 
@@ -909,12 +923,32 @@ function runCoreSimulation(cfg) {
             RunStats.totalDmg += scytheDmg; 
             RunStats.dmgScythe += scytheDmg; 
             log(State.t, "PROC DMG", "Scythe of Elune", "Hit", { norm: scytheDmg, ecl: 0, crit: 0, total: scytheDmg }, null, "Arcane Dmg"); 
-        } 
+        }
+
+        if (cfg.gear.nobility && RNG.check(10, "procNobility")) {
+            State.nobilityEnd = State.t + 6.0;
+            log(State.t, "PROC", "Highborne Insight", "", null, null, "+150 Int");
+        }
+        if (cfg.gear.sulfuras && RNG.check(8, "procSulfuras")) {
+            State.sulfurasEnd = State.t + 6.0;
+            log(State.t, "PROC", "Band of Sulfuras", "", null, null, "+5% Haste");
+        }
+        if (cfg.gear.sigil && RNG.check(8, "procSigil")) {
+            var sigilDmg = 400 * cosMod;
+            RunStats.totalDmg += sigilDmg;
+            RunStats.dmgSigil += sigilDmg;
+            log(State.t, "PROC DMG", "Sigil of Accord", "Hit", { norm: sigilDmg, ecl: 0, crit: 0, total: sigilDmg }, null, "Arcane Dmg");
+        }
+        if (cfg.gear.chromie && RNG.check(10, "procChromie")) {
+            State.chromieEnd = State.t + 15.0;
+            log(State.t, "PROC", "Pocket Watch", "", null, null, "-10% Haste");
+        }
         
         if (crit) { 
             State.ng = true; 
+            if (cfg.gear.thane) State.thaneActive = true;
             log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG"); 
-        } 
+        }
         
         var triggeredEclipse = false; 
         var canProc = true; 
@@ -1108,7 +1142,7 @@ function aggregateResults(results, cfg) {
     var sumStats = {
         totalDmg: 0, totalMana: 0, 
         dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
-        dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, 
+        dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0,
         casts: 0, misses: 0, hits: 0, dmgCrit: 0, 
         uptimeAE: 0, uptimeNE: 0
     };
