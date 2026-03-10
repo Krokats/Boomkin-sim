@@ -1179,6 +1179,15 @@ async function runArmoryImport() {
         var parser = new DOMParser();
         var doc = parser.parseFromString(htmlText, 'text/html');
 
+        // NEU: Rasse aus dem HTML/JSON extrahieren
+        var raceString = "Tauren"; // Fallback
+        var raceMatch = htmlText.match(/&quot;race&quot;:(\d+)/) || htmlText.match(/"race":(\d+)/);
+        if (raceMatch) {
+            var rId = parseInt(raceMatch[1]);
+            if (rId === 4) raceString = "NightElf";
+            if (rId === 6) raceString = "Tauren";
+        }
+
         // Extract Data
         var uniqueFoundItems = extractItemsFromHtml(doc);
 
@@ -1187,7 +1196,7 @@ async function runArmoryImport() {
         }
 
         // Apply Data & Get Match Statistics
-        var results = applyImportData(uniqueFoundItems, name);
+        var results = applyImportData(uniqueFoundItems, raceString, name);
 
         // Feedback Message
         var msg = "Armory Scan: Found " + uniqueFoundItems.length + " unique Item-IDs.<br>";
@@ -1345,6 +1354,14 @@ function applyImportData(importedItems, race, charName) {
 
 function applyImportData(importedItems, race, charName) {
     var matchCount = 0;
+
+    // 1. NEU: Rasse im UI setzen, falls erkannt
+    if (race) {
+        var raceSel = document.getElementById('char_race');
+        if (raceSel) {
+            raceSel.value = race;
+        }
+    }
 
     // 2. Clear current gear
     GEAR_SELECTION = {};
