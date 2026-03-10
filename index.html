@@ -310,9 +310,10 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="grid-container" style="margin:0; padding:0;">
-                                        
+
                                         <div class="card">
-                                            <div class="sub-card-header"> <h2>⚙️ General</h2>
+                                            <div class="sub-card-header">
+                                                <h2>⚙️ General</h2>
                                             </div>
                                             <div class="card-body">
                                                 <div class="input-group">
@@ -326,39 +327,45 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="input-group"><label>Fight Duration (s)</label><input type="number"
-                                                        id="maxTime" value="120"></div>
-                                                <div class="input-group"><label>Cast Delay (ms)</label><input type="number"
-                                                        id="avcd" value="30"></div>
+                                                <div class="input-group"><label>Fight Duration (s)</label><input
+                                                        type="number" id="maxTime" value="120"></div>
+                                                <div class="input-group"><label>Cast Delay (ms)</label><input
+                                                        type="number" id="avcd" value="30"></div>
                                                 <div class="input-group"><label>Calculation Method</label>
                                                     <div class="select-wrapper"><select id="calcMethod">
                                                             <option value="S">Stochastic (RNG)</option>
                                                         </select></div>
                                                 </div>
-                                                <div class="input-group" id="iterGroup"><label>Number of Fights</label><input
-                                                        type="number" id="simCount" value="5000">
+                                                <div class="input-group" id="iterGroup"><label>Number of
+                                                        Fights</label><input type="number" id="simCount" value="5000">
                                                 </div>
                                                 <div class="input-group">
                                                     <label>RNG Seed (Optional)</label>
                                                     <input type="text" id="rng_seed" value="1337">
                                                 </div>
 
-                                                <div class="input-group" style="margin-top: 15px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.1); width: 100%;">
-                                                    <label style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                                <div class="input-group"
+                                                    style="margin-top: 15px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.1); width: 100%;">
+                                                    <label
+                                                        style="display:flex; justify-content:space-between; margin-bottom:10px;">
                                                         <span>Haste Weight Steps</span>
-                                                        <span id="disp_haste_steps" style="color:var(--druid-orange); font-weight:bold;">5</span>
+                                                        <span id="disp_haste_steps"
+                                                            style="color:var(--druid-orange); font-weight:bold;">5</span>
                                                     </label>
-                                                    <input type="range" id="weight_haste_steps" min="1" max="10" value="10" style="width:100%; cursor:pointer;" 
+                                                    <input type="range" id="weight_haste_steps" min="1" max="10"
+                                                        value="10" style="width:100%; cursor:pointer;"
                                                         oninput="document.getElementById('disp_haste_steps').innerText = this.value">
                                                     <div style="font-size:0.75rem; color:#888; margin-top:5px;">
-                                                        Calculates the marginal EP value for each +1% Haste up to the selected amount (Stat-Weight calculation).
+                                                        Calculates the marginal EP value for each +1% Haste up to the
+                                                        selected amount (Stat-Weight calculation).
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div class="card full-width-mobile">
-                                            <div class="sub-card-header"> <h2>📊 Player Stats (Total)</h2>
+                                            <div class="sub-card-header">
+                                                <h2>📊 Player Stats (Total)</h2>
                                             </div>
                                             <div class="card-body">
                                                 <div class="input-group">
@@ -372,28 +379,33 @@
                                                 </div>
                                                 <div class="spell-row">
                                                     <div class="multi-input">
-                                                        <div class="input-wrapper"><label>Hit %</label><input type="number"
-                                                                id="statHit" value="0" min="0" max="16" disabled></div>
-                                                        <div class="input-wrapper"><label>Crit %</label><input type="number"
-                                                                id="statCrit" value="0" step="0.1" disabled></div>
-                                                        <div class="input-wrapper"><label>Haste %</label><input type="number"
-                                                                id="statHaste" value="0" step="0.1" disabled></div>
+                                                        <div class="input-wrapper"><label>Hit %</label><input
+                                                                type="number" id="statHit" value="0" min="0" max="16"
+                                                                disabled></div>
+                                                        <div class="input-wrapper"><label>Crit %</label><input
+                                                                type="number" id="statCrit" value="0" step="0.1"
+                                                                disabled></div>
+                                                        <div class="input-wrapper"><label>Haste %</label><input
+                                                                type="number" id="statHaste" value="0" step="0.1"
+                                                                disabled></div>
                                                     </div>
                                                 </div>
-                                                <hr class="separator">
+                                                <hr class="separaftor">
                                                 <div class="spell-row">
                                                     <div class="multi-input">
                                                         <div class="input-wrapper flex-2"><label>Total SP</label><input
                                                                 type="number" id="sp_gen" value="0" disabled></div>
-                                                        <div class="input-wrapper"><label>Nature SP</label><input type="number"
-                                                                id="sp_nature" value="0" disabled></div>
-                                                        <div class="input-wrapper"><label>Arcane SP</label><input type="number"
-                                                                id="sp_arcane" value="0" disabled></div>
+                                                        <div class="input-wrapper"><label>Nature SP</label><input
+                                                                type="number" id="sp_nature" value="0" disabled></div>
+                                                        <div class="input-wrapper"><label>Arcane SP</label><input
+                                                                type="number" id="sp_arcane" value="0" disabled></div>
                                                     </div>
                                                 </div>
-                                                <div class="input-group" style="margin-top:15px; margin-bottom:0;"><label>Spell
-                                                        Penetration</label><input type="number" id="sp_pen" value="0"></div>
-                                                 <hr class="separator">
+                                                <div class="input-group" style="margin-top:15px; margin-bottom:0;">
+                                                    <label>Spell
+                                                        Penetration</label><input type="number" id="sp_pen" value="0">
+                                                </div>
+                                                <hr class="separator">
                                                 <div class="toggle-wrapper" style="margin-bottom: 15px;">
                                                     <label class="toggle">
                                                         <input type="checkbox" id="stat_override_eclipse">
@@ -405,19 +417,22 @@
                                                     <div class="multi-input">
                                                         <div class="input-wrapper">
                                                             <label>Nature Proc %</label>
-                                                            <input type="number" id="stat_proc_nature" value="50" disabled>
+                                                            <input type="number" id="stat_proc_nature" value="50"
+                                                                disabled>
                                                         </div>
                                                         <div class="input-wrapper">
                                                             <label>Arcane Proc %</label>
-                                                            <input type="number" id="stat_proc_arcane" value="30" disabled>
+                                                            <input type="number" id="stat_proc_arcane" value="30"
+                                                                disabled>
                                                         </div>
                                                     </div>
-                                                </div>       
+                                                </div>
                                             </div>
                                         </div>
 
                                         <div class="card">
-                                            <div class="sub-card-header"> <h2>💀 Enemy</h2>
+                                            <div class="sub-card-header">
+                                                <h2>💀 Enemy</h2>
                                             </div>
                                             <div class="card-body">
                                                 <div class="input-group"><label>Target Level</label>
@@ -430,28 +445,36 @@
                                                 </div>
                                                 <div class="spell-row">
                                                     <div class="multi-input">
-                                                        <div class="input-wrapper"><label>Arcane Res (Added)</label><input
-                                                                type="number" id="res_arcane" value="0"></div>
-                                                        <div class="input-wrapper"><label>Nature Res (Added)</label><input
-                                                                type="number" id="res_nature" value="0"></div>
+                                                        <div class="input-wrapper"><label>Arcane Res
+                                                                (Added)</label><input type="number" id="res_arcane"
+                                                                value="0"></div>
+                                                        <div class="input-wrapper"><label>Nature Res
+                                                                (Added)</label><input type="number" id="res_nature"
+                                                                value="0"></div>
                                                     </div>
                                                 </div>
-                                                <div class="gear-section-title" style="margin-top: 15px;">External Debuffs (Other Druid)</div>
+                                                <div class="gear-section-title" style="margin-top: 15px;">External
+                                                    Debuffs (Other Druid)</div>
                                                 <div class="checkbox-grid">
-                                                    <label class="custom-checkbox"><input type="checkbox" id="enemy_ext_mf"><span
-                                                            class="checkmark"></span> Moonfire active</label>
-                                                    <label class="custom-checkbox"><input type="checkbox" id="enemy_ext_is"><span
-                                                            class="checkmark"></span> Insect Swarm active</label>
+                                                    <label class="custom-checkbox"><input type="checkbox"
+                                                            id="enemy_ext_mf"><span class="checkmark"></span> Moonfire
+                                                        active</label>
+                                                    <label class="custom-checkbox"><input type="checkbox"
+                                                            id="enemy_ext_is"><span class="checkmark"></span> Insect
+                                                        Swarm active</label>
                                                 </div>
-                                                <div class="toggle-wrapper" style="margin-top:20px;"><label class="toggle"><input
-                                                            type="checkbox" id="enemy_cos" checked><span class="slider"></span><span
-                                                            class="label-text">Curse of Shadow (+10% Arc)</span></label></div>
+                                                <div class="toggle-wrapper" style="margin-top:20px;"><label
+                                                        class="toggle"><input type="checkbox" id="enemy_cos"
+                                                            checked><span class="slider"></span><span
+                                                            class="label-text">Curse of Shadow (+10% Arc)</span></label>
+                                                </div>
 
                                                 <div class="enemy-info-box">
                                                     <div class="enemy-stat-row"><span>Base Hit Chance:</span> <span
-                                                            id="info_hit_chance" class="enemy-stat-val">83% (Needs 16%)</span></div>
-                                                    <div class="enemy-stat-row"><span>Base Resist:</span> <span id="info_base_res"
-                                                            class="enemy-stat-val">15</span></div>
+                                                            id="info_hit_chance" class="enemy-stat-val">83% (Needs
+                                                            16%)</span></div>
+                                                    <div class="enemy-stat-row"><span>Base Resist:</span> <span
+                                                            id="info_base_res" class="enemy-stat-val">15</span></div>
                                                     <div class="bucket-bar-container">
                                                         <span class="bucket-label">Partial Resist Probability (Nature /
                                                             Arcane):</span>
@@ -464,7 +487,8 @@
                                         </div>
 
                                         <div class="card full-width-mobile">
-                                            <div class="sub-card-header"> <h2>🔄 Rotation & Talents</h2>
+                                            <div class="sub-card-header">
+                                                <h2>🔄 Rotation & Talents</h2>
                                             </div>
                                             <div class="card-body">
                                                 <div class="input-group"><label>Fishing Spell</label>
@@ -481,45 +505,56 @@
                                                 </div>
                                                 <div class="spell-row">
                                                     <div class="multi-input">
-                                                        <div class="input-wrapper"><label>Start BoaT</label><input type="number"
-                                                                id="start_boat" value="0" min="0" max="3"></div>
-                                                        <div class="input-wrapper"><label>Wrath Flight</label><input type="number"
-                                                                id="wrath_flight" value="1.0" step="0.1"></div>
+                                                        <div class="input-wrapper"><label>Start BoaT</label><input
+                                                                type="number" id="start_boat" value="0" min="0" max="3">
+                                                        </div>
+                                                        <div class="input-wrapper"><label>Wrath Flight</label><input
+                                                                type="number" id="wrath_flight" value="1.0" step="0.1">
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <hr class="separator">
                                                 <div class="toggle-grid"><label class="toggle"><input type="checkbox"
                                                             id="rota_starfire" checked><span class="slider"></span><span
-                                                            class="label-text">Starfire</span></label><label class="toggle"><input
-                                                            type="checkbox" id="rota_wrath" checked><span
+                                                            class="label-text">Starfire</span></label><label
+                                                        class="toggle"><input type="checkbox" id="rota_wrath"
+                                                            checked><span class="slider"></span><span
+                                                            class="label-text">Wrath</span></label><label
+                                                        class="toggle"><input type="checkbox" id="rota_is" checked><span
+                                                            class="slider"></span><span class="label-text">Insect
+                                                            Swarm</span></label><label class="toggle"><input
+                                                            type="checkbox" id="rota_mf" checked><span
                                                             class="slider"></span><span
-                                                            class="label-text">Wrath</span></label><label class="toggle"><input
-                                                            type="checkbox" id="rota_is" checked><span class="slider"></span><span
-                                                            class="label-text">Insect Swarm</span></label><label
-                                                        class="toggle"><input type="checkbox" id="rota_mf" checked><span
-                                                            class="slider"></span><span
-                                                            class="label-text">Moonfire</span></label><label class="toggle"><input
-                                                            type="checkbox" id="rota_eclDot" checked><span
-                                                            class="slider"></span><span class="label-text">DoT End of
-                                                            Eclipse</span></label><label class="toggle"><input type="checkbox"
-                                                            id="rota_interrupt" checked><span class="slider"></span><span
-                                                            class="label-text">Cancel wrong Spell</span></label></div>
-                                                <div class="input-group" style="margin-top: 15px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                                                <label style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                                                    <span>Interrupt Threshold</span>
-                                                    <span id="disp_interrupt_thresh" style="color:var(--druid-orange); font-weight:bold;">100%</span>
-                                                </label>
-                                                <input type="range" id="rota_interrupt_thresh" min="0" max="100" value="10" style="width:100%; cursor:pointer;" 
-                                                    oninput="document.getElementById('disp_interrupt_thresh').innerText = this.value + '%'">
-                                                <div style="font-size:0.75rem; color:#888; margin-top:5px;">
-                                                    If set to 50%, casts will only be interrupted if they are less than 50% completed.
+                                                            class="label-text">Moonfire</span></label><label
+                                                        class="toggle"><input type="checkbox" id="rota_eclDot"
+                                                            checked><span class="slider"></span><span
+                                                            class="label-text">DoT End of
+                                                            Eclipse</span></label><label class="toggle"><input
+                                                            type="checkbox" id="rota_interrupt" checked><span
+                                                            class="slider"></span><span class="label-text">Cancel wrong
+                                                            Spell</span></label></div>
+                                                <div class="input-group"
+                                                    style="margin-top: 15px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                                    <label
+                                                        style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                                        <span>Interrupt Threshold</span>
+                                                        <span id="disp_interrupt_thresh"
+                                                            style="color:var(--druid-orange); font-weight:bold;">100%</span>
+                                                    </label>
+                                                    <input type="range" id="rota_interrupt_thresh" min="0" max="100"
+                                                        value="10" style="width:100%; cursor:pointer;"
+                                                        oninput="document.getElementById('disp_interrupt_thresh').innerText = this.value + '%'">
+                                                    <div style="font-size:0.75rem; color:#888; margin-top:5px;">
+                                                        If set to 50%, casts will only be interrupted if they are less
+                                                        than 50% completed.
+                                                    </div>
                                                 </div>
                                             </div>
-                                            </div>
-                                            
+
                                         </div>
 
-                                    </div> </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="card full-width">
@@ -542,8 +577,8 @@
                                     <div class="checkbox-grid">
                                         <label class="custom-checkbox"><input type="checkbox" id="idolEoF"><span
                                                 class="checkmark"></span> Idol: Ebb & Flow</label>
-                                        <label class="custom-checkbox"><input type="checkbox" id="idolMoon"
-                                                checked><span class="checkmark"></span> Idol: Moon</label>
+                                        <label class="custom-checkbox"><input type="checkbox" id="idolMoon"><span
+                                                class="checkmark"></span> Idol: Moon</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="idolProp"><span
                                                 class="checkmark"></span> Idol: Propagation</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="idolMoonfang"><span
@@ -552,25 +587,32 @@
                                     <div class="gear-section-title">Procs (Passive)</div>
                                     <div class="checkbox-grid">
                                         <label class="custom-checkbox"><input type="checkbox" id="item_binding"
-                                                disabled><span class="checkmark"></span> Bindings of Contained Magic</label>
+                                                disabled><span class="checkmark"></span> Bindings of Contained
+                                            Magic</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_scythe"
                                                 disabled><span class="checkmark"></span> Scythe of Elune</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_nobility"
-                                                disabled><span class="checkmark"></span> Spellwoven Nobility Drape</label>
+                                                disabled><span class="checkmark"></span> Spellwoven Nobility
+                                            Drape</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_thane"
-                                                disabled><span class="checkmark"></span> Harness of the High Thane</label>
+                                                disabled><span class="checkmark"></span> Harness of the High
+                                            Thane</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_sulfuras"
                                                 disabled><span class="checkmark"></span> True Band of Sulfuras</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_sigil"
-                                                disabled><span class="checkmark"></span> Sigil of the Ancient Accord</label>
+                                                disabled><span class="checkmark"></span> Sigil of the Ancient
+                                            Accord</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_chromie"
-                                                disabled><span class="checkmark"></span> Chromie's Broken Pocket Watch</label>
+                                                disabled><span class="checkmark"></span> Chromie's Broken Pocket
+                                            Watch</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_kelp"
-                                                disabled><span class="checkmark"></span> Pristine Enchanted South Seas Kelp</label>
+                                                disabled><span class="checkmark"></span> Pristine Enchanted South Seas
+                                            Kelp</label>
                                     </div>
                                     <div class="gear-section-title">On-Use Trinkets</div>
                                     <div class="checkbox-grid" style="margin-bottom: 15px;">
-                                        <label class="custom-checkbox"><input type="checkbox" id="item_reos" disabled><span class="checkmark"></span> The Restrained Essence of
+                                        <label class="custom-checkbox"><input type="checkbox" id="item_reos"
+                                                disabled><span class="checkmark"></span> The Restrained Essence of
                                             Sapphiron</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="item_toep"
                                                 disabled><span class="checkmark"></span> Talisman of Ephemeral
@@ -619,29 +661,42 @@
                         <div id="resultsArea" class="hidden">
                             <div class="results-header">
                                 <div class="left-actions">
-                                    <h2>Results <span id="resultSimName" style="font-size:0.6em; color:#888; font-weight:normal; margin-left:10px;"></span></h2>
+                                    <h2>Results <span id="resultSimName"
+                                            style="font-size:0.6em; color:#888; font-weight:normal; margin-left:10px;"></span>
+                                    </h2>
                                 </div>
                                 <div class="center-toggles">
                                     <div class="view-toggles">
-                                        <button class="view-btn" onclick="switchView('min')" id="viewMin">Min DPS</button>
-                                        <button class="view-btn active" onclick="switchView('avg')" id="viewAvg">Average</button>
-                                        <button class="view-btn" onclick="switchView('max')" id="viewMax">Max DPS</button>
+                                        <button class="view-btn" onclick="switchView('min')" id="viewMin">Min
+                                            DPS</button>
+                                        <button class="view-btn active" onclick="switchView('avg')"
+                                            id="viewAvg">Average</button>
+                                        <button class="view-btn" onclick="switchView('max')" id="viewMax">Max
+                                            DPS</button>
                                     </div>
                                 </div>
                                 <div class="right-actions"><button onclick="generateSummaryImage()" class="btn-mini"
                                         style="margin-right:5px;">📸 Save Image</button></div>
                             </div>
                             <div class="card full-width" id="distContainer" style="margin-bottom: 20px;">
-                                <div class="card-header" style="padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
-                                    <h3 style="font-size: 0.9rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">DPS Distribution</h3>
-                                    <span id="out_variance" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">Coefficient of Variation (CV): -</span>
+                                <div class="card-header"
+                                    style="padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+                                    <h3
+                                        style="font-size: 0.9rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">
+                                        DPS Distribution</h3>
+                                    <span id="out_variance"
+                                        style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">Coefficient
+                                        of Variation (CV): -</span>
                                 </div>
                                 <div class="card-body" style="padding: 10px 20px;">
-                                    <div id="dpsChart" style="height: 120px; width: 100%; display: flex; align-items: flex-end; gap: 1px;">
-                                        </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #666; margin-top: 5px;">
+                                    <div id="dpsChart"
+                                        style="height: 120px; width: 100%; display: flex; align-items: flex-end; gap: 1px;">
+                                    </div>
+                                    <div
+                                        style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #666; margin-top: 5px;">
                                         <span id="distMinLabel">Min</span>
-                                        <span style="color: var(--druid-orange); font-weight: bold;">Average & Representative Combat</span>
+                                        <span style="color: var(--druid-orange); font-weight: bold;">Average &
+                                            Representative Combat</span>
                                         <span id="distMaxLabel">Max</span>
                                     </div>
                                 </div>
@@ -661,11 +716,14 @@
                                 </div>
                             </div>
                             <div id="weightResults" class="hidden" style="margin-bottom: 30px;">
-                                <h3 style="font-size: 0.9rem; color: #a0a0a0; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;">Stat Weights (EP Values)</h3>
+                                <h3
+                                    style="font-size: 0.9rem; color: #a0a0a0; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;">
+                                    Stat Weights (EP Values)</h3>
                                 <div class="stats-grid">
                                     <div class="stat-box">
                                         <h3>Reference</h3>
-                                        <span class="med-number" style="font-size: 1.5rem; color: #888;">1 SP = 1.00</span>
+                                        <span class="med-number" style="font-size: 1.5rem; color: #888;">1 SP =
+                                            1.00</span>
                                     </div>
                                     <div class="stat-box">
                                         <h3>1% Crit</h3>
@@ -680,9 +738,11 @@
                                         <span id="val_haste" class="med-number">-</span>
                                     </div>
                                 </div>
-                                <h3 style="font-size: 0.9rem; color: #a0a0a0; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;">Marginal Haste Scaling</h3>
+                                <h3
+                                    style="font-size: 0.9rem; color: #a0a0a0; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;">
+                                    Marginal Haste Scaling</h3>
                                 <div id="haste_steps_container" style="width: 100%; padding-top: 10px;">
-                                    </div>
+                                </div>
                             </div>
                             <div class="table-wrapper">
                                 <table class="result-table">

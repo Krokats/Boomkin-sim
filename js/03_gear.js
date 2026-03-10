@@ -548,7 +548,7 @@ function calculateItemScore(item, slotNameOverride) {
     var sp = (e.spellPower || 0);
     var ap = (e.arcaneSpellPower || 0);
     var np = (e.natureSpellPower || 0);
-    score += (sp + ap/2 + np/2) * wSP;
+    score += (sp + ap / 2 + np / 2) * wSP;
 
     // Hit * HW
     score += (e.spellHit || 0) * wHit;
@@ -566,10 +566,10 @@ function calculateItemScore(item, slotNameOverride) {
     // --- ON-USE & PROC TRINKET LOGIC ---
     var fightLength = parseFloat(document.getElementById("maxTime") ? document.getElementById("maxTime").value : 120);
     if (fightLength <= 0) fightLength = 120; // Fallback
-    
+
     var avgBonusSP = 0;
     var avgBonusHaste = 0; // NEU: Für Haste-Trinkets
-    
+
     // Umbenannt zu getOnUseAvg, da wir damit nun auch Haste berechnen
     function getOnUseAvg(bonusVal, duration, cooldown) {
         var fullUses = Math.floor(fightLength / cooldown);
@@ -581,11 +581,11 @@ function calculateItemScore(item, slotNameOverride) {
     if (item.name === "The Restrained Essence of Sapphiron") avgBonusSP += getOnUseAvg(130, 20, 120);
     if (item.name === "Talisman of Ephemeral Power") avgBonusSP += getOnUseAvg(175, 15, 90);
     if (item.name === "Remains of Overwhelming Power") avgBonusSP += getOnUseAvg(55, 60, 300);
-    if (item.name === "Zandalarian Hero Charm") avgBonusSP += getOnUseAvg(102, 20, 120); 
-    
+    if (item.name === "Zandalarian Hero Charm") avgBonusSP += getOnUseAvg(102, 20, 120);
+
     // Procs
     if (item.name === "Bindings of Contained Magic" || item.id === 23201) {
-        avgBonusSP += 10; 
+        avgBonusSP += 10;
     }
     if (item.name === "Scythe of Elune") {
         avgBonusSP += 30; // ~30 SP Äquivalent für 5% Proc (500-650 Dmg)
@@ -650,8 +650,8 @@ function calculateItemScore(item, slotNameOverride) {
 
                     var bScore = 0;
                     bScore += (b.spellPower || 0) * wSP;
-                    bScore += (b.arcaneSpellPower/2 || 0) * wSP;
-                    bScore += (b.natureSpellPower/2 || 0) * wSP;
+                    bScore += (b.arcaneSpellPower / 2 || 0) * wSP;
+                    bScore += (b.natureSpellPower / 2 || 0) * wSP;
                     bScore += (b.spellCrit || 0) * wCrit;
                     bScore += (b.spellHit || 0) * wHit;
                     bScore += (b.attackSpeed || 0) * wHaste;
@@ -683,7 +683,7 @@ function calculateEnchantScore(ench) {
     var sp = (stats.spellPower || 0);
     var ap = (stats.arcaneSpellPower || 0);
     var np = (stats.natureSpellPower || 0);
-    score += (sp + ap/2 + np/2) * wSP;
+    score += (sp + ap / 2 + np / 2) * wSP;
 
     // Hit * HW
     score += (stats.spellHit || 0) * wHit;
@@ -959,7 +959,7 @@ function calculateGearStats() {
     // --- ON-USE & PROC TRINKET LOGIC FOR GEAR SCORE ---
     var fightLength = parseFloat(document.getElementById("maxTime") ? document.getElementById("maxTime").value : 120);
     if (fightLength <= 0) fightLength = 120;
-    
+
     function getGlobalOnUseAvg(bonusVal, duration, cooldown) {
         var fullUses = Math.floor(fightLength / cooldown);
         var remainingTime = fightLength - (fullUses * cooldown);
@@ -971,7 +971,7 @@ function calculateGearStats() {
     if (hasToep) gearOnlyStats.sp += getGlobalOnUseAvg(175, 15, 90);
     if (hasRoop) gearOnlyStats.sp += getGlobalOnUseAvg(55, 60, 180);
     if (hasZhc) gearOnlyStats.sp += getGlobalOnUseAvg(102, 20, 120);
-    if (hasBinding) gearOnlyStats.sp += 10; 
+    if (hasBinding) gearOnlyStats.sp += 10;
     if (hasScythe) {
         gearOnlyStats.sp += 30; // SP Äquivalent für Proc
         gearOnlyStats.haste += getGlobalOnUseAvg(10, 8, 600); // Haste On-Use

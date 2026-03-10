@@ -127,10 +127,10 @@ function setupUIListeners() {
                 if (id === "maxTime") recalcItemScores();
                 saveCurrentState();
             });
-            
+
             // NEU: Für echtes Live-Update schon während dem Tippen in der Fight Duration
             if (id === "maxTime") {
-                el.addEventListener('input', function() {
+                el.addEventListener('input', function () {
                     calculateGearStats();
                     recalcItemScores();
                 });
@@ -1406,7 +1406,7 @@ function applyImportData(importedItems, race, charName) {
 
             // NEU: Enchantment zuweisen, falls eine effectId gefunden wurde
             if (entry.effectId && entry.effectId !== 0) {
-                var enchant = ENCHANT_DB.find(function(e) { return e.effectId === entry.effectId; });
+                var enchant = ENCHANT_DB.find(function (e) { return e.effectId === entry.effectId; });
                 if (enchant) {
                     ENCHANT_SELECTION[slotToAssign] = enchant.id;
                 }
