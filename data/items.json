@@ -33558,7 +33558,7 @@
         "manaRegenWhileCasting": 0,
         "healPower": 6,
         "spellCrit": 0,
-        "spellHit": 0,
+        "spellHit": 1,
         "spellPen": 0,
         "spellHaste": 0,
         "spellPower": 6,
@@ -33579,6 +33579,7 @@
         "dodge": 0,
         "onUse": false,
         "custom": [
+          "Set: Improves your chance to hit with spells by 1%.",
           "Set: Increases damage and healing done by magical spells and effects by up to 6."
         ]
       }
@@ -34069,7 +34070,7 @@
         "manaRegenWhileCasting": 0,
         "healPower": 6,
         "spellCrit": 0,
-        "spellHit": 0,
+        "spellHit": 1,
         "spellPen": 0,
         "spellHaste": 0,
         "spellPower": 6,
@@ -34090,6 +34091,7 @@
         "dodge": 0,
         "onUse": false,
         "custom": [
+          "Set: Improves your chance to hit with spells by 1%.",
           "Set: Increases damage and healing done by magical spells and effects by up to 6."
         ]
       }

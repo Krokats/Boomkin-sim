@@ -690,13 +690,13 @@ function runCoreSimulation(cfg) {
             if (cfg.gear.idolEoF) base -= 0.2;
         } 
         if (base < 0) base = 0; 
-        var haste = cfg.stats.haste; 
-        if (cfg.gear.t3_8p && State.t < State.t38End) haste += 10; 
+        var hasteFactor = 1.0 + (cfg.stats.haste / 100); 
+        if (cfg.gear.t3_8p && State.t < State.t38End) hasteFactor *= 1.10; 
         // NEU: Scythe of Elune Haste Buff
-        if (cfg.gear.scythe && State.t < State.scytheEnd) haste += 10;
-        if (cfg.gear.sulfuras && State.t < State.sulfurasEnd) haste += 5;
-        if (cfg.gear.chromie && State.t < State.chromieEnd) haste -= 10;
-        return Math.max(0, base / (1 + haste / 100));
+        if (cfg.gear.scythe && State.t < State.scytheEnd) hasteFactor *= 1.10;
+        if (cfg.gear.sulfuras && State.t < State.sulfurasEnd) hasteFactor *= 1.05;
+        if (cfg.gear.chromie && State.t < State.chromieEnd) hasteFactor *= 0.90; // Chromie reduziert Haste um 10%
+        return Math.max(0, base / hasteFactor);
     };
 
     // Calculate Damage

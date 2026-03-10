@@ -709,7 +709,7 @@ function calculateGearStats() {
         crit: baseStats.crit,
         hit: baseStats.hit,
         int: baseStats.int,
-        haste: baseStats.haste
+        haste: 1.0 + (baseStats.haste / 100) // Multiplikativer Startwert
     };
 
     // Gear Only Stats (Accumulates ONLY items + sets, NO base, NO enchants)
@@ -719,7 +719,7 @@ function calculateGearStats() {
         crit: 0,
         hit: 0,
         int: 0,
-        haste: 0
+        haste: 1.0 // Multiplikativer Startwert
     };
 
     var setCounts = {};
@@ -764,7 +764,7 @@ function calculateGearStats() {
                 charStats.spNat += spNat;
                 charStats.crit += critVal;
                 charStats.hit += hitVal;
-                charStats.haste += hasteVal;
+                if (hasteVal) charStats.haste *= (1 + (hasteVal / 100));
 
                 // Add to Gear Only (GS)
                 // For GS, sum all SP types (Arcane und Nature zählen nur zu 50%)
@@ -772,7 +772,7 @@ function calculateGearStats() {
                 gearOnlyStats.sp += (spVal + (spArc / 2) + (spNat / 2));
                 gearOnlyStats.crit += critVal;
                 gearOnlyStats.hit += hitVal;
-                gearOnlyStats.haste += hasteVal;
+                if (hasteVal) gearOnlyStats.haste *= (1 + (hasteVal / 100));
 
                 if (item.setName) {
                     if (!setCounts[item.setName]) setCounts[item.setName] = 0;
@@ -842,7 +842,7 @@ function calculateGearStats() {
                 charStats.spNat += spNat;
                 charStats.crit += critVal;
                 charStats.hit += hitVal;
-                charStats.haste += hasteVal;
+                if (hasteVal) charStats.haste *= (1 + (hasteVal / 100));
             }
         }
     }
@@ -871,13 +871,13 @@ function calculateGearStats() {
                     charStats.spNat += spNat;
                     charStats.crit += critVal;
                     charStats.hit += hitVal;
-                    charStats.haste += hasteVal;
+                    if (hasteVal) charStats.haste *= (1 + (hasteVal / 100));
 
                     // Add to Gear Only (GS) - Sets usually count as Gear Power
                     gearOnlyStats.sp += (spVal + spArc + spNat);
                     gearOnlyStats.crit += critVal;
                     gearOnlyStats.hit += hitVal;
-                    gearOnlyStats.haste += hasteVal;
+                    if (hasteVal) gearOnlyStats.haste *= (1 + (hasteVal / 100));
                 }
             });
         }
@@ -891,7 +891,7 @@ function calculateGearStats() {
     var buffSPNat = 0;
     var buffCrit = 0;
     var buffHit = 0;
-    var buffHaste = 0;
+    var buffHasteMult = 1.0;
 
     // Auras
     if (getVal("buff_atiesh_warlock")) buffSP += 33;
@@ -931,7 +931,7 @@ function calculateGearStats() {
 
     // 4. ADD PERCENTAGE BUFFS
     if (getVal("buff_moonkin")) buffCrit += 3;
-    if (getVal("buff_atiesh_druid")) buffHaste += 2;
+    if (getVal("buff_atiesh_druid")) buffHasteMult *= 1.02;
     if (getVal("buff_atiesh_mage")) buffCrit += 2;
     if (getVal("buff_emerald")) buffHit += 1;
     if (getVal("buff_elixir_dreamshard")) buffCrit += 2;
@@ -939,7 +939,11 @@ function calculateGearStats() {
 
     charStats.crit += buffCrit;
     charStats.hit += buffHit;
-    charStats.haste += buffHaste;
+    charStats.haste *= buffHasteMult;
+
+    // --- HASTE MULTIPLIKATOREN ZURÜCK IN PROZENT UMRECHNEN ---
+    charStats.haste = (charStats.haste - 1.0) * 100;
+    gearOnlyStats.haste = (gearOnlyStats.haste - 1.0) * 100;
 
 
     // For Gear Score Display: Only Gear Int / 60
