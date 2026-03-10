@@ -608,6 +608,10 @@ function calculateItemScore(item, slotNameOverride) {
         avgBonusHaste -= 6.0; // Negativer Effekt! ca. 60% Uptime von -10% Haste
     }
 
+    if (item.name === "Pristine Enchanted South Seas Kelp") {
+        score += (2.0 * wCrit) * 0.66; // 2% Crit für 2 von 3 Spells (Wrath/Starfire)
+    }
+
     score += avgBonusSP * wSP;
     score += avgBonusHaste * wHaste; // NEU: Durchschnittliche Haste zum Score addieren
 
@@ -738,6 +742,7 @@ function calculateGearStats() {
     var hasToep = false;
     var hasRoop = false;
     var hasZhc = false;
+    var hasKelp = false;
 
 
     // ITEMS
@@ -797,6 +802,7 @@ function calculateGearStats() {
                 if (item.name === "Talisman of Ephemeral Power") hasToep = true;
                 if (item.name === "Remains of Overwhelming Power") hasRoop = true;
                 if (item.name === "Zandalarian Hero Charm") hasZhc = true;
+                if (item.name === "Pristine Enchanted South Seas Kelp") hasKelp = true;
             }
         }
     }
@@ -814,6 +820,7 @@ function calculateGearStats() {
     var elSulfuras = document.getElementById('item_sulfuras'); if (elSulfuras) elSulfuras.checked = hasSulfuras;
     var elSigil = document.getElementById('item_sigil'); if (elSigil) elSigil.checked = hasSigil;
     var elChromie = document.getElementById('item_chromie'); if (elChromie) elChromie.checked = hasChromie;
+    var elKelp = document.getElementById('item_kelp'); if (elKelp) elKelp.checked = hasKelp;
     var elReos = document.getElementById('item_reos'); if (elReos) elReos.checked = hasReos;
     var elToep = document.getElementById('item_toep'); if (elToep) elToep.checked = hasToep;
     var elRoop = document.getElementById('item_roop'); if (elRoop) elRoop.checked = hasRoop;

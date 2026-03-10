@@ -735,6 +735,7 @@ function generateSummaryImage() {
     if (c.idolProp == 1) addLi(ulGear, "Idol: Propagation");
     if (c.item_nobility == 1) addLi(ulGear, "Spellwoven Nobility Drape");
     if (c.item_thane == 1) addLi(ulGear, "Harness of the High Thane");
+    if (c.item_kelp == 1) addLi(ulGear, "Pristine Enchanted South Seas Kelp");
 
     var ulTrink = document.getElementById("sumTrinketList");
     ulTrink.innerHTML = "";
@@ -745,6 +746,7 @@ function generateSummaryImage() {
     if (c.item_sulfuras == 1) addLi(ulTrink, "True Band of Sulfuras");
     if (c.item_sigil == 1) addLi(ulTrink, "Sigil of the Ancient Accord");
     if (c.item_chromie == 1) addLi(ulTrink, "Chromie's Broken Pocket Watch");
+
     addLi(ulTrink, "Strat: " + (c.trinket_strat === "START" ? "On Start" : "On Eclipse"));
 
     var sourceChart = document.getElementById("dpsChart");

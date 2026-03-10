@@ -30,7 +30,7 @@ var CONFIG_IDS = [
     "rota_starfire", "rota_wrath",
     "t3_4p", "t3_6p", "t3_8p", "t35_5p",
     "idolEoF", "idolMoon", "idolProp", "idolMoonfang",
-    "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", 
+    "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp",
     "item_reos", "item_toep", "item_roop", "item_zhc", "trinket_strat",
     "char_race",
     // BUFFS
