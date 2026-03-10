@@ -1218,7 +1218,7 @@ async function runArmoryImport() {
 
 /**
  * Scans HTML for item links and returns a UNIQUE list of objects.
- */
+ 
 function extractItemsFromHtml(doc) {
     var foundMap = new Map(); // Use Map to deduplicate by ItemID immediately
 
@@ -1241,8 +1241,53 @@ function extractItemsFromHtml(doc) {
 
     return Array.from(foundMap.values());
 }
+*/
 
+/**
+ * Scans HTML for item links and returns a UNIQUE list of objects.
+ */
+function extractItemsFromHtml(doc) {
+    var foundMap = new Map(); // Use Map to deduplicate by ItemID immediately
 
+    // 1. Vorhandene Logik: Items aus den Links auslesen
+    var links = doc.querySelectorAll('a[href*="item="]');
+    links.forEach(function (a) {
+        var href = a.getAttribute('href');
+        var itemMatch = href.match(/item=(\d+)/);
+
+        if (itemMatch) {
+            var iId = parseInt(itemMatch[1]);
+            // Only add if not already present 
+            if (!foundMap.has(iId)) {
+                foundMap.set(iId, {
+                    itemId: iId
+                });
+            }
+        }
+    });
+
+    // 2. NEU: Quelltext nach dem versteckten JSON (itemEntry & enchantments) durchsuchen
+    var htmlString = doc.documentElement.innerHTML;
+    // Regex sucht nach &quot;itemEntry&quot;:ID ... &quot;enchantments&quot;:EFFECT_ID
+    var regex = /&quot;itemEntry&quot;:(\d+)[^}]*?&quot;enchantments&quot;:(\d+)/g;
+    var match;
+
+    while ((match = regex.exec(htmlString)) !== null) {
+        var iId = parseInt(match[1]);
+        var eId = parseInt(match[2]);
+
+        // Trage die effectId bei dem Item ein (oder lege es neu an, falls der Link es verpasst hat)
+        if (foundMap.has(iId)) {
+            foundMap.get(iId).effectId = eId;
+        } else {
+            foundMap.set(iId, { itemId: iId, effectId: eId });
+        }
+    }
+
+    return Array.from(foundMap.values());
+}
+
+/*
 function applyImportData(importedItems, race, charName) {
     var matchCount = 0;
 
@@ -1286,6 +1331,69 @@ function applyImportData(importedItems, race, charName) {
         if (slotToAssign) {
             GEAR_SELECTION[slotToAssign] = entry.itemId;
             matchCount++;
+        }
+    });
+
+    // 4. Update UI
+    initGearPlannerUI();
+    saveCurrentState();
+    showToast("Imported data for " + charName);
+
+    return { matched: matchCount };
+}
+*/
+
+function applyImportData(importedItems, race, charName) {
+    var matchCount = 0;
+
+    // 2. Clear current gear
+    GEAR_SELECTION = {};
+    ENCHANT_SELECTION = {}; // NEU: Auch die Enchants zurücksetzen
+
+    // 3. Map Items
+    importedItems.forEach(function (entry) {
+        var dbItem = ITEM_ID_MAP[entry.itemId];
+
+        // Skip if not in DB
+        if (!dbItem) {
+            return;
+        }
+
+        var slotToAssign = null;
+        var slotKey = dbItem.slot; // e.g. "Head", "Two-Hand", "Trinket"
+
+        // Handle Multi-Slots & Mapping Logic
+        if (slotKey === "Finger" || slotKey === "Ring") {
+            if (!GEAR_SELECTION["Finger 1"]) slotToAssign = "Finger 1";
+            else slotToAssign = "Finger 2";
+        }
+        else if (slotKey === "Trinket") {
+            if (!GEAR_SELECTION["Trinket 1"]) slotToAssign = "Trinket 1";
+            else slotToAssign = "Trinket 2";
+        }
+        // FIXED: Added "Two-Hand" and "Mainhand" for Staves/Maces/Polearms
+        else if (slotKey === "Two-hand" || slotKey === "One-hand") {
+            slotToAssign = "Main Hand";
+        }
+        else if (slotKey === "Held In Off-Hand") {
+            slotToAssign = "Off Hand";
+        }
+        else {
+            // Direct Match (Head, Chest, Hands, etc.)
+            slotToAssign = slotKey;
+        }
+
+        if (slotToAssign) {
+            GEAR_SELECTION[slotToAssign] = entry.itemId;
+            matchCount++;
+
+            // NEU: Enchantment zuweisen, falls eine effectId gefunden wurde
+            if (entry.effectId && entry.effectId !== 0) {
+                var enchant = ENCHANT_DB.find(function(e) { return e.effectId === entry.effectId; });
+                if (enchant) {
+                    ENCHANT_SELECTION[slotToAssign] = enchant.id;
+                }
+            }
         }
     });
 
