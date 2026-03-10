@@ -793,7 +793,7 @@ function runCoreSimulation(cfg) {
         State.castStart = State.t;
         State.castEnd = State.t + ct + cfg.avcd; 
         State.gcdEnd = State.t + 1.5 + cfg.avcd; 
-        if (spell.id === "Wrath") State.gcdEnd = State.t + 1.5 + cfg.avcd; 
+        if (spell.id === "Wrath") State.gcdEnd = State.t + 1 + cfg.avcd; 
         var cost = spell.cost; 
         var note = ""; 
         if (State.ooc) { cost = 0; State.ooc = false; note = "OoC"; } 

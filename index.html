@@ -348,7 +348,7 @@
                                                         <span>Haste Weight Steps</span>
                                                         <span id="disp_haste_steps" style="color:var(--druid-orange); font-weight:bold;">5</span>
                                                     </label>
-                                                    <input type="range" id="weight_haste_steps" min="1" max="10" value="5" style="width:100%; cursor:pointer;" 
+                                                    <input type="range" id="weight_haste_steps" min="1" max="10" value="10" style="width:100%; cursor:pointer;" 
                                                         oninput="document.getElementById('disp_haste_steps').innerText = this.value">
                                                     <div style="font-size:0.75rem; color:#888; margin-top:5px;">
                                                         Calculates the marginal EP value for each +1% Haste up to the selected amount (Stat-Weight calculation).
@@ -509,7 +509,7 @@
                                                     <span>Interrupt Threshold</span>
                                                     <span id="disp_interrupt_thresh" style="color:var(--druid-orange); font-weight:bold;">100%</span>
                                                 </label>
-                                                <input type="range" id="rota_interrupt_thresh" min="0" max="100" value="100" style="width:100%; cursor:pointer;" 
+                                                <input type="range" id="rota_interrupt_thresh" min="0" max="100" value="10" style="width:100%; cursor:pointer;" 
                                                     oninput="document.getElementById('disp_interrupt_thresh').innerText = this.value + '%'">
                                                 <div style="font-size:0.75rem; color:#888; margin-top:5px;">
                                                     If set to 50%, casts will only be interrupted if they are less than 50% completed.
