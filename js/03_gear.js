@@ -596,7 +596,7 @@ function calculateItemScore(item, slotNameOverride) {
         score += (150 / 60) * 0.25 * wCrit; // ca. 25% Uptime von 150 Int (in Crit umgerechnet)
     }
     if (item.name === "Harness of the High Thane") {
-        avgBonusSP += 40; // ca. 40 SP Äquivalent für +48 Dmg nach Crit
+        avgBonusSP += 40*0.25; // ca. 40 SP Äquivalent für +48 Dmg nach Crit, @ 25% crit chance
     }
     if (item.name === "True Band of Sulfuras") {
         avgBonusHaste += 1.0; // ca. 20% Uptime von 5% Haste
