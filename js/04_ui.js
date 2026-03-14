@@ -1162,7 +1162,7 @@ async function runArmoryImport() {
         return;
     }
 
-    status.innerText = "Fetching HTML via private Proxy...";
+    status.innerText = "Fetching HTML ...";
     status.style.color = "#aaa";
 
     var targetUrl = `https://turtlecraft.gg/armory/${realm}/${name}`;
