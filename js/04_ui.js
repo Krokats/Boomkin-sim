@@ -1162,6 +1162,78 @@ async function runArmoryImport() {
         return;
     }
 
+    status.innerText = "Fetching HTML via private Proxy...";
+    status.style.color = "#aaa";
+
+    var targetUrl = `https://turtlecraft.gg/armory/${realm}/${name}`;
+    
+    // HIER DEINE WORKER URL EINTRAGEN:
+    var workerUrl = `https://turtle-armory.johnrdoe89.workers.dev/?url=`; 
+    var finalUrl = workerUrl + encodeURIComponent(targetUrl);
+
+    try {
+        var response = await fetch(finalUrl);
+
+        if (!response.ok) {
+            throw new Error("Network Error or Character not found (Status " + response.status + ")");
+        }
+
+        var htmlText = await response.text();
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(htmlText, 'text/html');
+
+        // Rasse aus dem HTML/JSON extrahieren
+        var raceString = "Tauren";
+        var raceMatch = htmlText.match(/&quot;race&quot;:(\d+)/) || htmlText.match(/"race":(\d+)/);
+        if (raceMatch) {
+            var rId = parseInt(raceMatch[1]);
+            if (rId === 4) raceString = "NightElf";
+            if (rId === 6) raceString = "Tauren";
+        }
+
+        // Extract Data
+        var uniqueFoundItems = extractItemsFromHtml(doc);
+        if (uniqueFoundItems.length === 0) {
+            throw new Error("No items found on page. Character might be naked or parsing failed.");
+        }
+
+        // Apply Data & Get Match Statistics
+        var results = applyImportData(uniqueFoundItems, raceString, name);
+        var msg = "Armory Scan: Found " + uniqueFoundItems.length + " unique Item-IDs.<br>";
+
+        if (results.matched > 0) {
+            msg += "<span style='color:#4caf50'>Successfully imported " + results.matched + " items.</span>";
+        } else {
+            msg += "<span style='color:#f44336'>No items matched your local DB.</span>";
+        }
+
+        if (results.matched < uniqueFoundItems.length) {
+            msg += "<br><span style='font-size:0.8em; color:#888;'>(" + (uniqueFoundItems.length - results.matched) + " items skipped - not in local DB)</span>";
+        }
+
+        status.innerHTML = msg;
+        if (results.matched > 0) {
+            setTimeout(closeArmoryModal, 3000);
+        }
+
+    } catch (e) {
+        console.error(e);
+        status.innerText = "Error: " + e.message;
+        status.style.color = "#f44336";
+    }
+}
+/*
+async function runArmoryImport() {
+    var name = document.getElementById("armoryName").value.trim();
+    var realm = document.getElementById("armoryRealm").value;
+    var status = document.getElementById("armoryStatus");
+
+    if (!name) {
+        status.innerText = "Please enter a character name.";
+        status.style.color = "#f44336";
+        return;
+    }
+
     status.innerText = "Fetching HTML from turtlecraft.gg...";
     status.style.color = "#aaa";
 
@@ -1227,6 +1299,7 @@ async function runArmoryImport() {
         status.style.color = "#f44336";
     }
 }
+*/
 
 /**
  * Scans HTML for item links and returns a UNIQUE list of objects.
@@ -1588,4 +1661,5 @@ function updateGlobalDpsRange() {
         GLOBAL_DPS_MAX = max + padding;
     }
 }
+
 
