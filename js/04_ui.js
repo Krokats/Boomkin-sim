@@ -1166,7 +1166,10 @@ async function runArmoryImport() {
     status.style.color = "#aaa";
 
     var targetUrl = `https://turtlecraft.gg/armory/${realm}/${name}`;
-    var proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
+    //var proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
+    //var proxyUrl = `https://api.codetabs.com/v1/proxy?quest=` + encodeURIComponent(targetUrl);
+    var proxyUrl = `https://api.allorigins.win/raw?url=` + encodeURIComponent(targetUrl);
+    
     //var proxyUrl = targetUrl; // CORS Proxy disabled for demo purposes
 
     try {
