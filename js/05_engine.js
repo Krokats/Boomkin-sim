@@ -20,6 +20,10 @@ function getInputs() {
     var stratEl = document.getElementById("trinket_strat");
     var strat = stratEl ? stratEl.value : "START";
 
+    // NEU: Haste Multiplikator aus dem DOM abgreifen
+    var hasteInput = document.getElementById("statHaste");
+    var hasteMultVal = hasteInput && hasteInput.getAttribute("data-mult") ? parseFloat(hasteInput.getAttribute("data-mult")) : 1.0;
+
     // Eclipse Override Logic
     var patchVer = document.getElementById("sim_patch") ? document.getElementById("sim_patch").value : "1.18";
     var useOver = getVal("stat_override_eclipse");
@@ -38,13 +42,13 @@ function getInputs() {
             dotCutoff: getVal("rota_dot_cutoff"), 
             interruptThresh: getVal("rota_interrupt_thresh") 
         },
-        stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), baseHitProb: baseHit },
+        stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), hasteFactor: hasteMultVal, baseHitProb: baseHit },
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
         gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), 
             idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), 
             binding: getVal("item_binding"), scythe: getVal("item_scythe"), nobility: getVal("item_nobility"), thane: getVal("item_thane"), 
-            sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"),
+            sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"), sphere: getVal("item_sphere"),
             reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), trinket_strat: strat },
         talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }};
 }
@@ -235,7 +239,7 @@ function calculateWeights() {
             // Neu berechnen für dieses Szenario, da das Cap in getInputs schon passierte
             c.stats.hit = Math.min(0.99, c.stats.baseHitProb + (c.stats.hitBonus/100)); 
         }, skip: isHitCapped, norm: 1 }, // Skip flag wenn am Cap
-        { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 1; }, norm: 1 }
+        { id: "haste",label: "+1% Haste", mod: function(c) { c.stats.haste += 1; c.stats.hasteFactor *= 1.01; }, norm: 1 }
     ];
 
     // Dynamische Haste-Szenarien hinzufügen
@@ -247,7 +251,7 @@ function calculateWeights() {
             scenarios.push({
                 id: "haste_step_" + step,
                 label: "+" + step + "% Haste",
-                mod: function(c) { c.stats.haste += step; },
+                mod: function(c) { c.stats.haste += step; c.stats.hasteFactor *= Math.pow(1.01, step); },
                 norm: 1 // norm=1, da wir den absoluten DPS-Gewinn für die gesamten +X% wollen
             });
         })(s);
@@ -552,6 +556,7 @@ function runCoreSimulation(cfg) {
         zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0, 
         scytheEnd: 0.0, scytheCD: 0.0,
         nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
+        makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, // NEU: Sphere of the Endless Gulch
         ooc: false, boon: 0
     };
 
@@ -573,8 +578,8 @@ function runCoreSimulation(cfg) {
     // 4. Internes RNG Objekt (Hybrid: Seeded für 'S', Akkumulator für Deterministic)
     var RNG = {
         mode: cfg.mode,
-        acc: { hit: 0, crit: 0, procNE: 0, procAE: 0, procBoaT: 0, procT36p: 0, binding: 0, scythe: 0, procNobility: 0, procSulfuras: 0, procSigil: 0, procChromie: 0, ooc: 0, boon: 0 },
-        
+        acc: { hit: 0, crit: 0, procNE: 0, procAE: 0, procBoaT: 0, procT36p: 0, binding: 0, scythe: 0, procNobility: 0, procSulfuras: 0, procSigil: 0, procChromie: 0, procSphere: 0, ooc: 0, boon: 0 },
+
         // Prüft prozentuale Chance (0-100)
         check: function (chance, id) {
             if (this.mode === "S") return rngHandler.check(chance);
@@ -615,6 +620,15 @@ function runCoreSimulation(cfg) {
     var log = function (time, evt, spell, res, dmg, castTime, info, mana) { 
         var eclStr = ""; if (isNE()) eclStr = "NAT"; if (isAE()) eclStr = "ARC"; 
         var dispSP = getCurrentSP("Arcane");
+
+        // NEU: Aktuellen Haste-Wert zum Zeitpunkt des Events berechnen
+        var currentHaste = cfg.stats.hasteFactor || 1.0;
+        if (cfg.gear.t3_8p && time < State.t38End) currentHaste *= 1.10; 
+        if (cfg.gear.scythe && time < State.scytheEnd) currentHaste *= 1.10;
+        if (cfg.gear.sulfuras && time < State.sulfurasEnd) currentHaste *= 1.05;
+        if (cfg.gear.chromie && time < State.chromieEnd) currentHaste *= 0.90;
+        if (cfg.gear.sphere && time < State.enlightenedEnd) currentHaste *= 1.20;
+        var hasteStr = ((currentHaste - 1) * 100).toFixed(1) + "%";
         
         RunLog.push({ 
             t: time.toFixed(2), evt: evt, spell: spell, res: res, 
@@ -623,7 +637,7 @@ function runCoreSimulation(cfg) {
             ecl: eclStr, 
             boat: State.boat, ng: (State.ng ? "YES" : "-"), 
             ooc: (State.ooc ? "YES" : "-"), boon: (State.boon > 0 ? State.boon : "-"), 
-            sp: dispSP, mana: (mana !== undefined ? mana : "-"), 
+            sp: dispSP, haste: hasteStr, mana: (mana !== undefined ? mana : "-"), 
             info: info || "", 
             mfRem: cfg.enemy.extMF ? "EXT" : ((State.activeMF && State.activeMF.exp > time) ? (State.activeMF.exp - time).toFixed(1) : "-"),
             isRem: cfg.enemy.extIS ? "EXT" : ((State.activeIS && State.activeIS.exp > time) ? (State.activeIS.exp - time).toFixed(1) : "-"),
@@ -694,12 +708,13 @@ function runCoreSimulation(cfg) {
             if (cfg.gear.idolEoF) base -= 0.2;
         } 
         if (base < 0) base = 0; 
-        var hasteFactor = 1.0 + (cfg.stats.haste / 100); 
-        if (cfg.gear.t3_8p && State.t < State.t38End) hasteFactor *= 1.10; 
+        var hasteFactor = cfg.stats.hasteFactor; // Nutzt jetzt den echten multiplikativen Wert aus dem UI/Gear
+        if (cfg.gear.t3_8p && State.t < State.t38End) hasteFactor *= 1.10;
         // NEU: Scythe of Elune Haste Buff
         if (cfg.gear.scythe && State.t < State.scytheEnd) hasteFactor *= 1.10;
         if (cfg.gear.sulfuras && State.t < State.sulfurasEnd) hasteFactor *= 1.05;
         if (cfg.gear.chromie && State.t < State.chromieEnd) hasteFactor *= 0.90; // Chromie reduziert Haste um 10%
+        if (cfg.gear.sphere && State.t < State.enlightenedEnd) hasteFactor *= 1.20; // Sphere of the Endless Gulch (+20% Haste)
         return Math.max(0, base / hasteFactor);
     };
 
@@ -950,6 +965,19 @@ function runCoreSimulation(cfg) {
         if (cfg.gear.chromie && RNG.check(10, "procChromie")) {
             State.chromieEnd = State.t + 15.0;
             log(State.t, "PROC", "Pocket Watch", "", null, null, "-10% Haste");
+        }
+        
+        // Sphere of the Endless Gulch
+        if (cfg.gear.sphere && State.t >= State.sphereCD &&  State.t >= State.enlightenedEnd && RNG.check(20, "procSphere")) {
+            State.sphereCD = State.t + 3.0; // Interner Cooldown von 3 Sekunden
+            State.makaruStacks++;
+            if (State.makaruStacks >= 20) {
+                State.makaruStacks = 0;
+                State.enlightenedEnd = State.t + 12.0;
+                log(State.t, "PROC", "Endless Gulch", "", null, null, "20 Stacks -> +20% Haste (12s)");
+            } else {
+                log(State.t, "PROC", "Endless Gulch", "", null, null, "Stack " + State.makaruStacks);
+            }
         }
         
         if (crit) { 

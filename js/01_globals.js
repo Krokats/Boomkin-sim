@@ -30,7 +30,7 @@ var CONFIG_IDS = [
     "rota_starfire", "rota_wrath",
     "t3_4p", "t3_6p", "t3_8p", "t35_5p",
     "idolEoF", "idolMoon", "idolProp", "idolMoonfang",
-    "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp",
+    "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp", "item_sphere",
     "item_reos", "item_toep", "item_roop", "item_zhc", "trinket_strat",
     "char_race",
     // BUFFS
@@ -50,7 +50,7 @@ var SLOT_LAYOUT = {
 // Base 3.38% Crit for Druids, Base Hit 0
 const RACE_STATS = {
     "Tauren": { hit: 3, crit: 3.33, haste: 0, stam: 72, int: 95 },
-    "NightElf": { hit: 3, crit: 3.33, haste: 0, stam: 69, int: 100 }
+    "NightElf": { hit: 3, crit: 3.33, haste: 1, stam: 69, int: 100 }
 
 };
 

@@ -663,6 +663,7 @@ function renderComparisonTable() {
         var trinkets = [];
         if (c.item_reos == 1) trinkets.push("ReoS");
         if (c.item_toep == 1) trinkets.push("ToEP");
+        if (c.item_sphere == 1) trinkets.push("Sphere"); // NEU: Sphere Kürzel
         if (trinkets.length > 0) gear += '<br><span class="detail-text" style="color:#aaa">' + trinkets.join('+') + '</span>';
         if (gear === "") gear = "-";
         var html = '<tr onclick="switchSim(' + i + ')" style="cursor:pointer">' +
@@ -746,6 +747,7 @@ function generateSummaryImage() {
     if (c.item_sulfuras == 1) addLi(ulTrink, "True Band of Sulfuras");
     if (c.item_sigil == 1) addLi(ulTrink, "Sigil of the Ancient Accord");
     if (c.item_chromie == 1) addLi(ulTrink, "Chromie's Broken Pocket Watch");
+    if (c.item_sphere == 1) addLi(ulTrink, "Sphere of the Endless Gulch"); // NEU: Sphere Liste
 
     addLi(ulTrink, "Strat: " + (c.trinket_strat === "START" ? "On Start" : "On Eclipse"));
 
@@ -915,7 +917,7 @@ function renderCombatLog(logData) {
     // Header-Erstellung (Bleibt identisch mit Ihrem Code)
     var baseCols = `<th style="width: 50px;">Time</th><th style="width: 50px;">Event</th><th class="col-left" style="width: 90px;">Spell</th><th style="width: 40px;">CastT</th><th style="width: 30px;">Res</th><th style="width: 50px; text-align:right;">Norm</th><th style="width: 50px; text-align:right;">Ecl</th><th style="width: 50px; text-align:right;">Crit</th><th style="width: 40px;">MF(s)</th><th style="width: 40px;">IS(s)</th>`;
     if (showBoat) baseCols += `<th style="width: 30px;">BoaT</th>`;
-    baseCols += `<th style="width: 30px;">NG</th><th style="width: 30px;">OoC</th><th style="width: 30px;">NB</th><th style="width: 40px;">SP</th><th style="width: 30px;">T3.6</th><th style="width: 30px;">T3.8</th><th style="width: 40px; color:#00b0ff;">Mana</th>`;
+    baseCols += `<th style="width: 30px;">NG</th><th style="width: 30px;">OoC</th><th style="width: 30px;">NB</th><th style="width: 40px;">SP</th><th style="width: 45px; color:#ff9800;">Haste</th><th style="width: 30px;">T3.6</th><th style="width: 30px;">T3.8</th><th style="width: 40px; color:#00b0ff;">Mana</th>`;
     if (cfg.gear.binding) baseCols += `<th style="width: 40px; color:#e91e63;">Bind</th>`;
     if (cfg.gear.reos) baseCols += `<th style="width: 40px; color:#e91e63;">REoS</th>`;
     if (cfg.gear.toep) baseCols += `<th style="width: 40px; color:#e91e63;">ToEP</th>`;
@@ -956,7 +958,7 @@ function renderCombatLog(logData) {
 
         var html = `<tr class="${rowClass}"><td class="log-time">${entry.t}</td><td>${entry.evt}</td><td class="col-left">${entry.spell}</td><td>${entry.castTime}</td><td class="col-sp">${entry.res}</td><td class="col-right col-norm">${valNorm}</td><td class="col-right col-ecl">${valEcl}</td><td class="col-right col-crit">${valCrit}</td><td>${entry.mfRem}</td><td>${entry.isRem}</td>`;
         if (showBoat) html += `<td>${boatStr}</td>`;
-        html += `<td>${ngStr}</td><td>${oocStr}</td><td>${boonStr}</td><td class="col-sp">${entry.sp}</td><td>${entry.t36}</td><td>${entry.t38}</td><td class="col-mana">${entry.mana}</td>`;
+        html += `<td>${ngStr}</td><td>${oocStr}</td><td>${boonStr}</td><td class="col-sp">${entry.sp}</td><td style="color:#ffb74d;">${entry.haste}</td><td>${entry.t36}</td><td>${entry.t38}</td><td class="col-mana">${entry.mana}</td>`;
         if (cfg.gear.binding) html += `<td>${entry.bBind}</td>`;
         if (cfg.gear.reos) html += `<td>${entry.bReos}</td>`;
         if (cfg.gear.toep) html += `<td>${entry.bToep}</td>`;
@@ -1055,8 +1057,8 @@ function updateSpellStats() {
         var scaledEcl = raw * (1 + baseMod + eclMod) * cosMult;
         var cTimeBase = castTime;
         if (name === "Starfire" && cfg.gear.idolEoF) cTimeBase -= 0.2;
-        var haste = cfg.stats.haste;
-        var ct = Math.max(0, cTimeBase / (1 + haste / 100));
+        // Nutzt den neuen hasteFactor. Fallback auf 1.0, falls noch nicht geladen.
+        var ct = Math.max(0, cTimeBase / (cfg.stats.hasteFactor || 1.0));
         return '<tr><td>' + name + '</td><td>' + base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(scaledNoEcl) + '</td><td>+' + (eclMod * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(scaledEcl) + '</td><td>' + ct.toFixed(2) + 's</td></tr>';
     }
     var eclFactor = (10 + 60 * (cfg.stats.crit / 100)) / 100; // Int correction applied via input logic, here it takes the final stat

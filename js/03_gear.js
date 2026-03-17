@@ -448,7 +448,11 @@ function openEnchantSelector(slotName) {
         renderEnchantList();
     }
 }
-function closeEnchantModal() { var modal = document.getElementById("enchantSelectorModal"); if (modal) modal.classList.add("hidden"); CURRENT_SELECTING_SLOT = null; }
+function closeEnchantModal() { 
+    var modal = document.getElementById("enchantSelectorModal"); 
+    if (modal) modal.classList.add("hidden"); 
+    CURRENT_SELECTING_SLOT = null; 
+}
 
 function renderEnchantList() {
     var list = document.getElementById("modalEnchantList");
@@ -557,7 +561,7 @@ function calculateItemScore(item, slotNameOverride) {
     score += (e.spellCrit || 0) * wCrit;
 
     // Haste * HW
-    score += (e.attackSpeed || 0) * wHaste;
+    score += (e.spellHaste || 0) * wHaste;
 
     // Int / 60 * CW
     var intVal = item.intellect || 0;
@@ -600,6 +604,9 @@ function calculateItemScore(item, slotNameOverride) {
     }
     if (item.name === "True Band of Sulfuras") {
         avgBonusHaste += 1.0; // ca. 20% Uptime von 5% Haste
+    }
+    if (item.name === "Sphere of the Endless Gulch") {
+        avgBonusHaste += 0.75; // Grobe Schätzung: 100 Treffer nötig, 3 sek ICD --> 300 sekunden bis procc, in 312 sekunden ist 12 sekunden uptime, ~3,8% Uptime von 20% Haste
     }
     if (item.name === "Sigil of the Ancient Accord") {
         avgBonusSP += 30; // ca. 30 SP Äquivalent (8% Proc von 400 dmg)
@@ -654,7 +661,7 @@ function calculateItemScore(item, slotNameOverride) {
                     bScore += (b.natureSpellPower / 2 || 0) * wSP;
                     bScore += (b.spellCrit || 0) * wCrit;
                     bScore += (b.spellHit || 0) * wHit;
-                    bScore += (b.attackSpeed || 0) * wHaste;
+                    bScore += (b.spellHaste || 0) * wHaste;
                     bScore += ((b.intellect || 0) / 60) * wCrit;
 
                     score += bScore;
@@ -692,7 +699,7 @@ function calculateEnchantScore(ench) {
     score += (stats.spellCrit || 0) * wCrit;
 
     // Haste * HW
-    score += (stats.attackSpeed || 0) * wHaste;
+    score += (stats.spellHaste || 0) * wHaste;
 
     // Int / 60 * CW
     var intVal = stats.intellect || 0;
@@ -713,7 +720,8 @@ function calculateGearStats() {
         crit: baseStats.crit,
         hit: baseStats.hit,
         int: baseStats.int,
-        haste: 1.0 + (baseStats.haste / 100) // Multiplikativer Startwert
+        haste: baseStats.haste, // Additiv für UI
+        hasteMult: 1.0 + (baseStats.haste / 100) // Multiplikativ für Engine
     };
 
     // Gear Only Stats (Accumulates ONLY items + sets, NO base, NO enchants)
@@ -723,7 +731,8 @@ function calculateGearStats() {
         crit: 0,
         hit: 0,
         int: 0,
-        haste: 1.0 // Multiplikativer Startwert
+        haste: baseStats.haste, // Additiv für UI
+        hasteMult: 1.0 + (baseStats.haste / 100) // Multiplikativ für Engine
     };
 
     var setCounts = {};
@@ -743,6 +752,7 @@ function calculateGearStats() {
     var hasRoop = false;
     var hasZhc = false;
     var hasKelp = false;
+    var hasSphere = false;
 
 
     // ITEMS
@@ -760,7 +770,7 @@ function calculateGearStats() {
                 var spNat = (e.natureSpellPower || 0);
                 var critVal = (e.spellCrit || 0);
                 var hitVal = (e.spellHit || 0);
-                var hasteVal = (e.attackSpeed || 0);
+                var hasteVal = (e.spellHaste || 0);
 
                 // Add to Character (Total)
                 charStats.int += intVal;
@@ -769,7 +779,8 @@ function calculateGearStats() {
                 charStats.spNat += spNat;
                 charStats.crit += critVal;
                 charStats.hit += hitVal;
-                if (hasteVal) charStats.haste *= (1 + (hasteVal / 100));
+                charStats.haste += hasteVal;
+                if (hasteVal) charStats.hasteMult *= (1 + (hasteVal / 100));
 
                 // Add to Gear Only (GS)
                 // For GS, sum all SP types (Arcane und Nature zählen nur zu 50%)
@@ -777,7 +788,8 @@ function calculateGearStats() {
                 gearOnlyStats.sp += (spVal + (spArc / 2) + (spNat / 2));
                 gearOnlyStats.crit += critVal;
                 gearOnlyStats.hit += hitVal;
-                if (hasteVal) gearOnlyStats.haste *= (1 + (hasteVal / 100));
+                gearOnlyStats.haste += hasteVal;
+                if (hasteVal) gearOnlyStats.hasteMult *= (1 + (hasteVal / 100));
 
                 if (item.setName) {
                     if (!setCounts[item.setName]) setCounts[item.setName] = 0;
@@ -803,6 +815,8 @@ function calculateGearStats() {
                 if (item.name === "Remains of Overwhelming Power") hasRoop = true;
                 if (item.name === "Zandalarian Hero Charm") hasZhc = true;
                 if (item.name === "Pristine Enchanted South Seas Kelp") hasKelp = true;
+                if (item.name === "Sphere of the Endless Gulch") hasSphere = true;
+        
             }
         }
     }
@@ -821,6 +835,7 @@ function calculateGearStats() {
     var elSigil = document.getElementById('item_sigil'); if (elSigil) elSigil.checked = hasSigil;
     var elChromie = document.getElementById('item_chromie'); if (elChromie) elChromie.checked = hasChromie;
     var elKelp = document.getElementById('item_kelp'); if (elKelp) elKelp.checked = hasKelp;
+    var elSphere = document.getElementById('item_sphere'); if (elSphere) elSphere.checked = hasSphere;
     var elReos = document.getElementById('item_reos'); if (elReos) elReos.checked = hasReos;
     var elToep = document.getElementById('item_toep'); if (elToep) elToep.checked = hasToep;
     var elRoop = document.getElementById('item_roop'); if (elRoop) elRoop.checked = hasRoop;
@@ -840,7 +855,7 @@ function calculateGearStats() {
                 var spNat = (ench.effects.natureSpellPower || 0);
                 var critVal = (ench.effects.spellCrit || 0);
                 var hitVal = (ench.effects.spellHit || 0);
-                var hasteVal = (ench.effects.attackSpeed || 0);
+                var hasteVal = (ench.effects.spellHaste || 0);
 
                 // Add to Character (Total) - YES
                 charStats.int += intVal;
@@ -849,7 +864,8 @@ function calculateGearStats() {
                 charStats.spNat += spNat;
                 charStats.crit += critVal;
                 charStats.hit += hitVal;
-                if (hasteVal) charStats.haste *= (1 + (hasteVal / 100));
+                charStats.haste += hasteVal;
+                if (hasteVal) charStats.hasteMult *= (1 + (hasteVal / 100));
             }
         }
     }
@@ -870,7 +886,7 @@ function calculateGearStats() {
                     var spNat = (bonus.natureSpellPower || 0);
                     var critVal = (bonus.spellCrit || 0);
                     var hitVal = (bonus.spellHit || 0);
-                    var hasteVal = (bonus.attackSpeed || 0);
+                    var hasteVal = (bonus.spellHaste || 0);
 
                     // Add to Character (Total)
                     charStats.sp += spVal;
@@ -878,13 +894,15 @@ function calculateGearStats() {
                     charStats.spNat += spNat;
                     charStats.crit += critVal;
                     charStats.hit += hitVal;
-                    if (hasteVal) charStats.haste *= (1 + (hasteVal / 100));
+                    charStats.haste += hasteVal;
+                    if (hasteVal) charStats.hasteMult *= (1 + (hasteVal / 100));
 
                     // Add to Gear Only (GS) - Sets usually count as Gear Power
                     gearOnlyStats.sp += (spVal + spArc + spNat);
                     gearOnlyStats.crit += critVal;
                     gearOnlyStats.hit += hitVal;
-                    if (hasteVal) gearOnlyStats.haste *= (1 + (hasteVal / 100));
+                    gearOnlyStats.haste += hasteVal;
+                    if (hasteVal) gearOnlyStats.hasteMult *= (1 + (hasteVal / 100));
                 }
             });
         }
@@ -938,7 +956,10 @@ function calculateGearStats() {
 
     // 4. ADD PERCENTAGE BUFFS
     if (getVal("buff_moonkin")) buffCrit += 3;
-    if (getVal("buff_atiesh_druid")) buffHasteMult *= 1.02;
+    if (getVal("buff_atiesh_druid")) {
+        charStats.haste += 2; // Variante A: UI Additiv
+        charStats.hasteMult *= 1.02; // Engine Multiplikativ
+    }
     if (getVal("buff_atiesh_mage")) buffCrit += 2;
     if (getVal("buff_emerald")) buffHit += 1;
     if (getVal("buff_elixir_dreamshard")) buffCrit += 2;
@@ -946,11 +967,11 @@ function calculateGearStats() {
 
     charStats.crit += buffCrit;
     charStats.hit += buffHit;
-    charStats.haste *= buffHasteMult;
+    //charStats.haste *= buffHasteMult;
 
     // --- HASTE MULTIPLIKATOREN ZURÜCK IN PROZENT UMRECHNEN ---
-    charStats.haste = (charStats.haste - 1.0) * 100;
-    gearOnlyStats.haste = (gearOnlyStats.haste - 1.0) * 100;
+    //charStats.haste = (charStats.haste - 1.0) * 100;
+    //gearOnlyStats.haste = (gearOnlyStats.haste - 1.0) * 100;
 
 
     // For Gear Score Display: Only Gear Int / 60
@@ -979,6 +1000,7 @@ function calculateGearStats() {
     if (hasNobility) gearOnlyStats.crit += (150 / 60) * 0.25; // Statische Approximation für Score
     if (hasThane) gearOnlyStats.sp += 40;
     if (hasSulfuras) gearOnlyStats.haste += 1.0;
+    if (hasSphere) gearOnlyStats.haste += 1.0;
     if (hasSigil) gearOnlyStats.sp += 30;
     if (hasChromie) gearOnlyStats.haste -= 6.0;
 
@@ -1014,6 +1036,10 @@ function calculateGearStats() {
 
     var inCrit = document.getElementById("statCrit"); if (inCrit) { inCrit.value = charStats.crit.toFixed(2); inCrit.dispatchEvent(new Event('change')); }
     var inHit = document.getElementById("statHit"); if (inHit) { inHit.value = charStats.hit; inHit.dispatchEvent(new Event('change')); }
-    var inHaste = document.getElementById("statHaste"); if (inHaste) { inHaste.value = charStats.haste.toFixed(2); inHaste.dispatchEvent(new Event('change')); }
+    var inHaste = document.getElementById("statHaste"); if (inHaste) { 
+        inHaste.value = charStats.haste.toFixed(2); 
+        inHaste.setAttribute("data-mult", charStats.hasteMult); // NEU: Multiplikativer Wert für die Engine speichern
+        inHaste.dispatchEvent(new Event('change')); 
+    }
 
 }
