@@ -729,8 +729,8 @@ function runCoreSimulation(cfg) {
                     isValid = evaluateOp(left, c.op, right);
                     break;
                 case 'player_debuff_rem':
-                    if (c.target === 'Arcane Solstice') left = Math.max(0, State.aeCD - State.t);
-                    if (c.target === 'Natural Solstice') left = Math.max(0, State.neCD - State.t);
+                    if (c.target === 'Arcane Solstice') left = Math.max(0, State.neCD - State.t);
+                    if (c.target === 'Natural Solstice') left = Math.max(0, State.aeCD - State.t);
                     isValid = evaluateOp(left, c.op, right);
                     break;
                 case 'time_elapsed':

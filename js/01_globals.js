@@ -109,9 +109,12 @@ var PRESET_ROTATIONS = {
                 { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" }
             ], disabled: false },
             { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Natural Solstice", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 10, skill: "Wrath", conditions: [
                 { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" }
             ], disabled: false },
-            { id: 10, skill: "Wrath", conditions: [], disabled: false }
+            { id: 11, skill: "Wrath", conditions: [], disabled: false }
         ]
     },
     "Standard 2": {
@@ -147,9 +150,12 @@ var PRESET_ROTATIONS = {
                 { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" }
             ], disabled: false },
             { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Natural Solstice", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 10, skill: "Wrath", conditions: [
                 { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" }
             ], disabled: false },
-            { id: 10, skill: "Starfire", conditions: [], disabled: false }
+            { id: 11, skill: "Starfire", conditions: [], disabled: false }
         ]
     },
     "Standard 3": {
@@ -185,10 +191,13 @@ var PRESET_ROTATIONS = {
                 { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" }
             ], disabled: false },
             { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Natural Solstice", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 10, skill: "Wrath", conditions: [
                 { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" }
             ], disabled: false },
-            { id: 10, skill: "Starfire", conditions: [{type: "last_cast", target: "Wrath"}], disabled: false },
-            { id: 11, skill: "Wrath", conditions: [], disabled: false }
+            { id: 11, skill: "Starfire", conditions: [{type: "last_cast", target: "Wrath"}], disabled: false },
+            { id: 12, skill: "Wrath", conditions: [], disabled: false }
         ]
     },
     "Standard 4": {
@@ -224,10 +233,13 @@ var PRESET_ROTATIONS = {
                 { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" }
             ], disabled: false },
             { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Natural Solstice", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 10, skill: "Wrath", conditions: [
                 { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" }
             ], disabled: false },
-            { id: 10, skill: "Wrath", conditions: [{type: "last_cast", target: "Starfire"}], disabled: false },
-            { id: 11, skill: "Starfire", conditions: [], disabled: false }
+            { id: 11, skill: "Wrath", conditions: [{type: "last_cast", target: "Starfire"}], disabled: false },
+            { id: 12, skill: "Starfire", conditions: [], disabled: false }
         ]
     }
 };
