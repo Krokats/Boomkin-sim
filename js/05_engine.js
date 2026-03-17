@@ -17,8 +17,6 @@ function getInputs() {
     if (lvl == 62) baseHit = 0.94;
     if (lvl == 63) baseHit = 0.83;
     var finalHitChance = Math.min(0.99, baseHit + (hitBonus / 100));
-    var stratEl = document.getElementById("trinket_strat");
-    var strat = stratEl ? stratEl.value : "START";
 
     // NEU: Haste Multiplikator aus dem DOM abgreifen
     var hasteInput = document.getElementById("statHaste");
@@ -35,13 +33,12 @@ function getInputs() {
         mode: m, iterations: (m.startsWith("D")) ? 1 : (rawSims > 0 ? rawSims : 1), maxTime: getVal("maxTime"), avcd: getVal("avcd") / 1000,
         rng_seed: document.getElementById("rng_seed") ? document.getElementById("rng_seed").value : "",
         rota: {
-            castIS: getVal("rota_is"), castMF: getVal("rota_mf"),
-            castSF: getVal("rota_starfire"), castW: getVal("rota_wrath"),
-            eclDOT: getVal("rota_eclDot"), spellInterrupt: getVal("rota_interrupt"),
-            fishMeth: getVal("rota_fish"), startBoat: getVal("start_boat"), wrathFlight: getVal("wrath_flight"),
+            spellInterrupt: getVal("rota_interrupt"),
+            startBoat: getVal("start_boat"), wrathFlight: getVal("wrath_flight"),
             dotCutoff: getVal("rota_dot_cutoff"), 
             interruptThresh: getVal("rota_interrupt_thresh") 
         },
+        custom_rotation: (typeof CUSTOM_ROTATION !== 'undefined') ? JSON.parse(JSON.stringify(CUSTOM_ROTATION)) : { steps: [] },
         stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), hasteFactor: hasteMultVal, baseHitProb: baseHit },
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
@@ -49,8 +46,9 @@ function getInputs() {
             idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), 
             binding: getVal("item_binding"), scythe: getVal("item_scythe"), nobility: getVal("item_nobility"), thane: getVal("item_thane"), 
             sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"), sphere: getVal("item_sphere"),
-            reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), trinket_strat: strat },
-        talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }};
+            reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc") },
+        talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }
+    };
 }
 
 // ============================================================================
@@ -130,6 +128,8 @@ async function runSimulation() {
                 switchView('avg');
                 var btnW = document.getElementById("btnWeights");
                 if (btnW) btnW.disabled = false;
+
+                if (typeof updateStepCounters === "function") updateStepCounters();
 
                 showToast("Simulation Complete!");
                 hideProgress();
@@ -546,7 +546,7 @@ function runCoreSimulation(cfg) {
 
     // 3. Kampf-Status & Stats (Nur für diesen EINEN Run)
     var State = { 
-        t: 0.0, gcdEnd: 0.0, castEnd: 0.0, castStart: 0.0, casting: false, spellId: null, currentSpellId: null,
+        t: 0.0, gcdEnd: 0.0, castEnd: 0.0, castStart: 0.0, casting: false, spellId: null, currentSpellId: null, lastCastId: "",
         neEnd: 0.0, aeEnd: 0.0, neCD: 0.0, aeCD: 0.0, 
         ng: false, boat: cfg.rota.startBoat, t38End: 0.0, t3End: 0.0, 
         fishingLastCast: "", activeMF: null, activeIS: null, 
@@ -561,7 +561,7 @@ function runCoreSimulation(cfg) {
     };
 
     var RunStats = { 
-        totalDmg: 0, totalMana: 0, 
+        totalDmg: 0, totalMana: 0, stepCounts: {},
         dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
         dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0,
         casts: 0, misses: 0, hits: 0, dmgCrit: 0,
@@ -687,17 +687,77 @@ function runCoreSimulation(cfg) {
         return { val: dmgFactor, txt: txt }; 
     };
 
-    var checkTrinkets = function () {
-        var use = false;
-        if (cfg.gear.trinket_strat === "START") use = true;
-        if (cfg.gear.trinket_strat === "ECLIPSE" && (isNE() || isAE())) use = true;
-        if (use) {
-            if (cfg.gear.reos && State.t >= State.reosCD) { State.reosEnd = State.t + 20.0; State.reosCD = State.t + 120.0; log(State.t, "USE", "Essence of Sapphiron", "", null, null, "+130 SP"); }
-            if (cfg.gear.toep && State.t >= State.toepCD) { State.toepEnd = State.t + 15.0; State.toepCD = State.t + 90.0; log(State.t, "USE", "Talisman (ToEP)", "", null, null, "+175 SP"); }
-            if (cfg.gear.roop && State.t >= State.roopCD) { State.roopEnd = State.t + 60.0; State.roopCD = State.t + 300.0; log(State.t, "USE", "Remains of Overwhelming Power", "", null, null, "+55 SP"); }
-            if (cfg.gear.zhc && State.t >= State.zhcCD) { State.zhcEnd = State.t + 20.0; State.zhcCD = State.t + 120.0; State.zhcVal = 204; log(State.t, "USE", "Zandalarian Hero Charm", "", null, null, "+204 SP"); }
-            if (cfg.gear.scythe && State.t >= State.scytheCD) { State.scytheEnd = State.t + 8.0; State.scytheCD = State.t + 600.0; log(State.t, "USE", "Scythe of Elune", "", null, null, "+10% Haste"); }
+    var triggerTrinket = function(trinketKey, stepId) {
+        var used = false;
+        if (trinketKey === "reos" && State.t >= State.reosCD) { State.reosEnd = State.t + 20.0; State.reosCD = State.t + 120.0; log(State.t, "USE", "Essence of Sapphiron", "", null, null, "+130 SP"); used = true; }
+        else if (trinketKey === "toep" && State.t >= State.toepCD) { State.toepEnd = State.t + 15.0; State.toepCD = State.t + 90.0; log(State.t, "USE", "Talisman (ToEP)", "", null, null, "+175 SP"); used = true; }
+        else if (trinketKey === "roop" && State.t >= State.roopCD) { State.roopEnd = State.t + 60.0; State.roopCD = State.t + 300.0; log(State.t, "USE", "Remains of Overwhelming Power", "", null, null, "+55 SP"); used = true; }
+        else if (trinketKey === "zhc" && State.t >= State.zhcCD) { State.zhcEnd = State.t + 20.0; State.zhcCD = State.t + 120.0; State.zhcVal = 204; log(State.t, "USE", "Zandalarian Hero Charm", "", null, null, "+204 SP"); used = true; }
+        else if (trinketKey === "scythe" && State.t >= State.scytheCD) { State.scytheEnd = State.t + 8.0; State.scytheCD = State.t + 600.0; log(State.t, "USE", "Scythe of Elune", "", null, null, "+10% Haste"); used = true; }
+        
+        if (used && stepId) RunStats.stepCounts[stepId] = (RunStats.stepCounts[stepId] || 0) + 1;
+        return used;
+    };
+
+    var evaluateOp = function(left, op, right) {
+        if(op === '>') return left > right;
+        if(op === '<') return left < right;
+        if(op === '>=') return left >= right;
+        if(op === '<=') return left <= right;
+        if(op === '==') return left == right;
+        return false;
+    };
+
+    var checkCondition = function(step) {
+        if (!step.conditions || step.conditions.length === 0) return true;
+        for (var i = 0; i < step.conditions.length; i++) {
+            var c = step.conditions[i];
+            var left = 0;
+            var right = parseFloat(c.val) || 0;
+            var isValid = false;
+
+            switch(c.type) {
+                case 'debuff_rem':
+                    if (c.target === 'Moonfire') left = cfg.enemy.extMF ? 999 : (State.activeMF && State.activeMF.exp > State.t ? State.activeMF.exp - State.t : 0);
+                    if (c.target === 'Insect Swarm') left = cfg.enemy.extIS ? 999 : (State.activeIS && State.activeIS.exp > State.t ? State.activeIS.exp - State.t : 0);
+                    isValid = evaluateOp(left, c.op, right);
+                    break;
+                case 'buff_rem':
+                    if (c.target === 'Nature Eclipse') left = Math.max(0, State.neEnd - State.t);
+                    if (c.target === 'Arcane Eclipse') left = Math.max(0, State.aeEnd - State.t);
+                    if (c.target === 'Nature\'s Grace') left = State.ng ? 999 : 0;
+                    isValid = evaluateOp(left, c.op, right);
+                    break;
+                case 'player_debuff_rem':
+                    if (c.target === 'Arcane Solstice') left = Math.max(0, State.aeCD - State.t);
+                    if (c.target === 'Natural Solstice') left = Math.max(0, State.neCD - State.t);
+                    isValid = evaluateOp(left, c.op, right);
+                    break;
+                case 'time_elapsed':
+                    left = State.t;
+                    isValid = evaluateOp(left, c.op, right);
+                    break;
+                case 'time_remaining':
+                    left = cfg.maxTime - State.t;
+                    isValid = evaluateOp(left, c.op, right);
+                    break;
+                case 'ecl_vs_cast':
+                    if (!Spells[c.target]) { isValid = false; break; }
+                    var castT = getCastTime(c.target, Spells[c.target].baseCast);
+                    var eclRem = (c.target === 'Starfire') ? Math.max(0, State.aeEnd - State.t) : Math.max(0, State.neEnd - State.t);
+                    var isGreater = eclRem > castT;
+                    // Prüft, ob das Ergebnis mit der Erwartung (True/False) aus der UI übereinstimmt
+                    isValid = (c.bool === "false") ? !isGreater : isGreater;
+                    break;
+                case 'last_cast':
+                    isValid = (State.lastCastId === c.target);
+                    break;
+                default:
+                    isValid = true;
+            }
+            if (!isValid) return false;
         }
+        return true;
     };
 
     var getCastTime = function (spellId, baseCast) { 
@@ -802,7 +862,6 @@ function runCoreSimulation(cfg) {
     };
 
     var performCast = function (spell) { 
-        checkTrinkets(); 
         var ct = getCastTime(spell.id, spell.baseCast); 
         State.casting = true; 
         State.castStart = State.t;
@@ -826,7 +885,9 @@ function runCoreSimulation(cfg) {
         }
 
         State.currentSpellId = spell.id; 
+        State.lastCastId = spell.id; 
         RunStats.casts++; 
+        if(spell.stepId) RunStats.stepCounts[spell.stepId] = (RunStats.stepCounts[spell.stepId] || 0) + 1;
         log(State.t, "CAST_START", spell.name, "-", null, ct.toFixed(2), note, cost); 
         if (State.ng && (spell.id === "Wrath" || spell.id === "Starfire")) State.ng = false; 
         if (cfg.sim_patch === "1.18" && spell.id === "Starfire" && State.boat > 0) State.boat--;
@@ -1022,7 +1083,6 @@ function runCoreSimulation(cfg) {
         
         if (triggeredEclipse) { 
             if (cfg.gear.t3_8p) State.t38End = State.t + 8.0; 
-            checkTrinkets(); 
         } 
         
         var hitTxt = (cfg.mode === "D_AVG") ? "Hit" : (crit ? "CRIT" : "Hit"); 
@@ -1067,50 +1127,45 @@ function runCoreSimulation(cfg) {
 
     // 6. Main Loop
     // ===========================================
-    
-    // Die Entscheidungslogik (decideSpell) wurde 1:1 übernommen, aber hier aus Platzgründen
-    // direkt in die Schleife integriert oder als Closure genutzt.
     var decideSpell = function () {
-        var aeUp = Math.max(0, State.aeEnd - State.t);
-        var neUp = Math.max(0, State.neEnd - State.t);
-        var isMF = (State.activeMF && State.activeMF.exp > State.t) || cfg.enemy.extMF;
-        var isIS = (State.activeIS && State.activeIS.exp > State.t) || cfg.enemy.extIS;
+        if (!cfg.custom_rotation || !cfg.custom_rotation.steps) return null;
+
         var timeRemaining = cfg.maxTime - State.t;
         var allowDots = timeRemaining > cfg.rota.dotCutoff;
 
-        if (aeUp > 0) {
-            var sfCast = getCastTime(Spells.Starfire.id, Spells.Starfire.baseCast);
-            if (aeUp > sfCast && cfg.rota.castSF) return Spells.Starfire;
-            if (cfg.rota.castMF && allowDots && cfg.rota.eclDOT && (!isMF || (State.activeMF && State.activeMF.exp - State.t < 2))) return Spells.Moonfire;
-            if (cfg.rota.castSF) return Spells.Starfire;
-            if (cfg.rota.castW) return Spells.Wrath;
-            return null;
-        } else if (neUp > 0) {
-            var wCast = getCastTime(Spells.Wrath.id, Spells.Wrath.baseCast);
-            if (neUp > wCast && cfg.rota.castW) return Spells.Wrath;
-            if (cfg.rota.castIS && allowDots && cfg.rota.eclDOT && (!isIS || (State.activeIS && State.activeIS.exp - State.t < 2))) return Spells.InsectSwarm;
-            if (cfg.rota.castW) return Spells.Wrath;
-            if (cfg.rota.castSF) return Spells.Starfire;
-            return null;
-        } else {
-            if (cfg.rota.castIS && allowDots && (!isIS || (State.activeIS && State.activeIS.exp < State.t + 1.5))) return Spells.InsectSwarm;
-            if (cfg.rota.castMF && allowDots && (!isMF || (State.activeMF && State.activeMF.exp < State.t + 1.5))) return Spells.Moonfire;
-            var aeCD = Math.max(0, State.aeCD - State.t);
-            var neCD = Math.max(0, State.neCD - State.t);
-            if (aeCD > 0 && neCD === 0 && cfg.rota.castSF) return Spells.Starfire;
-            if (neCD > 0 && aeCD === 0 && cfg.rota.castW) return Spells.Wrath;
-            
-            // Fish Method
-            if (cfg.rota.fishMeth === "F1") { if ((State.fishingLastCast === "" || State.fishingLastCast === "Wrath") && cfg.rota.castSF) return Spells.Starfire; if (cfg.rota.castW) return Spells.Wrath; }
-            if (cfg.rota.fishMeth === "F2") { if ((State.fishingLastCast === "" || State.fishingLastCast === "Starfire") && cfg.rota.castW) return Spells.Wrath; if (cfg.rota.castSF) return Spells.Starfire; }
-            if (cfg.rota.fishMeth === "W" && cfg.rota.castW) return Spells.Wrath;
-            if (cfg.rota.fishMeth === "SF" && cfg.rota.castSF) return Spells.Starfire;
-            
-            // Fallback
-            if (cfg.rota.castSF) return Spells.Starfire;
-            if (cfg.rota.castW) return Spells.Wrath;
-            return null;
+        for (var i = 0; i < cfg.custom_rotation.steps.length; i++) {
+            var step = cfg.custom_rotation.steps[i];
+            if (step.disabled) continue;
+
+            if (!checkCondition(step)) continue;
+
+            // Off-GCD / Items Evaluierung
+            if (step.skill === "Trinket1" || step.skill === "Trinket2") {
+                var availTrinkets = [];
+                if (cfg.gear.reos) availTrinkets.push("reos");
+                if (cfg.gear.toep) availTrinkets.push("toep");
+                if (cfg.gear.roop) availTrinkets.push("roop");
+                if (cfg.gear.zhc) availTrinkets.push("zhc");
+                if (cfg.gear.scythe) availTrinkets.push("scythe"); 
+
+                var idx = step.skill === "Trinket1" ? 0 : 1;
+                if (availTrinkets[idx]) {
+                    triggerTrinket(availTrinkets[idx], step.id);
+                }
+                // Trinkets triggern sofort und verbrauchen keinen GCD. Wir suchen weiter.
+                continue; 
+            }
+
+            // GCD / Spell Evaluierung
+            if (Spells[step.skill]) {
+                var spell = Spells[step.skill];
+                if (spell.isDot && !allowDots) continue; // Cutoff ignorieren? Dann suche den nächsten Schritt
+                
+                spell.stepId = step.id; // Speichert die ID für den Counter
+                return spell; // Wir haben unseren Spell gefunden -> Abbruch der Prio-Liste
+            }
         }
+        return null; // Fallback, falls die Prio-Liste leerläuft
     };
 
     // The Time Loop
@@ -1119,7 +1174,6 @@ function runCoreSimulation(cfg) {
         loopGuard++;
         while (State.pendingImpacts.length > 0 && State.pendingImpacts[0].t <= State.t + 0.001) {
             var evt = State.pendingImpacts.shift();
-            checkTrinkets();
             //if (evt.type === "CAST_FINISH") handleCastFinish(evt.data.spell);
             if (evt.type === "CAST_FINISH") handleCastFinish(evt.data);
             else if (evt.type === "IMPACT") handleImpact(evt.data.spell, evt.data.crit, evt.data.snap);
@@ -1201,6 +1255,13 @@ function aggregateResults(results, cfg) {
             if (r.stats[key]) sumStats[key] += r.stats[key];
         }
 
+        if (r.stats.stepCounts) {
+            for (var sid in r.stats.stepCounts) {
+                if (!sumStats.stepCounts) sumStats.stepCounts = {};
+                sumStats.stepCounts[sid] = (sumStats.stepCounts[sid] || 0) + r.stats.stepCounts[sid];
+            }
+        }
+
         if (r.stats.spellStats) {
             for (var s in r.stats.spellStats) {
                 if (!sumSpellStats[s]) sumSpellStats[s] = { count: 0, timeSum: 0, hits: 0, crits: 0 };
@@ -1235,6 +1296,7 @@ function aggregateResults(results, cfg) {
     var stdErr = stdDev / Math.sqrt(n);
     var cv = (avgDpsVal > 0) ? (stdDev / avgDpsVal) * 100 : 0; // Variationskoeffizient in %
 
+
     var avgStats = {};
     for (var key in sumStats) {
         avgStats[key] = sumStats[key] / n;
@@ -1248,6 +1310,13 @@ function aggregateResults(results, cfg) {
             hits: sumSpellStats[s].hits / n,
             crits: sumSpellStats[s].crits / n
         };
+    }
+
+    avgStats.stepCounts = {};
+    if (sumStats.stepCounts) {
+        for (var sid in sumStats.stepCounts) {
+            avgStats.stepCounts[sid] = sumStats.stepCounts[sid] / n;
+        }
     }
 
     return {
@@ -1290,3 +1359,27 @@ RNGHandler.prototype.checkFloat = function(prob) {
     if (prob >= 1.0) return true;
     return this.rand() < prob;
 };
+
+// ============================================================================
+// UI HOOK FOR ROTATION COUNTERS
+// ============================================================================
+function updateStepCounters() {
+    if (!SIM_DATA || !SIM_DATA.avg || !SIM_DATA.avg.stats.stepCounts) return;
+    
+    var counts = SIM_DATA.avg.stats.stepCounts;
+    
+    for (var stepId in counts) {
+        var badge = document.getElementById("badge_step_" + stepId);
+        if (badge) {
+            var val = Math.round(counts[stepId]);
+            badge.innerText = val + "x";
+            
+            // WICHTIG FÜR FERAL UI: Sichtbarkeit umschalten
+            if (val > 0) {
+                badge.style.display = "inline-block";
+            } else {
+                badge.style.display = "none";
+            }
+        }
+    }
+}

@@ -25,13 +25,12 @@ var CONFIG_IDS = [
     "sp_gen", "sp_nature", "sp_arcane", "sp_pen",
     "stat_override_eclipse", "stat_proc_nature", "stat_proc_arcane",
     "enemy_level", "res_arcane", "res_nature", "enemy_cos", "enemy_ext_mf", "enemy_ext_is",
-    "rota_fish", "start_boat", "wrath_flight", "rota_dot_cutoff",
-    "rota_is", "rota_mf", "rota_eclDot", "rota_interrupt", "rota_interrupt_thresh",
-    "rota_starfire", "rota_wrath",
+    "start_boat", "wrath_flight",
+    "rota_interrupt", "rota_interrupt_thresh",
     "t3_4p", "t3_6p", "t3_8p", "t35_5p",
     "idolEoF", "idolMoon", "idolProp", "idolMoonfang",
     "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp", "item_sphere",
-    "item_reos", "item_toep", "item_roop", "item_zhc", "trinket_strat",
+    "item_reos", "item_toep", "item_roop", "item_zhc",
     "char_race",
     // BUFFS
     "buff_moonkin", "buff_atiesh_druid", "buff_atiesh_mage", "buff_atiesh_warlock",
@@ -51,17 +50,201 @@ var SLOT_LAYOUT = {
 const RACE_STATS = {
     "Tauren": { hit: 3, crit: 3.33, haste: 0, stam: 72, int: 95 },
     "NightElf": { hit: 3, crit: 3.33, haste: 1, stam: 69, int: 100 }
-
 };
 
-// Simulation Object Constructor
+// ============================================================================
+// 1b. ROTATION BUILDER STATE & DICTIONARIES
+// ============================================================================
+
+var ROTATION_SKILLS = [
+    { id: "Starfire", name: "Starfire", icon: "spell_arcane_starfire" },
+    { id: "Wrath", name: "Wrath", icon: "spell_nature_abolishmagic" },
+    { id: "Moonfire", name: "Moonfire", icon: "spell_nature_starfall" },
+    { id: "InsectSwarm", name: "Insect Swarm", icon: "spell_nature_insectswarm" },
+    { id: "Trinket1", name: "Use Trinket 1", icon: "inv_jewelry_trinket_04" },
+    { id: "Trinket2", name: "Use Trinket 2", icon: "inv_jewelry_trinket_04" }
+];
+
+var CONDITION_TYPES = [
+    { id: "debuff_rem", label: "Target Debuff Rem. (s)", hasTarget: ["Moonfire", "Insect Swarm"], hasOp: true, hasVal: true },
+    { id: "buff_rem", label: "Player Buff Rem. (s)", hasTarget: ["Nature Eclipse", "Arcane Eclipse", "Nature's Grace"], hasOp: true, hasVal: true },
+    { id: "player_debuff_rem", label: "Player Debuff Rem. (s)", hasTarget: ["Arcane Solstice", "Natural Solstice"], hasOp: true, hasVal: true },
+    { id: "time_elapsed", label: "Time Elapsed (s)", hasOp: true, hasVal: true },
+    { id: "time_remaining", label: "Time Remaining (s)", hasOp: true, hasVal: true },
+    { id: "ecl_vs_cast", label: "Eclipse Rem. > Cast Time", hasTarget: ["Starfire", "Wrath"], hasBool: true },
+    { id: "last_cast", label: "Last Cast was", hasTarget: ["Starfire", "Wrath"] }
+];
+
+var PRESET_ROTATIONS = {
+    "Standard 1": {
+        name: "Full Rotation 1",
+        desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, use Wrath for Fishing outside of Solstices.",
+        steps: [
+            { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 2, skill: "Trinket2", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 3, skill: "InsectSwarm", conditions: [
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "0"}, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"}
+            ], disabled: false },
+            { id: 4, skill: "InsectSwarm", conditions: [
+                { type: "ecl_vs_cast", target: "Wrath", bool: "false" }, 
+                { type:"buff_rem", target: "Nature Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "12"}, 
+            ], disabled: false },
+            { id: 5, skill: "Moonfire", conditions: [
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"}
+            ], disabled: false },
+            { id: 6, skill: "Moonfire", conditions: [
+                { type: "ecl_vs_cast", target: "Starfire", bool: "false" }, 
+                { type:"buff_rem", target: "Arcane Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "12"}, 
+            ], disabled: false },
+            { id: 7, skill: "Starfire", conditions: [
+                { type: "buff_rem", target: "Arcane Eclipse", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 8, skill: "Wrath", conditions: [
+                { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 10, skill: "Wrath", conditions: [], disabled: false }
+        ]
+    },
+    "Standard 2": {
+        name: "Full Rotation 2",
+        desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, use Starfire for Fishing outside of Solstices.",
+        steps: [
+            { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 2, skill: "Trinket2", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 3, skill: "InsectSwarm", conditions: [
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "0"}, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"}
+            ], disabled: false },
+            { id: 4, skill: "InsectSwarm", conditions: [
+                { type: "ecl_vs_cast", target: "Wrath", bool: "false" }, 
+                { type:"buff_rem", target: "Nature Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "12"}, 
+            ], disabled: false },
+            { id: 5, skill: "Moonfire", conditions: [
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"}
+            ], disabled: false },
+            { id: 6, skill: "Moonfire", conditions: [
+                { type: "ecl_vs_cast", target: "Starfire", bool: "false" }, 
+                { type:"buff_rem", target: "Arcane Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "12"}, 
+            ], disabled: false },
+            { id: 7, skill: "Starfire", conditions: [
+                { type: "buff_rem", target: "Arcane Eclipse", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 8, skill: "Wrath", conditions: [
+                { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 10, skill: "Starfire", conditions: [], disabled: false }
+        ]
+    },
+    "Standard 3": {
+        name: "Full Rotation 3",
+        desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, alternatie Wrath/Starfire for Fishing outside of Solstices.",
+        steps: [
+            { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 2, skill: "Trinket2", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 3, skill: "InsectSwarm", conditions: [
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "0"}, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"}
+            ], disabled: false },
+            { id: 4, skill: "InsectSwarm", conditions: [
+                { type: "ecl_vs_cast", target: "Wrath", bool: "false" }, 
+                { type:"buff_rem", target: "Nature Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "12"}, 
+            ], disabled: false },
+            { id: 5, skill: "Moonfire", conditions: [
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"}
+            ], disabled: false },
+            { id: 6, skill: "Moonfire", conditions: [
+                { type: "ecl_vs_cast", target: "Starfire", bool: "false" }, 
+                { type:"buff_rem", target: "Arcane Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "12"}, 
+            ], disabled: false },
+            { id: 7, skill: "Starfire", conditions: [
+                { type: "buff_rem", target: "Arcane Eclipse", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 8, skill: "Wrath", conditions: [
+                { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 10, skill: "Starfire", conditions: [{type: "last_cast", target: "Wrath"}], disabled: false },
+            { id: 11, skill: "Wrath", conditions: [], disabled: false }
+        ]
+    },
+    "Standard 4": {
+        name: "Full Rotation 4",
+        desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, alternatie Starfire/Wrath for Fishing outside of Solstices.",
+        steps: [
+            { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 2, skill: "Trinket2", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 3, skill: "InsectSwarm", conditions: [
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "0"}, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"}
+            ], disabled: false },
+            { id: 4, skill: "InsectSwarm", conditions: [
+                { type: "ecl_vs_cast", target: "Wrath", bool: "false" }, 
+                { type:"buff_rem", target: "Nature Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "12"}, 
+            ], disabled: false },
+            { id: 5, skill: "Moonfire", conditions: [
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"}
+            ], disabled: false },
+            { id: 6, skill: "Moonfire", conditions: [
+                { type: "ecl_vs_cast", target: "Starfire", bool: "false" }, 
+                { type:"buff_rem", target: "Arcane Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "12"}, 
+            ], disabled: false },
+            { id: 7, skill: "Starfire", conditions: [
+                { type: "buff_rem", target: "Arcane Eclipse", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 8, skill: "Wrath", conditions: [
+                { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" }
+            ], disabled: false },
+            { id: 10, skill: "Wrath", conditions: [{type: "last_cast", target: "Starfire"}], disabled: false },
+            { id: 11, skill: "Starfire", conditions: [], disabled: false }
+        ]
+    }
+};
+
+// Das globale Status-Objekt für den aktuell im UI bearbeiteten Builder
+var CUSTOM_ROTATION = JSON.parse(JSON.stringify(PRESET_ROTATIONS["Standard 1"]));
+
 // Simulation Object Constructor
 function SimObject(id, name) {
     this.id = id;
     this.name = name;
     this.config = {};
+    this.customRotation = JSON.parse(JSON.stringify(PRESET_ROTATIONS["Standard 1"])); // NEU: Rotations-Speicher
     this.results = null; // Hier werden DPS und Stat Weights individuell pro Sim gespeichert
 }
+
+
 // ============================================================================
 // PIXEL ART DATA (LOADING SCREEN)
 // ============================================================================
