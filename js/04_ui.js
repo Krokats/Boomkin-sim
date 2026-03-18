@@ -402,16 +402,25 @@ function updateSimName() {
 // IMPORT / EXPORT LOGIC
 // ============================================================================
 
-// ============================================================================
-// IMPORT / EXPORT LOGIC
-// ============================================================================
+var CONFIG_VERSION = 2; // Version 2: Delta-Encoding aktiv!
+
+// Wörterbuch für die Standardwerte (alles was nicht hier steht, ist standardmäßig 0 oder "")
+var DEFAULT_CFG_VALUES = {
+    "sim_patch": "1.18",
+    "maxTime": 60,
+    "simCount": 10000,
+    "calcMethod": "S",
+    "stat_proc_nature": 50,
+    "stat_proc_arcane": 30,
+    "enemy_level": 63,
+    "char_race": "Tauren"
+};
 
 var GEAR_SLOT_ORDER = [
     "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet", 
     "Finger 1", "Finger 2", "Trinket 1", "Trinket 2", "Main Hand", "Off Hand", "Relic"
 ];
 
-// NEU: Wörterbücher für extrem kompakte Rotations-Speicherung
 var OP_MAP = [">", "<", ">=", "<=", "=="];
 var TARGET_MAP = [
     "Moonfire", "Insect Swarm", "Nature Eclipse", "Arcane Eclipse", 
@@ -475,10 +484,17 @@ function packConfig(cfg) {
     */
 
 function packConfig(cfg) {
-    var values = CONFIG_IDS.map(function (id) { return cfg[id]; });
+    var packedValues = [];
     
-    // NEU: Trailing Zeros von values abschneiden (betrifft vor allem die Buffs am Ende)
-    while(values.length > 0 && values[values.length - 1] === 0) values.pop();
+    // NEU: Delta-Encoding! Speichere nur Werte, die vom Standard abweichen
+    CONFIG_IDS.forEach(function (id, idx) {
+        var val = cfg[id];
+        var def = DEFAULT_CFG_VALUES[id] !== undefined ? DEFAULT_CFG_VALUES[id] : 0;
+        
+        if (val != def) { // Nur bei Abweichung speichern (als flaches Paar: Index, Wert)
+            packedValues.push(idx, val);
+        }
+    });
 
     var gearArr = [];
     var itemCount = 0;
@@ -498,34 +514,31 @@ function packConfig(cfg) {
     while(gearArr.length > 0 && gearArr[gearArr.length - 1] === 0) gearArr.pop();
     while(enchantArr.length > 0 && enchantArr[enchantArr.length - 1] === 0) enchantArr.pop();
 
-    // Rota extrem kompakt als Array von Zahlen/Indizes verpacken
     var compactRota = [
-        // Standard-Name "Custom Rotation" weglassen um Platz zu sparen
         cfg.custom_rotation.name === "Custom Rotation" ? "" : (cfg.custom_rotation.name || ""),
         cfg.custom_rotation.desc || "",
         cfg.custom_rotation.steps.map(function(step) {
             var sIdx = ROTATION_SKILLS.findIndex(function(s) { return s.id === step.skill; });
             var mappedSkill = sIdx !== -1 ? sIdx : step.skill;
 
-            var conds = step.conditions.map(function(cond) {
+            var flatStep = [mappedSkill, step.disabled ? 1 : 0];
+
+            step.conditions.forEach(function(cond) {
                 var cIdx = CONDITION_TYPES.findIndex(function(c) { return c.id === cond.type; });
                 var mappedType = cIdx !== -1 ? cIdx : cond.type;
-                
                 var tIdx = TARGET_MAP.indexOf(cond.target);
                 var oIdx = OP_MAP.indexOf(cond.op);
                 var bVal = (cond.bool === "true" || cond.bool === true) ? 1 : 0;
                 
-                return [mappedType, tIdx, oIdx, cond.val || 0, bVal];
+                flatStep.push(mappedType, tIdx, oIdx, cond.val || 0, bVal);
             });
 
-            // GEÄNDERT: step.id komplett entfernt (spart 13-stellige Zahl pro Schritt)
-            // Nur noch [Skill, Disabled, Conditions]
-            return [mappedSkill, step.disabled ? 1 : 0, conds];
+            return flatStep;
         })
     ];
 
     return {
-        data: [values, gearArr, enchantArr, compactRota],
+        data: [CONFIG_VERSION, packedValues, gearArr, enchantArr, compactRota],
         itemCount: itemCount
     };
 }
@@ -585,20 +598,42 @@ function unpackConfig(packed) {
 }*/
 
 function unpackConfig(packed) {
-    if (!Array.isArray(packed) || packed.length < 3 || !Array.isArray(packed[0])) {
-        return packed;
+    if (!Array.isArray(packed)) return packed;
+
+    var isVersioned = typeof packed[0] === 'number';
+    var version = isVersioned ? packed[0] : 0;
+    
+    if (version > CONFIG_VERSION) {
+        alert("Achtung: Dieser Link stammt aus einer neueren Version des Simulators und wird möglicherweise nicht korrekt geladen!");
     }
 
-    var values = packed[0];
-    var gearData = packed[1];
-    var enchantData = packed[2];
-    var compactRota = packed.length > 3 ? packed[3] : null;
+    var valuesData = isVersioned ? packed[1] : packed[0];
+    var gearData = isVersioned ? packed[2] : packed[1];
+    var enchantData = isVersioned ? packed[3] : packed[2];
+    var compactRota = isVersioned ? packed[4] : (packed.length > 3 ? packed[3] : null);
+
     var cfg = {};
 
-    CONFIG_IDS.forEach(function (id, idx) {
-        // GEÄNDERT: Fallback auf 0, falls das values-Array für Platzersparnis getrimmt wurde
-        cfg[id] = idx < values.length ? values[idx] : 0;
+    // 1. Alle CONFIG_IDS initial mit Defaults (oder 0) füllen
+    CONFIG_IDS.forEach(function (id) {
+        cfg[id] = DEFAULT_CFG_VALUES[id] !== undefined ? DEFAULT_CFG_VALUES[id] : 0;
     });
+
+    // 2. Werte aus dem Link verarbeiten
+    if (Array.isArray(valuesData)) {
+        if (version >= 2) {
+            // NEU: Delta-Array verarbeiten [Index, Wert, Index, Wert, ...]
+            for (var i = 0; i < valuesData.length; i += 2) {
+                var cId = CONFIG_IDS[valuesData[i]];
+                if (cId) cfg[cId] = valuesData[i+1];
+            }
+        } else {
+            // ALT: Klassisches komplettes Array aus Vorgängerversionen
+            CONFIG_IDS.forEach(function (id, idx) {
+                if (idx < valuesData.length) cfg[id] = valuesData[idx];
+            });
+        }
+    }
 
     cfg.gearSelection = {};
     if (gearData) {
@@ -642,33 +677,50 @@ function unpackConfig(packed) {
                 name: compactRota[0] || "Custom Rotation",
                 desc: compactRota[1] || "",
                 steps: compactRota[2].map(function(s, stepIdx) { 
-                    // Abwärtskompatibilität: Alt (Länge 4 mit ID) vs. Neu (Länge 3 ohne ID)
-                    var isOld = s.length === 4;
-                    var sId = isOld ? s[0] : (Date.now() + stepIdx + Math.floor(Math.random()*1000));
-                    var skillData = isOld ? s[1] : s[0];
-                    var disData = isOld ? s[2] : s[1];
-                    var condsData = isOld ? s[3] : s[2];
-
-                    var skillVal = typeof skillData === 'number' && ROTATION_SKILLS[skillData] ? ROTATION_SKILLS[skillData].id : skillData;
+                    var isOldNested = Array.isArray(s[s.length - 1]) || (s.length > 2 && Array.isArray(s[2]));
+                    var sId = Date.now() + stepIdx + Math.floor(Math.random()*1000);
                     
-                    var rawConds = condsData || [];
-                    var parsedConds = rawConds.map(function(c) {
-                        if (Array.isArray(c)) {
-                            var typeVal = typeof c[0] === 'number' && CONDITION_TYPES[c[0]] ? CONDITION_TYPES[c[0]].id : c[0];
+                    if (isOldNested) {
+                        var isVeryOld = s.length === 4;
+                        if(isVeryOld) sId = s[0];
+                        var skillData = isVeryOld ? s[1] : s[0];
+                        var disData = isVeryOld ? s[2] : s[1];
+                        var condsData = isVeryOld ? s[3] : s[2];
+                        
+                        var skillVal = typeof skillData === 'number' && ROTATION_SKILLS[skillData] ? ROTATION_SKILLS[skillData].id : skillData;
+                        
+                        var parsedConds = (condsData || []).map(function(c) {
+                            if (Array.isArray(c)) {
+                                var typeVal = typeof c[0] === 'number' && CONDITION_TYPES[c[0]] ? CONDITION_TYPES[c[0]].id : c[0];
+                                var condObj = { type: typeVal };
+                                if (c[1] !== undefined && c[1] !== -1 && TARGET_MAP[c[1]]) condObj.target = TARGET_MAP[c[1]];
+                                if (c[2] !== undefined && c[2] !== -1 && OP_MAP[c[2]]) condObj.op = OP_MAP[c[2]];
+                                condObj.val = c[3] || 0;
+                                if (c[4] !== undefined) condObj.bool = c[4] === 1 ? "true" : "false";
+                                return condObj;
+                            }
+                            return c; 
+                        });
+                        
+                        return { id: sId, skill: skillVal, disabled: disData === 1, conditions: parsedConds }; 
+                    } else {
+                        var skillVal = typeof s[0] === 'number' && ROTATION_SKILLS[s[0]] ? ROTATION_SKILLS[s[0]].id : s[0];
+                        var parsedConds = [];
+                        
+                        for (var i = 2; i < s.length; i += 5) {
+                            var typeVal = typeof s[i] === 'number' && CONDITION_TYPES[s[i]] ? CONDITION_TYPES[s[i]].id : s[i];
                             var condObj = { type: typeVal };
                             
-                            if (c[1] !== undefined && c[1] !== -1 && TARGET_MAP[c[1]]) condObj.target = TARGET_MAP[c[1]];
-                            if (c[2] !== undefined && c[2] !== -1 && OP_MAP[c[2]]) condObj.op = OP_MAP[c[2]];
-                            condObj.val = c[3] || 0;
-                            if (c[4] !== undefined) condObj.bool = c[4] === 1 ? "true" : "false";
+                            if (s[i+1] !== undefined && s[i+1] !== -1 && TARGET_MAP[s[i+1]]) condObj.target = TARGET_MAP[s[i+1]];
+                            if (s[i+2] !== undefined && s[i+2] !== -1 && OP_MAP[s[i+2]]) condObj.op = OP_MAP[s[i+2]];
+                            condObj.val = s[i+3] || 0;
+                            if (s[i+4] !== undefined) condObj.bool = s[i+4] === 1 ? "true" : "false";
                             
-                            return condObj;
-                        } else {
-                            return c; 
+                            parsedConds.push(condObj);
                         }
-                    });
-                    
-                    return { id: sId, skill: skillVal, disabled: disData === 1, conditions: parsedConds }; 
+                        
+                        return { id: sId, skill: skillVal, disabled: s[1] === 1, conditions: parsedConds }; 
+                    }
                 })
             };
         } else {
