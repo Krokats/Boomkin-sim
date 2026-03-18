@@ -402,6 +402,23 @@ function updateSimName() {
 // IMPORT / EXPORT LOGIC
 // ============================================================================
 
+// ============================================================================
+// IMPORT / EXPORT LOGIC
+// ============================================================================
+
+var GEAR_SLOT_ORDER = [
+    "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet", 
+    "Finger 1", "Finger 2", "Trinket 1", "Trinket 2", "Main Hand", "Off Hand", "Relic"
+];
+
+// NEU: Wörterbücher für extrem kompakte Rotations-Speicherung
+var OP_MAP = [">", "<", ">=", "<=", "=="];
+var TARGET_MAP = [
+    "Moonfire", "Insect Swarm", "Nature Eclipse", "Arcane Eclipse", 
+    "Nature's Grace", "Arcane Solstice", "Natural Solstice", "Starfire", "Wrath"
+];
+
+/*
 function packConfig(cfg) {
     var values = CONFIG_IDS.map(function (id) { return cfg[id]; });
 
@@ -455,7 +472,65 @@ function packConfig(cfg) {
         itemCount: itemCount
     };
 }
+    */
 
+function packConfig(cfg) {
+    var values = CONFIG_IDS.map(function (id) { return cfg[id]; });
+    
+    // NEU: Trailing Zeros von values abschneiden (betrifft vor allem die Buffs am Ende)
+    while(values.length > 0 && values[values.length - 1] === 0) values.pop();
+
+    var gearArr = [];
+    var itemCount = 0;
+    var enchantArr = [];
+
+    GEAR_SLOT_ORDER.forEach(function(slot) {
+        var val = cfg.gearSelection ? cfg.gearSelection[slot] : null;
+        var idToSave = (val && typeof val === 'object' && val.id) ? val.id : (val || 0);
+        gearArr.push(idToSave);
+        if (idToSave != 0) itemCount++;
+
+        var eVal = cfg.enchantSelection ? cfg.enchantSelection[slot] : null;
+        var eIdToSave = (eVal && typeof eVal === 'object' && eVal.id) ? eVal.id : (eVal || 0);
+        enchantArr.push(eIdToSave);
+    });
+
+    while(gearArr.length > 0 && gearArr[gearArr.length - 1] === 0) gearArr.pop();
+    while(enchantArr.length > 0 && enchantArr[enchantArr.length - 1] === 0) enchantArr.pop();
+
+    // Rota extrem kompakt als Array von Zahlen/Indizes verpacken
+    var compactRota = [
+        // Standard-Name "Custom Rotation" weglassen um Platz zu sparen
+        cfg.custom_rotation.name === "Custom Rotation" ? "" : (cfg.custom_rotation.name || ""),
+        cfg.custom_rotation.desc || "",
+        cfg.custom_rotation.steps.map(function(step) {
+            var sIdx = ROTATION_SKILLS.findIndex(function(s) { return s.id === step.skill; });
+            var mappedSkill = sIdx !== -1 ? sIdx : step.skill;
+
+            var conds = step.conditions.map(function(cond) {
+                var cIdx = CONDITION_TYPES.findIndex(function(c) { return c.id === cond.type; });
+                var mappedType = cIdx !== -1 ? cIdx : cond.type;
+                
+                var tIdx = TARGET_MAP.indexOf(cond.target);
+                var oIdx = OP_MAP.indexOf(cond.op);
+                var bVal = (cond.bool === "true" || cond.bool === true) ? 1 : 0;
+                
+                return [mappedType, tIdx, oIdx, cond.val || 0, bVal];
+            });
+
+            // GEÄNDERT: step.id komplett entfernt (spart 13-stellige Zahl pro Schritt)
+            // Nur noch [Skill, Disabled, Conditions]
+            return [mappedSkill, step.disabled ? 1 : 0, conds];
+        })
+    ];
+
+    return {
+        data: [values, gearArr, enchantArr, compactRota],
+        itemCount: itemCount
+    };
+}
+
+/*
 function unpackConfig(packed) {
     // Toleranz für 3 (alt) oder 4 (neu) Arrays
     if (!Array.isArray(packed) || packed.length < 3 || !Array.isArray(packed[0])) {
@@ -507,6 +582,109 @@ function unpackConfig(packed) {
     }
 
     return cfg;
+}*/
+
+function unpackConfig(packed) {
+    if (!Array.isArray(packed) || packed.length < 3 || !Array.isArray(packed[0])) {
+        return packed;
+    }
+
+    var values = packed[0];
+    var gearData = packed[1];
+    var enchantData = packed[2];
+    var compactRota = packed.length > 3 ? packed[3] : null;
+    var cfg = {};
+
+    CONFIG_IDS.forEach(function (id, idx) {
+        // GEÄNDERT: Fallback auf 0, falls das values-Array für Platzersparnis getrimmt wurde
+        cfg[id] = idx < values.length ? values[idx] : 0;
+    });
+
+    cfg.gearSelection = {};
+    if (gearData) {
+        if (Array.isArray(gearData)) {
+            gearData.forEach(function(id, idx) {
+                if (id != 0 && idx < GEAR_SLOT_ORDER.length) {
+                    var item = ITEM_DB.find(function(i) { return String(i.id) === String(id); });
+                    if (item) cfg.gearSelection[GEAR_SLOT_ORDER[idx]] = item.id;
+                }
+            });
+        } else {
+            for (var slot in gearData) {
+                var id = gearData[slot];
+                var item = ITEM_DB.find(function (i) { return String(i.id) === String(id); });
+                if (item) cfg.gearSelection[slot] = item.id;
+            }
+        }
+    }
+
+    cfg.enchantSelection = {};
+    if (enchantData) {
+        if (Array.isArray(enchantData)) {
+            enchantData.forEach(function(id, idx) {
+                if (id != 0 && idx < GEAR_SLOT_ORDER.length) {
+                    var ench = ENCHANT_DB.find(function(e) { return String(e.id) === String(id); });
+                    if (ench) cfg.enchantSelection[GEAR_SLOT_ORDER[idx]] = ench.id;
+                }
+            });
+        } else {
+            for (var slot in enchantData) {
+                var id = enchantData[slot];
+                var ench = ENCHANT_DB.find(function (e) { return String(e.id) === String(id); });
+                if (ench) cfg.enchantSelection[slot] = ench.id;
+            }
+        }
+    }
+
+    if (compactRota) {
+        if (Array.isArray(compactRota)) {
+            cfg.custom_rotation = {
+                name: compactRota[0] || "Custom Rotation",
+                desc: compactRota[1] || "",
+                steps: compactRota[2].map(function(s, stepIdx) { 
+                    // Abwärtskompatibilität: Alt (Länge 4 mit ID) vs. Neu (Länge 3 ohne ID)
+                    var isOld = s.length === 4;
+                    var sId = isOld ? s[0] : (Date.now() + stepIdx + Math.floor(Math.random()*1000));
+                    var skillData = isOld ? s[1] : s[0];
+                    var disData = isOld ? s[2] : s[1];
+                    var condsData = isOld ? s[3] : s[2];
+
+                    var skillVal = typeof skillData === 'number' && ROTATION_SKILLS[skillData] ? ROTATION_SKILLS[skillData].id : skillData;
+                    
+                    var rawConds = condsData || [];
+                    var parsedConds = rawConds.map(function(c) {
+                        if (Array.isArray(c)) {
+                            var typeVal = typeof c[0] === 'number' && CONDITION_TYPES[c[0]] ? CONDITION_TYPES[c[0]].id : c[0];
+                            var condObj = { type: typeVal };
+                            
+                            if (c[1] !== undefined && c[1] !== -1 && TARGET_MAP[c[1]]) condObj.target = TARGET_MAP[c[1]];
+                            if (c[2] !== undefined && c[2] !== -1 && OP_MAP[c[2]]) condObj.op = OP_MAP[c[2]];
+                            condObj.val = c[3] || 0;
+                            if (c[4] !== undefined) condObj.bool = c[4] === 1 ? "true" : "false";
+                            
+                            return condObj;
+                        } else {
+                            return c; 
+                        }
+                    });
+                    
+                    return { id: sId, skill: skillVal, disabled: disData === 1, conditions: parsedConds }; 
+                })
+            };
+        } else {
+            cfg.custom_rotation = {
+                name: compactRota.n || "Imported",
+                desc: compactRota.d || "",
+                steps: compactRota.s.map(function(s) { return { id: s[0], skill: s[1], disabled: s[2] === 1, conditions: s[3] || [] }; })
+            };
+        }
+    } else {
+        var defaultRota = PRESET_ROTATIONS["Standard 1"] || PRESET_ROTATIONS["standard"];
+        cfg.custom_rotation = JSON.parse(JSON.stringify(defaultRota));
+        showToast("Old config imported: Using standard rotation");
+    }
+
+    return cfg;
 }
 
 function importFromClipboard() {
@@ -535,6 +713,7 @@ function importFromClipboard() {
         var data = JSON.parse(json);
         if (!Array.isArray(data)) data = [data];
 
+        /*
         data.forEach(function (s) {
             var newId = Date.now() + Math.floor(Math.random() * 1000);
             var newSim = new SimObject(newId, s.n + " (Imp)");
@@ -542,6 +721,28 @@ function importFromClipboard() {
             if (s.d) newSim.config = unpackConfig(s.d);
             else if (s.config) newSim.config = s.config;
             else newSim.config = unpackConfig(s);
+
+            SIM_LIST.push(newSim);
+        });*/
+
+        data.forEach(function (s) {
+            var newId = Date.now() + Math.floor(Math.random() * 1000);
+            
+            // Abwärtskompatibilität: Check, ob Array (neu) oder Objekt (alt)
+            var simName = (Array.isArray(s) ? s[0] : (s.n || s.name || "Simulation")) + " (Imp)";
+            var newSim = new SimObject(newId, simName);
+
+            if (Array.isArray(s) && s.length === 2 && Array.isArray(s[1])) {
+                // Neues Format
+                newSim.config = unpackConfig(s[1]);
+            } else if (s.d) {
+                // Altes Format
+                newSim.config = unpackConfig(s.d);
+            } else if (s.config) {
+                newSim.config = s.config;
+            } else {
+                newSim.config = unpackConfig(s);
+            }
 
             SIM_LIST.push(newSim);
         });
@@ -567,10 +768,19 @@ function exportSettings() {
     var simsToProcess = isOverview ? SIM_LIST : (SIM_LIST[ACTIVE_SIM_INDEX] ? [SIM_LIST[ACTIVE_SIM_INDEX]] : []);
 
     var hasAnyGear = false;
+    /*
     var dataToExport = simsToProcess.map(function (s) {
         var packResult = packConfig(s.config);
         if (packResult.itemCount > 0) hasAnyGear = true;
         return { n: s.name, d: packResult.data };
+    });*/
+
+    var dataToExport = simsToProcess.map(function (s) {
+        var packResult = packConfig(s.config);
+        if (packResult.itemCount > 0) hasAnyGear = true;
+        // NEU: Platz sparen, wenn der Name nur "Simulation X" ist
+        var exportName = s.name.startsWith("Simulation ") ? "" : s.name;
+        return [exportName, packResult.data]; 
     });
 
     if (!hasAnyGear) {
@@ -625,6 +835,8 @@ function importSettings() {
                 var data = JSON.parse(json);
                 if (Array.isArray(data)) {
                     SIM_LIST = [];
+
+                    /*
                     data.forEach(d => {
                         // KORREKTUR: Name explizit aus d.n (vom Export-Objekt) nehmen
                         var simName = d.n || d.name || "Simulation " + (SIM_LIST.length + 1);
@@ -632,6 +844,28 @@ function importSettings() {
 
                         if (d.d) s.config = unpackConfig(d.d);
                         else s.config = d.config || d;
+
+                        SIM_LIST.push(s);
+                    });
+                    */
+
+                    data.forEach(d => {
+                        var simName = "Simulation " + (SIM_LIST.length + 1);
+                        var configData = null;
+
+                        if (Array.isArray(d) && d.length === 2 && Array.isArray(d[1])) {
+                            // Neues Format
+                            simName = d[0] || simName;
+                            configData = unpackConfig(d[1]);
+                        } else {
+                            // Altes Format
+                            simName = d.n || d.name || simName;
+                            if (d.d) configData = unpackConfig(d.d);
+                            else configData = d.config || d;
+                        }
+
+                        var s = new SimObject(Date.now() + Math.random(), simName);
+                        s.config = configData;
 
                         SIM_LIST.push(s);
                     });
