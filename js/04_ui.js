@@ -1139,12 +1139,18 @@ function switchView(type) {
         setText("out_mps", mps.toFixed(1) + " MPS");
     }
 
-    if (document.getElementById("out_up_ne")) {
-        setText("out_up_ne", (data.stats.uptimeNE / getVal("maxTime") * 100).toFixed(1) + "%");
-    }
-    if (document.getElementById("out_up_ae")) {
-        setText("out_up_ae", (data.stats.uptimeAE / getVal("maxTime") * 100).toFixed(1) + "%");
-    }
+    var maxT = getVal("maxTime");
+    var pctNE = (data.stats.uptimeNE / maxT) * 100;
+    var pctAE = (data.stats.uptimeAE / maxT) * 100;
+    var pctNone = Math.max(0, 100 - pctNE - pctAE); // Restliche Zeit
+
+    if (document.getElementById("out_up_ne")) setText("out_up_ne", pctNE.toFixed(1) + "%");
+    if (document.getElementById("out_up_ae")) setText("out_up_ae", pctAE.toFixed(1) + "%");
+    if (document.getElementById("out_up_none")) setText("out_up_none", pctNone.toFixed(1) + "%");
+
+    var bNe = document.getElementById("bar_up_ne"); if (bNe) bNe.style.width = pctNE + "%";
+    var bAe = document.getElementById("bar_up_ae"); if (bAe) bAe.style.width = pctAE + "%";
+    var bNone = document.getElementById("bar_up_none"); if (bNone) bNone.style.width = pctNone + "%";
 
     var tbody = document.getElementById("tbl_body");
     if (tbody) {
@@ -1158,6 +1164,8 @@ function switchView(type) {
             var barColor = "var(--druid-orange)";
             if (label.includes("Starfire") || label.includes("Moonfire")) barColor = "var(--arcane-blue)";
             if (label.includes("Wrath") || label.includes("Insect")) barColor = "var(--nature-green)";
+            if (label.includes("Total Arcane")) barColor = "var(--arcane-blue)";
+            if (label.includes("Total Nature")) barColor = "var(--nature-green)";
 
             var row = '<tr><td class="text-left" style="font-weight:500">' + label + '</td>' +
                 '<td class="text-right" style="color:#fff">' + Math.floor(dmg).toLocaleString() + '</td>' +
@@ -1205,15 +1213,28 @@ function switchView(type) {
             if (data.stats.dmgSigil > 0) addRow("Proc: Sigil of Accord", data.stats.dmgSigil, data.stats.totalDmg);
         }
 
+        // --- NEW SECTION: SPELL SCHOOL ---
+        addStatRow("Spell School", "", "", true);
+        var totalArcane = data.stats.dmgStarfire + data.stats.dmgMFDirect + data.stats.dmgMFTick + (data.stats.dmgScythe || 0) + (data.stats.dmgSigil || 0);
+        var totalNature = data.stats.dmgWrath + data.stats.dmgIS;
+        addRow("Total Arcane Damage", totalArcane, data.stats.totalDmg);
+        addRow("Total Nature Damage", totalNature, data.stats.totalDmg);
+
         // --- SECTION 3: PERFORMANCE METRICS ---
         addStatRow("Performance Metrics", "", "", true);
         addRow("Critical Damage (Total)", data.stats.dmgCrit, data.stats.totalDmg);
 
+        var wrCritPct = wr.hits > 0 ? (wr.crits / wr.hits * 100).toFixed(1) + "%" : "-";
+        addStatRow("Wrath Crit Rate", wrCritPct, wr.crits.toFixed(0) + " Crits");
+
         var sfCritPct = sf.hits > 0 ? (sf.crits / sf.hits * 100).toFixed(1) + "%" : "-";
         addStatRow("Starfire Crit Rate", sfCritPct, sf.crits.toFixed(0) + " Crits");
 
-        var wrCritPct = wr.hits > 0 ? (wr.crits / wr.hits * 100).toFixed(1) + "%" : "-";
-        addStatRow("Wrath Crit Rate", wrCritPct, wr.crits.toFixed(0) + " Crits");
+        // Moonfire Stats sicher abrufen
+        var mf = (data.stats.spellStats && data.stats.spellStats["Moonfire"]) ? data.stats.spellStats["Moonfire"] : { hits: 0, crits: 0, count: 0, timeSum: 0 };
+        var mfCritPct = mf.hits > 0 ? (mf.crits / mf.hits * 100).toFixed(1) + "%" : "-";
+        addStatRow("Moonfire Crit Rate", mfCritPct, mf.crits.toFixed(0) + " Crits");
+
 
         // --- SECTION 4: CASTING STATS ---
         addStatRow("Casting Stats", "", "", true);
@@ -1222,6 +1243,13 @@ function switchView(type) {
 
         var wrTime = wr.count > 0 ? (wr.timeSum / wr.count).toFixed(2) + "s" : "-";
         addStatRow("Avg. Cast Wrath", wrTime, wr.count.toFixed(1) + " Casts");
+
+        // Moonfire Cast Zeit
+        addStatRow("Avg. Cast Moonfire","" , mf.count.toFixed(1) + " Casts");
+
+        // Insect Swarm Stats sicher abrufen und Cast Zeit berechnen
+        var isw = (data.stats.spellStats && data.stats.spellStats["InsectSwarm"]) ? data.stats.spellStats["InsectSwarm"] : { hits: 0, crits: 0, count: 0, timeSum: 0 };
+        addStatRow("Avg. Cast Insect Swarm", "", isw.count.toFixed(1) + " Casts");
     }
 
     var logLabel = document.getElementById("logTypeLabel");
@@ -1231,11 +1259,12 @@ function switchView(type) {
             if (document.getElementById("logBody")) document.getElementById("logBody").innerHTML = "<tr><td colspan='22' style='text-align:center; padding:20px; color:#666;'>Log available in Min/Max view or Single runs.</td></tr>";
         } else {
             // Geänderte Beschriftung für den Average-View
-            var labelSuffix = type === 'avg' ? "REPRESENTATIVE RUN" : type.toUpperCase();
-            logLabel.innerText = "(" + labelSuffix + ")";
-            renderCombatLog(data.log);
-        }
-        var logSec = document.getElementById("combatLogSection");
+                    var labelSuffix = type === 'avg' ? "REPRESENTATIVE RUN" : type.toUpperCase();
+                    logLabel.innerText = "(" + labelSuffix + ")";
+                    renderCombatChart(data.log); // Zeichnet unser neues Diagramm
+                    renderCombatLog(data.log);
+                }
+                var logSec = document.getElementById("combatLogSection");
         if (logSec) logSec.classList.remove("hidden");
     }
 }
@@ -1305,6 +1334,289 @@ function renderCombatLog(logData) {
 
     // Pagination-Controls hinzufügen
     renderLogPagination(logData.length);
+}
+
+function renderCombatChart(logData) {
+    var logSection = document.getElementById("combatLogSection");
+    if (!logSection) return;
+
+    var container = document.getElementById("combatChartContainer");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "combatChartContainer";
+        // Höhe auf 220px erhöht, um Platz für die neuen Tracker zu schaffen
+        container.style.cssText = "height: 220px; background: rgba(0,0,0,0.2); border: 1px dashed #444; border-radius: 8px; overflow-x: auto; overflow-y: hidden; margin-bottom: 20px; scrollbar-width: thin; position: relative;";
+        
+        var header = logSection.querySelector(".results-header");
+        if (header && header.nextSibling) {
+            logSection.insertBefore(container, header.nextSibling);
+        } else {
+            logSection.appendChild(container);
+        }
+    }
+    
+    container.innerHTML = "";
+    
+    if (!logData || logData.length === 0) {
+        container.style.display = "none";
+        return;
+    }
+    container.style.display = "block";
+
+    // 1. Kampfzeit ermitteln & Timeline-Größe berechnen
+    var maxTime = logData[logData.length - 1].t || 1;
+    var pixelsPerSecond = 25; 
+    var timelineWidth = Math.max(container.clientWidth, maxTime * pixelsPerSecond);
+
+    var innerContainer = document.createElement("div");
+    innerContainer.style.position = "relative";
+    innerContainer.style.width = timelineWidth + "px";
+    innerContainer.style.height = "100%";
+    container.appendChild(innerContainer);
+
+    var maxDmg = 0;
+    var dmgEvents = [];
+    
+    // 2. Events filtern & Y-Achsen-Maximum
+    logData.forEach(function(entry) {
+        var dmg = (entry.dmgNorm || 0) + (entry.dmgEcl || 0) + (entry.dmgCrit || 0);
+        var isMiss = ["MISS", "RESIST", "IMMUNE", "DODGE", "PARRY"].includes(entry.res);
+        var isSpell = entry.spell && (entry.spell.includes("Starfire") || entry.spell.includes("Wrath") || entry.spell.includes("Moonfire") || entry.spell.includes("Insect"));
+        
+        if (isSpell) {
+            var isDirectDmgCast = entry.evt === "CAST" && !entry.spell.includes("Insect");
+            if (!isDirectDmgCast) {
+                if (dmg > 0 || isMiss || (entry.spell.includes("Insect") && entry.evt === "CAST") || entry.evt === "TICK") {
+                    if (dmg > maxDmg) maxDmg = dmg;
+                    dmgEvents.push({ entry: entry, dmg: dmg });
+                }
+            }
+        }
+    });
+
+    if (maxDmg === 0) maxDmg = 1;
+
+    // 3. Segmente für Eclipse, Moonfire und Insect Swarm berechnen
+    var eclipseSegments = [];
+    var currentEcl = "";
+    var startEcl = 0;
+
+    var mfSegments = [];
+    var isMfActive = false;
+    var startMf = 0;
+
+    var isSegments = [];
+    var isIsActive = false;
+    var startIs = 0;
+    
+    logData.forEach(function(entry) {
+        // Eclipse Logic
+        var activeEcl = "";
+        if (entry.ecl === "Nature" || entry.isNE) activeEcl = "Nature";
+        if (entry.ecl === "Arcane" || entry.isAE) activeEcl = "Arcane";
+        if (activeEcl !== currentEcl) {
+            if (currentEcl !== "") eclipseSegments.push({ type: currentEcl, start: startEcl, end: entry.t });
+            currentEcl = activeEcl;
+            startEcl = entry.t;
+        }
+
+        // Moonfire Debuff Logic
+        var mfNowActive = (entry.mfRem !== "-" && parseFloat(entry.mfRem) > 0);
+        if (mfNowActive && !isMfActive) {
+            isMfActive = true;
+            startMf = entry.t;
+        } else if (!mfNowActive && isMfActive) {
+            isMfActive = false;
+            mfSegments.push({ start: startMf, end: entry.t });
+        }
+
+        // Insect Swarm Debuff Logic
+        var isNowActive = (entry.isRem !== "-" && parseFloat(entry.isRem) > 0);
+        if (isNowActive && !isIsActive) {
+            isIsActive = true;
+            startIs = entry.t;
+        } else if (!isNowActive && isIsActive) {
+            isIsActive = false;
+            isSegments.push({ start: startIs, end: entry.t });
+        }
+    });
+
+    if (currentEcl !== "") eclipseSegments.push({ type: currentEcl, start: startEcl, end: maxTime });
+    if (isMfActive) mfSegments.push({ start: startMf, end: maxTime });
+    if (isIsActive) isSegments.push({ start: startIs, end: maxTime });
+
+
+    // 4. Horizontal Bars (Tracks) zeichnen
+    var trackHeight = 6;
+    var trackGap = 3;
+    
+    // Positionen von unten nach oben
+    var posMf = 8;
+    var posIs = posMf + trackHeight + trackGap;
+    var posEcl = posIs + trackHeight + trackGap;
+
+    // Hilfsfunktion zum Erstellen eines Tracks
+    function createTrack(bottomPos, segments, colorNature, colorArcane, labelText) {
+        var track = document.createElement("div");
+        track.style.position = "absolute";
+        track.style.bottom = bottomPos + "px";
+        track.style.left = "0";
+        track.style.width = "100%";
+        track.style.height = trackHeight + "px";
+        track.style.backgroundColor = "rgba(255,255,255,0.03)";
+        track.style.borderRadius = "3px";
+        
+        // Label am Anfang des Tracks
+        var label = document.createElement("div");
+        label.innerText = labelText;
+        label.style.position = "sticky";
+        label.style.left = "5px";
+        label.style.fontSize = "9px";
+        label.style.color = "rgba(255,255,255,0.3)";
+        label.style.lineHeight = trackHeight + "px";
+        label.style.zIndex = "1";
+        label.style.pointerEvents = "none";
+        track.appendChild(label);
+
+        innerContainer.appendChild(track);
+
+        segments.forEach(function(seg) {
+            var leftPct = (seg.start / maxTime) * 100;
+            var widthPct = ((seg.end - seg.start) / maxTime) * 100;
+            var bar = document.createElement("div");
+            bar.style.position = "absolute";
+            bar.style.left = leftPct + "%";
+            bar.style.width = widthPct + "%";
+            bar.style.height = "100%";
+            // Unterscheidung für Eclipse (2 Farben) oder DoT (1 feste Farbe)
+            var bColor = (seg.type === "Nature" || colorNature === colorArcane) ? colorNature : colorArcane;
+            bar.style.backgroundColor = bColor;
+            bar.style.opacity = "0.7";
+            bar.style.borderRadius = "2px";
+            
+            var tooltipText = labelText + (seg.type ? " (" + seg.type + ")" : "") + ": " + seg.start + "s - " + seg.end + "s";
+            bar.title = tooltipText;
+            track.appendChild(bar);
+        });
+    }
+
+    // Tracks erstellen
+    createTrack(posMf, mfSegments, "var(--arcane-blue)", "var(--arcane-blue)", "MF");
+    createTrack(posIs, isSegments, "var(--nature-green)", "var(--nature-green)", "IS");
+    createTrack(posEcl, eclipseSegments, "var(--nature-green)", "var(--arcane-blue)", "ECL");
+
+
+    // 5. Spells und Icons zeichnen (darüber)
+    var chartAreaBottom = posEcl + trackHeight + 10; 
+    var chartAreaHeight = 220 - chartAreaBottom - 15; 
+    
+    function getIconForSpell(spellName) {
+        var cleanName = spellName.replace(" (Tick)", "").replace(" (Hit)", "").replace(/\s+/g, "");
+        if (cleanName === "InsectSwarm") cleanName = "InsectSwarm"; 
+        
+        if (typeof ROTATION_SKILLS !== 'undefined') {
+            var skillDef = ROTATION_SKILLS.find(s => s.id === cleanName);
+            if (skillDef && skillDef.icon) return skillDef.icon;
+        }
+        if (spellName.includes("Starfire")) return "spell_arcane_starfire";
+        if (spellName.includes("Wrath")) return "spell_nature_wrathv2";
+        if (spellName.includes("Moonfire")) return "spell_nature_starfall";
+        if (spellName.includes("Insect")) return "spell_nature_insectswarm";
+        return "inv_misc_questionmark";
+    }
+
+    dmgEvents.forEach(function(ev) {
+        var entry = ev.entry;
+        var leftPos = (entry.t / maxTime) * 100; 
+        
+        var pct = (ev.dmg / maxDmg) * 100;
+        if (pct < 4) pct = 4; 
+        if (ev.dmg === 0) pct = 6; 
+
+        var barColor = "#888"; 
+        if (entry.spell.includes("Starfire") || entry.spell.includes("Moonfire")) barColor = "var(--arcane-blue)";
+        if (entry.spell.includes("Wrath") || entry.spell.includes("Insect")) barColor = "var(--nature-green)";
+        if (entry.res === "RESIST" || entry.res === "MISS" || entry.res === "IMMUNE") barColor = "#f44336"; 
+
+        var isCrit = entry.dmgCrit > 0;
+        var iconName = getIconForSpell(entry.spell);
+
+        var wrapper = document.createElement("div");
+        wrapper.style.position = "absolute";
+        wrapper.style.left = leftPos + "%";
+        wrapper.style.bottom = chartAreaBottom + "px";
+        wrapper.style.transform = "translateX(-50%)"; 
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.alignItems = "center";
+        wrapper.style.height = chartAreaHeight + "px";
+        wrapper.style.width = "20px";
+        wrapper.style.zIndex = "10";
+        wrapper.style.cursor = "crosshair";
+        
+        var tooltip = "Time: " + entry.t + "s\n";
+        tooltip += "Spell: " + entry.spell + "\n";
+        tooltip += "Event: " + entry.evt + "\n";
+        if (ev.dmg > 0) {
+            tooltip += "Damage: " + Math.floor(ev.dmg) + (isCrit ? " (CRITICAL)" : "") + "\n";
+        } else {
+            tooltip += "Damage: 0\n";
+        }
+        if (entry.res) tooltip += "Result: " + entry.res;
+        wrapper.title = tooltip;
+
+        var barArea = document.createElement("div");
+        barArea.style.flex = "1";
+        barArea.style.display = "flex";
+        barArea.style.alignItems = "flex-end";
+        barArea.style.justifyContent = "center";
+        barArea.style.width = "100%";
+
+        var bar = document.createElement("div");
+        bar.style.width = "10px"; 
+        bar.style.height = pct + "%";
+        bar.style.backgroundColor = barColor;
+        bar.style.borderRadius = "3px 3px 0 0";
+        bar.style.opacity = "0.85";
+        
+        if (isCrit) {
+            bar.style.boxShadow = "0 0 5px #ffeb3b";
+            bar.style.border = "1px solid #ffca28";
+            bar.style.borderBottom = "none";
+            bar.style.opacity = "1";
+        }
+        if (ev.dmg === 0 && entry.evt === "CAST") {
+            bar.style.backgroundColor = "transparent";
+            bar.style.border = "1px dashed " + barColor;
+        }
+
+        var iconArea = document.createElement("div");
+        iconArea.style.height = "16px";
+        iconArea.style.marginTop = "3px";
+        
+        var iconImg = document.createElement("img");
+        iconImg.src = "https://wow.zamimg.com/images/wow/icons/large/" + iconName + ".jpg";
+        iconImg.style.width = "14px";
+        iconImg.style.height = "14px";
+        iconImg.style.borderRadius = "3px";
+        iconImg.style.border = "1px solid #333";
+
+        barArea.appendChild(bar);
+        iconArea.appendChild(iconImg);
+        wrapper.appendChild(barArea);
+        wrapper.appendChild(iconArea);
+        
+        wrapper.onmouseenter = function() { 
+            bar.style.filter = "brightness(1.5)"; 
+            wrapper.style.zIndex = "20"; 
+        };
+        wrapper.onmouseleave = function() { 
+            bar.style.filter = "none"; 
+            wrapper.style.zIndex = "10"; 
+        };
+
+        innerContainer.appendChild(wrapper);
+    });
 }
 
 function renderLogPagination(totalEntries) {

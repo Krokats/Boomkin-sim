@@ -569,7 +569,8 @@ function runCoreSimulation(cfg) {
         spellStats: {
                 "Starfire": { count: 0, timeSum: 0, hits: 0, crits: 0 },
                 "Wrath": { count: 0, timeSum: 0, hits: 0, crits: 0 },
-                "Moonfire": { count: 0, timeSum: 0, hits: 0, crits: 0 } // Initial hit
+                "Moonfire": { count: 0, timeSum: 0, hits: 0, crits: 0 }, // Initial hit
+                "InsectSwarm": { count: 0, timeSum: 0, hits: 0, crits: 0 }
         }
     };
     
