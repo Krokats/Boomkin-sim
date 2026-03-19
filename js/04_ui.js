@@ -334,29 +334,31 @@ function switchSim(index) {
     var nameInput = document.getElementById('simName');
 
     // Setze den Namen im Header
-    if (nameInput) {
-        nameInput.value = sim.name;
-        nameInput.disabled = false;
-        nameInput.style.color = "var(--druid-orange)";
-    }
+        if (nameInput) {
+            nameInput.value = sim.name;
+            nameInput.disabled = false;
+            nameInput.style.color = "var(--druid-orange)";
+        }
 
-    // Lade die Konfiguration in das UI
-    applyConfigToUI(sim.config);
+        var res = sim.results;
+        // WICHTIG: SIM_DATA setzen BEVOR das UI geupdatet wird, damit die Rotation die neuen Zahlen hat!
+        SIM_DATA = res ? res : null;
 
-    // Ansichten umschalten
-    document.getElementById('comparisonView').classList.add('hidden');
-    document.getElementById('singleSimView').classList.remove('hidden');
-    // Update Name in Results Header
-    var resNameEl = document.getElementById('resultSimName');
-    if (resNameEl) resNameEl.innerText = sim.name;
+        // Lade die Konfiguration in das UI
+        applyConfigToUI(sim.config);
 
-    var res = sim.results;
-    var weightResBox = document.getElementById("weightResults");
+        // Ansichten umschalten
+        document.getElementById('comparisonView').classList.add('hidden');
+        document.getElementById('singleSimView').classList.remove('hidden');
+        // Update Name in Results Header
+        var resNameEl = document.getElementById('resultSimName');
+        if (resNameEl) resNameEl.innerText = sim.name;
 
-    if (res) {
-        SIM_DATA = res;
-        document.getElementById('resultsArea').classList.remove('hidden');
-        switchView('avg');
+        var weightResBox = document.getElementById("weightResults");
+
+        if (res) {
+            document.getElementById('resultsArea').classList.remove('hidden');
+            switchView(CURRENT_VIEW);
 
         // Anzeige der Stat Weights aktualisieren
         if (weightResBox) {
@@ -375,6 +377,7 @@ function switchSim(index) {
         var btnW = document.getElementById("btnWeights");
         if (btnW) btnW.disabled = false;
 
+        if (document.getElementById("viewSeed")) setText("viewSeed", "Seed Run (" + res.seed.dps.toFixed(1) + ")");
         setText("viewAvg", "Average (" + res.avg.dps.toFixed(1) + ")");
         setText("viewMin", "Min (" + res.min.dps.toFixed(1) + ")");
         setText("viewMax", "Max (" + res.max.dps.toFixed(1) + ")");
@@ -1122,6 +1125,7 @@ function switchView(type) {
     var btns = document.querySelectorAll('.view-btn');
     for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
 
+    if (type === 'seed') { var btn = document.getElementById('viewSeed'); if(btn) btn.classList.add('active'); }
     if (type === 'avg') document.getElementById('viewAvg').classList.add('active');
     if (type === 'min') document.getElementById('viewMin').classList.add('active');
     if (type === 'max') document.getElementById('viewMax').classList.add('active');
@@ -1239,17 +1243,17 @@ function switchView(type) {
         // --- SECTION 4: CASTING STATS ---
         addStatRow("Casting Stats", "", "", true);
         var sfTime = sf.count > 0 ? (sf.timeSum / sf.count).toFixed(2) + "s" : "-";
-        addStatRow("Avg. Cast Starfire", sfTime, sf.count.toFixed(1) + " Casts");
+        addStatRow("Avg. Cast Starfire", sfTime, sf.count.toFixed(0) + " Casts");
 
         var wrTime = wr.count > 0 ? (wr.timeSum / wr.count).toFixed(2) + "s" : "-";
-        addStatRow("Avg. Cast Wrath", wrTime, wr.count.toFixed(1) + " Casts");
+        addStatRow("Avg. Cast Wrath", wrTime, wr.count.toFixed(0) + " Casts");
 
         // Moonfire Cast Zeit
-        addStatRow("Avg. Cast Moonfire","" , mf.count.toFixed(1) + " Casts");
+        addStatRow("Avg. Cast Moonfire","" , mf.count.toFixed(0) + " Casts");
 
         // Insect Swarm Stats sicher abrufen und Cast Zeit berechnen
         var isw = (data.stats.spellStats && data.stats.spellStats["InsectSwarm"]) ? data.stats.spellStats["InsectSwarm"] : { hits: 0, crits: 0, count: 0, timeSum: 0 };
-        addStatRow("Avg. Cast Insect Swarm", "", isw.count.toFixed(1) + " Casts");
+        addStatRow("Avg. Cast Insect Swarm", "", isw.count.toFixed(0) + " Casts");
     }
 
     var logLabel = document.getElementById("logTypeLabel");
@@ -1258,9 +1262,9 @@ function switchView(type) {
             logLabel.innerText = "(No Log)";
             if (document.getElementById("logBody")) document.getElementById("logBody").innerHTML = "<tr><td colspan='22' style='text-align:center; padding:20px; color:#666;'>Log available in Min/Max view or Single runs.</td></tr>";
         } else {
-            // Geänderte Beschriftung für den Average-View
-                    var labelSuffix = type === 'avg' ? "REPRESENTATIVE RUN" : type.toUpperCase();
-                    logLabel.innerText = "(" + labelSuffix + ")";
+            // Geänderte Beschriftung für den Average-View und Seed-View
+                var labelSuffix = type === 'avg' ? "REPRESENTATIVE RUN" : (type === 'seed' ? "SEED RUN (ITERATION 0)" : type.toUpperCase());
+                logLabel.innerText = "(" + labelSuffix + ")";
                     renderCombatChart(data.log); // Zeichnet unser neues Diagramm
                     renderCombatLog(data.log);
                 }

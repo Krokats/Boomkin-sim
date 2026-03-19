@@ -121,11 +121,12 @@ async function runSimulation() {
                 SIM_DATA = aggregated;
 
                 // UI Updates
+                if (document.getElementById("viewSeed")) setText("viewSeed", "Seed Run (" + aggregated.seed.dps.toFixed(1) + ")");
                 setText("viewAvg", "Average (" + aggregated.avg.dps.toFixed(1) + ")");
                 setText("viewMin", "Min (" + aggregated.min.dps.toFixed(1) + ")");
                 setText("viewMax", "Max (" + aggregated.max.dps.toFixed(1) + ")");
                 
-                switchView('avg');
+                switchView(CURRENT_VIEW);
                 var btnW = document.getElementById("btnWeights");
                 if (btnW) btnW.disabled = false;
 
@@ -1324,6 +1325,7 @@ function aggregateResults(results, cfg) {
         avg: { stats: avgStats, dps: avgDpsVal, dpsSE: stdErr, log: [] },
         min: { stats: minRun.stats, dps: minRun.totalDmg / cfg.maxTime, log: minRun.log },
         max: { stats: maxRun.stats, dps: maxRun.totalDmg / cfg.maxTime, log: maxRun.log },
+        seed: { stats: results[0].stats, dps: results[0].totalDmg / cfg.maxTime, log: results[0].log }, // NEU: Den allerersten Lauf isolieren
         dpsDistribution: dpsDistribution, // NEU: Für Visualisierung
         closestRunIndex: closestRunIndex,   // NEU: Index für den repräsentativen Log
         varianceCV: cv // NEU
