@@ -77,7 +77,7 @@ var CONDITION_TYPES = [
 
 var PRESET_ROTATIONS = {
     "Standard 1": {
-        name: "Full Rotation 1",
+        name: "Full Rotation (Wrath Fishing)",
         desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, use Wrath for Fishing outside of Solstices.",
         steps: [
             { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
@@ -118,7 +118,7 @@ var PRESET_ROTATIONS = {
         ]
     },
     "Standard 2": {
-        name: "Full Rotation 2",
+        name: "Full Rotation (Starfire Fishing)",
         desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, use Starfire for Fishing outside of Solstices.",
         steps: [
             { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
@@ -159,7 +159,7 @@ var PRESET_ROTATIONS = {
         ]
     },
     "Standard 3": {
-        name: "Full Rotation 3",
+        name: "Full Rotation (Wrath/Starfire Alternating)",
         desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, alternatie Wrath/Starfire for Fishing outside of Solstices.",
         steps: [
             { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
@@ -201,7 +201,7 @@ var PRESET_ROTATIONS = {
         ]
     },
     "Standard 4": {
-        name: "Full Rotation 4",
+        name: "Full Rotation (Starfire/Wrath Alternating)",
         desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, alternatie Starfire/Wrath for Fishing outside of Solstices.",
         steps: [
             { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },

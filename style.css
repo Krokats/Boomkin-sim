@@ -1723,3 +1723,14 @@ input:checked + .slider::before { transform: translateX(16px); background-color:
     opacity: 1;
 }
 
+/* Macht die Min/Avg/Max Auswahl beim Scrollen sticky */
+#resultsArea > .results-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--bg-color);
+    padding: 15px 0 10px 0;
+    margin-top: -10px;
+    border-bottom: 1px dashed var(--border-color);
+}
+

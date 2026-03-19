@@ -1344,8 +1344,6 @@ function renderCombatChart(logData) {
     if (!container) {
         container = document.createElement("div");
         container.id = "combatChartContainer";
-        // Höhe auf 220px erhöht, um Platz für die neuen Tracker zu schaffen
-        container.style.cssText = "height: 220px; background: rgba(0,0,0,0.2); border: 1px dashed #444; border-radius: 8px; overflow-x: auto; overflow-y: hidden; margin-bottom: 20px; scrollbar-width: thin; position: relative;";
         
         var header = logSection.querySelector(".results-header");
         if (header && header.nextSibling) {
@@ -1355,6 +1353,9 @@ function renderCombatChart(logData) {
         }
     }
     
+    // Höhe auf 260px erzwingen - Aus dem IF-Block herausgezogen, um HTML-Inline-Styles zu überschreiben
+    container.style.cssText = "height: 260px; background: rgba(0,0,0,0.2); border: 1px dashed #444; border-radius: 8px; overflow-x: auto; overflow-y: hidden; margin-bottom: 20px; scrollbar-width: thin; position: relative;";
+    
     container.innerHTML = "";
     
     if (!logData || logData.length === 0) {
@@ -1363,40 +1364,20 @@ function renderCombatChart(logData) {
     }
     container.style.display = "block";
 
-    // 1. Kampfzeit ermitteln & Timeline-Größe berechnen
     var maxTime = logData[logData.length - 1].t || 1;
     var pixelsPerSecond = 25; 
     var timelineWidth = Math.max(container.clientWidth, maxTime * pixelsPerSecond);
+    var chartOffsetX = 24; // NEU: Offset für die linke Icon-Leiste
 
     var innerContainer = document.createElement("div");
     innerContainer.style.position = "relative";
-    innerContainer.style.width = timelineWidth + "px";
+    innerContainer.style.width = (timelineWidth + chartOffsetX + 20) + "px"; // NEU: Breite um Offset + Puffer erweitert
     innerContainer.style.height = "100%";
     container.appendChild(innerContainer);
 
     var maxDmg = 0;
     var dmgEvents = [];
     
-    // 2. Events filtern & Y-Achsen-Maximum
-    logData.forEach(function(entry) {
-        var dmg = (entry.dmgNorm || 0) + (entry.dmgEcl || 0) + (entry.dmgCrit || 0);
-        var isMiss = ["MISS", "RESIST", "IMMUNE", "DODGE", "PARRY"].includes(entry.res);
-        var isSpell = entry.spell && (entry.spell.includes("Starfire") || entry.spell.includes("Wrath") || entry.spell.includes("Moonfire") || entry.spell.includes("Insect"));
-        
-        if (isSpell) {
-            var isDirectDmgCast = entry.evt === "CAST" && !entry.spell.includes("Insect");
-            if (!isDirectDmgCast) {
-                if (dmg > 0 || isMiss || (entry.spell.includes("Insect") && entry.evt === "CAST") || entry.evt === "TICK") {
-                    if (dmg > maxDmg) maxDmg = dmg;
-                    dmgEvents.push({ entry: entry, dmg: dmg });
-                }
-            }
-        }
-    });
-
-    if (maxDmg === 0) maxDmg = 1;
-
-    // 3. Segmente für Eclipse, Moonfire und Insect Swarm berechnen
     var eclipseSegments = [];
     var currentEcl = "";
     var startEcl = 0;
@@ -1409,8 +1390,43 @@ function renderCombatChart(logData) {
     var isIsActive = false;
     var startIs = 0;
     
+    var sfCasts = [];
+    var wrCasts = [];
+    var pendingCasts = {}; 
+
+    var pendingMfStart = null; // Speichert den echten Cast-Start für MF
+    var pendingIsStart = null; // Speichert den echten Cast-Start für IS
+
+    // --- 1. DATEN SCHLEIFE ---
     logData.forEach(function(entry) {
-        // Eclipse Logic
+        
+        if (entry.evt === "CAST_START") {
+            if (entry.spell.includes("Moonfire")) pendingMfStart = entry.t;
+            if (entry.spell.includes("Insect")) pendingIsStart = entry.t;
+        }
+
+        // Vertikale Balken (Schaden & Initial-Casts)
+        var dmg = parseFloat(entry.dmgNorm || 0) + parseFloat(entry.dmgEcl || 0) + parseFloat(entry.dmgCrit || 0);
+        var resUp = entry.res ? entry.res.toUpperCase() : ""; // Groß/Kleinschreibung abfangen
+        var isMiss = ["MISS", "RESIST", "IMMUNE", "DODGE", "PARRY"].includes(resUp);
+        var isSpell = entry.spell && (entry.spell.includes("Starfire") || entry.spell.includes("Wrath") || entry.spell.includes("Moonfire") || entry.spell.includes("Insect"));
+        
+        if (isSpell) {
+            if (entry.evt === "CAST_START" || entry.evt === "CAST") {
+                // Bei IS und MF geben wir dem Cast 1 Dmg, damit er als Balken sichtbar wird
+                if (entry.spell.includes("Insect") || entry.spell.includes("Moonfire")) {
+                    dmgEvents.push({ entry: entry, dmg: 1, isCastVisual: true });
+                }
+            } 
+            
+            // WICHTIG: Das 'else' wurde entfernt, damit Misses von Instant-Casts nicht verschluckt werden
+            if (dmg > 0 || isMiss || entry.evt === "TICK" || entry.evt === "IMPACT") {
+                if (dmg > maxDmg) maxDmg = dmg;
+                dmgEvents.push({ entry: entry, dmg: dmg });
+            }
+        }
+
+        // Eclipse Track
         var activeEcl = "";
         if (entry.ecl === "Nature" || entry.isNE) activeEcl = "Nature";
         if (entry.ecl === "Arcane" || entry.isAE) activeEcl = "Arcane";
@@ -1420,43 +1436,61 @@ function renderCombatChart(logData) {
             startEcl = entry.t;
         }
 
-        // Moonfire Debuff Logic
+        // Moonfire DoT Track
         var mfNowActive = (entry.mfRem !== "-" && parseFloat(entry.mfRem) > 0);
         if (mfNowActive && !isMfActive) {
             isMfActive = true;
-            startMf = entry.t;
+            startMf = pendingMfStart !== null ? pendingMfStart : entry.t;
         } else if (!mfNowActive && isMfActive) {
             isMfActive = false;
             mfSegments.push({ start: startMf, end: entry.t });
+            pendingMfStart = null; // Reset
         }
 
-        // Insect Swarm Debuff Logic
+        // Insect Swarm DoT Track
         var isNowActive = (entry.isRem !== "-" && parseFloat(entry.isRem) > 0);
         if (isNowActive && !isIsActive) {
             isIsActive = true;
-            startIs = entry.t;
+            startIs = pendingIsStart !== null ? pendingIsStart : entry.t;
         } else if (!isNowActive && isIsActive) {
             isIsActive = false;
             isSegments.push({ start: startIs, end: entry.t });
+            pendingIsStart = null; // Reset
+        }
+        
+        // Casts Track (Wrath / Starfire)
+        if (entry.evt === "CAST_START" && entry.castTime && entry.castTime !== "-") {
+            var ct = parseFloat(entry.castTime);
+            var startT = parseFloat(entry.t); // NEU: entry.t explizit in eine Zahl umwandeln
+            
+            if (!isNaN(ct) && ct > 0 && !isNaN(startT)) {
+                var endT = startT + ct; // Jetzt wird mathematisch addiert (z.B. 3.00 + 1.50 = 4.50)
+                if (entry.spell.includes("Starfire")) sfCasts.push({ start: startT, end: endT });
+                if (entry.spell.includes("Wrath")) wrCasts.push({ start: startT, end: endT });
+            }
         }
     });
+
+    // Puffer berechnen & offene Segmente am Ende schließen
+    if (maxDmg === 0) maxDmg = 1;
+    maxDmg = maxDmg * 1.0; // Exakt 5% Puffer über dem höchsten Hit
 
     if (currentEcl !== "") eclipseSegments.push({ type: currentEcl, start: startEcl, end: maxTime });
     if (isMfActive) mfSegments.push({ start: startMf, end: maxTime });
     if (isIsActive) isSegments.push({ start: startIs, end: maxTime });
 
-
-    // 4. Horizontal Bars (Tracks) zeichnen
-    var trackHeight = 6;
-    var trackGap = 3;
+    // --- 2. TRACKS LAYOUT --- 
+    // Reihenfolge wurde UMGEDREHT (SF ganz unten, Eclipse oben)
+    var trackHeight = 12; 
+    var trackGap = 2;
     
-    // Positionen von unten nach oben
-    var posMf = 8;
-    var posIs = posMf + trackHeight + trackGap;
-    var posEcl = posIs + trackHeight + trackGap;
+    var posSF = 8; 
+    var posWr = posSF + trackHeight + trackGap;
+    var posIs = posWr + trackHeight + trackGap;
+    var posMf = posIs + trackHeight + trackGap;
+    var posEcl = posMf + trackHeight + trackGap;
 
-    // Hilfsfunktion zum Erstellen eines Tracks
-    function createTrack(bottomPos, segments, colorNature, colorArcane, labelText) {
+    function createTrack(bottomPos, segments, colorNature, colorArcane, iconName, labelText) {
         var track = document.createElement("div");
         track.style.position = "absolute";
         track.style.bottom = bottomPos + "px";
@@ -1464,51 +1498,66 @@ function renderCombatChart(logData) {
         track.style.width = "100%";
         track.style.height = trackHeight + "px";
         track.style.backgroundColor = "rgba(255,255,255,0.03)";
-        track.style.borderRadius = "3px";
+        track.style.borderRadius = "2px";
         
-        // Label am Anfang des Tracks
         var label = document.createElement("div");
-        label.innerText = labelText;
         label.style.position = "sticky";
-        label.style.left = "5px";
-        label.style.fontSize = "9px";
-        label.style.color = "rgba(255,255,255,0.3)";
-        label.style.lineHeight = trackHeight + "px";
+        label.style.left = "2px";
         label.style.zIndex = "1";
         label.style.pointerEvents = "none";
+        label.style.display = "flex";
+        label.style.alignItems = "center";
+        label.style.height = "100%";
+        
+        if (iconName) {
+            var iconImg = document.createElement("img");
+            iconImg.src = "https://wow.zamimg.com/images/wow/icons/large/" + iconName + ".jpg";
+            iconImg.style.width = trackHeight + "px";
+            iconImg.style.height = trackHeight + "px";
+            iconImg.style.borderRadius = "2px";
+            iconImg.style.opacity = "0.9";
+            label.appendChild(iconImg);
+        } else {
+            label.innerText = labelText;
+            label.style.fontSize = "9px";
+            label.style.color = "rgba(255,255,255,0.3)";
+        }
         track.appendChild(label);
-
         innerContainer.appendChild(track);
 
         segments.forEach(function(seg) {
-            var leftPct = (seg.start / maxTime) * 100;
-            var widthPct = ((seg.end - seg.start) / maxTime) * 100;
+            var sVal = parseFloat(seg.start) || 0;
+            var eVal = parseFloat(seg.end) || 0;
+            var leftPct = (sVal / maxTime) * 100;
+            var widthPct = ((eVal - sVal) / maxTime) * 100;
+            
             var bar = document.createElement("div");
             bar.style.position = "absolute";
-            bar.style.left = leftPct + "%";
+            bar.style.top = "0"; // NEU: Fixiert das Verrutschen um eine Zeile nach unten
+            bar.style.left = "calc(" + leftPct + "% + " + chartOffsetX + "px)"; // NEU: Offset
             bar.style.width = widthPct + "%";
             bar.style.height = "100%";
-            // Unterscheidung für Eclipse (2 Farben) oder DoT (1 feste Farbe)
             var bColor = (seg.type === "Nature" || colorNature === colorArcane) ? colorNature : colorArcane;
             bar.style.backgroundColor = bColor;
             bar.style.opacity = "0.7";
             bar.style.borderRadius = "2px";
             
-            var tooltipText = labelText + (seg.type ? " (" + seg.type + ")" : "") + ": " + seg.start + "s - " + seg.end + "s";
+            var tooltipText = labelText + (seg.type ? " (" + seg.type + ")" : "") + ": " + sVal.toFixed(2) + "s - " + eVal.toFixed(2) + "s";
             bar.title = tooltipText;
             track.appendChild(bar);
         });
     }
 
-    // Tracks erstellen
-    createTrack(posMf, mfSegments, "var(--arcane-blue)", "var(--arcane-blue)", "MF");
-    createTrack(posIs, isSegments, "var(--nature-green)", "var(--nature-green)", "IS");
-    createTrack(posEcl, eclipseSegments, "var(--nature-green)", "var(--arcane-blue)", "ECL");
+    // Zeichnen in aufsteigender Höhe
+    createTrack(posSF, sfCasts, "var(--arcane-blue)", "var(--arcane-blue)", "spell_arcane_starfire", "SF Casts");
+    createTrack(posWr, wrCasts, "var(--nature-green)", "var(--nature-green)", "spell_nature_abolishmagic", "Wrath Casts");
+    createTrack(posIs, isSegments, "var(--nature-green)", "var(--nature-green)", "spell_nature_insectswarm", "IS Debuff");
+    createTrack(posMf, mfSegments, "var(--arcane-blue)", "var(--arcane-blue)", "spell_nature_starfall", "MF Debuff");
+    createTrack(posEcl, eclipseSegments, "var(--nature-green)", "var(--arcane-blue)", "spell_nature_naturesblessing", "Eclipse");
 
-
-    // 5. Spells und Icons zeichnen (darüber)
+    // --- 3. VERTIKALE BALKEN (SCHADEN) ---
     var chartAreaBottom = posEcl + trackHeight + 10; 
-    var chartAreaHeight = 220 - chartAreaBottom - 15; 
+    var chartAreaHeight = 140; // NEU: Feste Höhe. Schützt zu 100% vor Container- und Scrollbar-Überschneidungen
     
     function getIconForSpell(spellName) {
         var cleanName = spellName.replace(" (Tick)", "").replace(" (Hit)", "").replace(/\s+/g, "");
@@ -1519,7 +1568,7 @@ function renderCombatChart(logData) {
             if (skillDef && skillDef.icon) return skillDef.icon;
         }
         if (spellName.includes("Starfire")) return "spell_arcane_starfire";
-        if (spellName.includes("Wrath")) return "spell_nature_wrathv2";
+        if (spellName.includes("Wrath")) return "spell_nature_abolishmagic";
         if (spellName.includes("Moonfire")) return "spell_nature_starfall";
         if (spellName.includes("Insect")) return "spell_nature_insectswarm";
         return "inv_misc_questionmark";
@@ -1531,24 +1580,30 @@ function renderCombatChart(logData) {
         
         var pct = (ev.dmg / maxDmg) * 100;
         if (pct < 4) pct = 4; 
-        if (ev.dmg === 0) pct = 6; 
+        if (ev.dmg <= 1) pct = 6; // Feste Mindesthöhe für 0-Dmg / 1-Dmg Initial-Casts
 
         var barColor = "#888"; 
         if (entry.spell.includes("Starfire") || entry.spell.includes("Moonfire")) barColor = "var(--arcane-blue)";
         if (entry.spell.includes("Wrath") || entry.spell.includes("Insect")) barColor = "var(--nature-green)";
-        if (entry.res === "RESIST" || entry.res === "MISS" || entry.res === "IMMUNE") barColor = "#f44336"; 
+        
+        var resUp2 = entry.res ? entry.res.toUpperCase() : "";
+        var isMissEvent = ["MISS", "RESIST", "IMMUNE", "DODGE", "PARRY"].includes(resUp2);
+        
+        if (isMissEvent) {
+            barColor = "#f44336"; 
+            // Misses mit z.B. 15% Höhe versehen, damit sie sich von den 6%-Dummy-Casts klar abheben
+            if (ev.dmg <= 1 && !ev.isCastVisual) pct = 15; 
+        }
 
         var isCrit = entry.dmgCrit > 0;
         var iconName = getIconForSpell(entry.spell);
 
-        var wrapper = document.createElement("div");
+       var wrapper = document.createElement("div");
         wrapper.style.position = "absolute";
-        wrapper.style.left = leftPos + "%";
+        wrapper.style.left = "calc(" + leftPos + "% + " + chartOffsetX + "px)";
         wrapper.style.bottom = chartAreaBottom + "px";
         wrapper.style.transform = "translateX(-50%)"; 
-        wrapper.style.display = "flex";
-        wrapper.style.flexDirection = "column";
-        wrapper.style.alignItems = "center";
+        // NEU: Flexbox entfernt, um Browser-Bugs mit Prozent-Höhen zu vermeiden
         wrapper.style.height = chartAreaHeight + "px";
         wrapper.style.width = "20px";
         wrapper.style.zIndex = "10";
@@ -1557,7 +1612,7 @@ function renderCombatChart(logData) {
         var tooltip = "Time: " + entry.t + "s\n";
         tooltip += "Spell: " + entry.spell + "\n";
         tooltip += "Event: " + entry.evt + "\n";
-        if (ev.dmg > 0) {
+        if (ev.dmg > 1) { // Alles über unserem 1-Dmg Dummy
             tooltip += "Damage: " + Math.floor(ev.dmg) + (isCrit ? " (CRITICAL)" : "") + "\n";
         } else {
             tooltip += "Damage: 0\n";
@@ -1566,18 +1621,20 @@ function renderCombatChart(logData) {
         wrapper.title = tooltip;
 
         var barArea = document.createElement("div");
-        barArea.style.flex = "1";
-        barArea.style.display = "flex";
-        barArea.style.alignItems = "flex-end";
-        barArea.style.justifyContent = "center";
+        barArea.style.position = "relative"; // NEU: Zwingend für die absolute Positionierung des Balkens
+        barArea.style.height = (chartAreaHeight - 20) + "px"; // NEU: Exakte Pixel-Höhe erzwingen
         barArea.style.width = "100%";
 
         var bar = document.createElement("div");
+        bar.style.position = "absolute"; // NEU: Absolut am Boden der barArea verankert
+        bar.style.bottom = "0"; 
+        bar.style.left = "5px"; // (20px width / 2) - (10px bar / 2) = 5px
         bar.style.width = "10px"; 
-        bar.style.height = pct + "%";
+        bar.style.height = pct + "%"; // Bezieht sich nun streng auf die Pixel-Höhe der barArea!
         bar.style.backgroundColor = barColor;
         bar.style.borderRadius = "3px 3px 0 0";
         bar.style.opacity = "0.85";
+        bar.style.boxSizing = "border-box";
         
         if (isCrit) {
             bar.style.boxShadow = "0 0 5px #ffeb3b";
@@ -1585,14 +1642,25 @@ function renderCombatChart(logData) {
             bar.style.borderBottom = "none";
             bar.style.opacity = "1";
         }
-        if (ev.dmg === 0 && entry.evt === "CAST") {
+
+        var resUp2 = entry.res ? entry.res.toUpperCase() : "";
+        var isMissEvent = ["MISS", "RESIST", "IMMUNE", "DODGE", "PARRY"].includes(resUp2);
+        
+        // Zeige den initialen Cast von IS/MF transparent an
+        if (ev.isCastVisual || (ev.dmg <= 1 && !isMissEvent && (entry.evt === "CAST_START" || entry.evt === "CAST"))) {
             bar.style.backgroundColor = "transparent";
             bar.style.border = "1px dashed " + barColor;
+            bar.style.zIndex = "1"; 
+        } else if (isMissEvent) {
+            bar.style.zIndex = "5"; 
+            bar.style.opacity = "1";
         }
 
         var iconArea = document.createElement("div");
         iconArea.style.height = "16px";
-        iconArea.style.marginTop = "3px";
+        iconArea.style.marginTop = "4px";
+        iconArea.style.display = "flex"; // NEU: Zentriert das Icon sauber unter dem Balken
+        iconArea.style.justifyContent = "center";
         
         var iconImg = document.createElement("img");
         iconImg.src = "https://wow.zamimg.com/images/wow/icons/large/" + iconName + ".jpg";
