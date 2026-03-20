@@ -43,7 +43,7 @@ function getInputs() {
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
         gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), 
-            idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), 
+            idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), idolAcidity: getVal("idolAcidity"),idolEquilibrium: getVal("idolEquilibrium"),
             binding: getVal("item_binding"), scythe: getVal("item_scythe"), nobility: getVal("item_nobility"), thane: getVal("item_thane"), 
             sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"), sphere: getVal("item_sphere"),
             reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc") },
@@ -525,6 +525,11 @@ function runCoreSimulation(cfg) {
     var effResArc = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resArc - cfg.power.pen);
     var avgMitNat = Math.min(0.75, (effResNat / (cfg.enemy.level * 5)) * 0.75);
     var avgMitArc = Math.min(0.75, (effResArc / (cfg.enemy.level * 5)) * 0.75);
+    
+    // Idol of Acidity Mitigation (Pre-Calculated)
+    var effResNatAcidity = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resNat - cfg.power.pen - 25);
+    var avgMitNatAcidity = Math.min(0.75, (effResNatAcidity / (cfg.enemy.level * 5)) * 0.75);
+
     var eclipseMod = 10 + 60 * (cfg.stats.crit / 100);
     var eclFactor = eclipseMod / 100;
     var cosMod = 1 + 0.1 * cfg.enemy.cos;
@@ -558,7 +563,7 @@ function runCoreSimulation(cfg) {
         scytheEnd: 0.0, scytheCD: 0.0,
         nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
         makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, // NEU: Sphere of the Endless Gulch
-        ooc: false, boon: 0
+        ooc: false, boon: 0, acidityEnd: 0.0
     };
 
     var RunStats = { 
@@ -580,7 +585,7 @@ function runCoreSimulation(cfg) {
     // 4. Internes RNG Objekt (Hybrid: Seeded für 'S', Akkumulator für Deterministic)
     var RNG = {
         mode: cfg.mode,
-        acc: { hit: 0, crit: 0, procNE: 0, procAE: 0, procBoaT: 0, procT36p: 0, binding: 0, scythe: 0, procNobility: 0, procSulfuras: 0, procSigil: 0, procChromie: 0, procSphere: 0, ooc: 0, boon: 0 },
+        acc: { hit: 0, crit: 0, procNE: 0, procAE: 0, procBoaT: 0, procT36p: 0, binding: 0, scythe: 0, procNobility: 0, procSulfuras: 0, procSigil: 0, procChromie: 0, procSphere: 0, ooc: 0, boon: 0, procAcidity: 0,procEquilWrath: 0, procEquilSF: 0 },
 
         // Prüft prozentuale Chance (0-100)
         check: function (chance, id) {
@@ -673,8 +678,9 @@ function runCoreSimulation(cfg) {
     };
 
     var getResist = function (school) { 
-        var avgMit = (school === "Nature") ? avgMitNat : avgMitArc; 
-        if (cfg.mode !== "S") { return { val: 1.0 - avgMit, txt: "" }; } 
+        var currentAvgMitNat = (State.t < State.acidityEnd) ? avgMitNatAcidity : avgMitNat;
+        var avgMit = (school === "Nature") ? currentAvgMitNat : avgMitArc; 
+        if (cfg.mode !== "S") { return { val: 1.0 - avgMit, txt: "" }; }
         
         // Resist Logic
         var range = avgMit / 0.25; 
@@ -741,6 +747,11 @@ function runCoreSimulation(cfg) {
                     break;
                 case 'time_remaining':
                     left = cfg.maxTime - State.t;
+                    if (left < 5) {
+                        var test;
+                        test = 1;
+                    }
+                        
                     isValid = evaluateOp(left, c.op, right);
                     break;
                 case 'ecl_vs_cast':
@@ -812,8 +823,9 @@ function runCoreSimulation(cfg) {
         
         if (cfg.mode === "D_AVG") { 
             var hitM = cfg.stats.hit; 
-            var avgRes = (spell.type === "Nature" ? avgMitNat : avgMitArc); 
-            var critM = 1.0; 
+            var currentAvgMitNat = (State.t < State.acidityEnd) ? avgMitNatAcidity : avgMitNat;
+            var avgRes = (spell.type === "Nature" ? currentAvgMitNat : avgMitArc); 
+            var critM = 1.0;
             if (!isTick) critM = (1.0 + (cfg.stats.crit / 100)); 
             debuffMult *= hitM * critM * (1.0 - avgRes); 
             isCrit = false; 
@@ -1042,8 +1054,47 @@ function runCoreSimulation(cfg) {
                 log(State.t, "PROC", "Endless Gulch", "", null, null, "Stack " + State.makaruStacks);
             }
         }
+
+        // Idol of Acidity Proc
+        if (spell.id === "Wrath" && cfg.gear.idolAcidity && State.t >= State.acidityEnd && RNG.check(8, "procAcidity")) {
+            State.acidityEnd = State.t + 6.0;
+            log(State.t, "PROC", "Idol of Acidity", "", null, null, "-25 Nat Res & 300 Dmg over 6s");
+            addEvt(State.t + 2.0, "ACIDITY_TICK", {});
+            addEvt(State.t + 4.0, "ACIDITY_TICK", {});
+            addEvt(State.t + 6.0, "ACIDITY_TICK", {});
+        }
+
+        // Idol of Equilibrium Proc - Wrath -> Insect Swarm
+        if (spell.id === "Wrath" && cfg.gear.idolEquilibrium && State.activeIS && State.activeIS.exp > State.t && RNG.check(8, "procEquilWrath")) {
+            var dot = State.activeIS;
+            var dIS = calculateDamageFull(dot.spell, true, dot.snap, false, null);
+            RunStats.totalDmg += dIS.total;
+            RunStats.dmgT36p += dIS.t3Part;
+            RunStats.dmgIS += dIS.total;
+            RunStats.dmgIdol += dIS.total;
+            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
+                State.t3End = State.t + 6.0; 
+                log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
+            }
+            log(State.t, "PROC DMG", "Idol of Equil.", "Tick (IS)", dIS, null, "Extra IS Tick");
+        }
+
+        // Idol of Equilibrium Proc - Starfire -> Moonfire
+        if (spell.id === "Starfire" && cfg.gear.idolEquilibrium && State.activeMF && State.activeMF.exp > State.t && RNG.check(15, "procEquilSF")) {
+            var dot = State.activeMF;
+            var dMF = calculateDamageFull(dot.spell, true, dot.snap, false, null);
+            RunStats.totalDmg += dMF.total;
+            RunStats.dmgT36p += dMF.t3Part;
+            RunStats.dmgMFTick += dMF.total;
+            RunStats.dmgIdol += dMF.total;
+            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
+                State.t3End = State.t + 6.0; 
+                log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
+            }
+            log(State.t, "PROC DMG", "Idol of Equil.", "Tick (MF)", dMF, null, "Extra MF Tick");
+        }
         
-        if (crit) { 
+        if (crit) {
             State.ng = true; 
             if (cfg.gear.thane) State.thaneActive = true;
             log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG"); 
@@ -1180,6 +1231,11 @@ function runCoreSimulation(cfg) {
             if (evt.type === "CAST_FINISH") handleCastFinish(evt.data);
             else if (evt.type === "IMPACT") handleImpact(evt.data.spell, evt.data.crit, evt.data.snap);
             else if (evt.type === "DOT_TICK") handleTick(evt.data);
+            else if (evt.type === "ACIDITY_TICK") {
+                RunStats.totalDmg += 100;
+                RunStats.dmgIdol += 100;
+                log(State.t, "TICK", "Idol of Acidity", "Tick", {norm: 100, ecl: 0, crit: 0, total: 100}, null, "Nature Dmg");
+            }
         }
         var gcdReady = State.t >= (State.gcdEnd - 0.001) && State.t >= (State.castEnd - 0.001);
         if (!State.casting && gcdReady && State.t < cfg.maxTime) {

@@ -38,7 +38,7 @@ function setupUIListeners() {
     }
 
     // IDOL EXCLUSIVITY FOR 1.18.1
-    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang"];
+    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity","idolEquilibrium"];
     idolIds.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) {
@@ -1072,6 +1072,8 @@ function generateSummaryImage() {
     if (c.idolMoon == 1) addLi(ulGear, "Idol: Moon");
     if (c.idolMoonfang == 1) addLi(ulGear, "Idol: Moonfang");
     if (c.idolProp == 1) addLi(ulGear, "Idol: Propagation");
+    if (c.idolAcidity == 1) addLi(ulGear, "Idol: Acidity");
+    if (c.idolEquilibrium == 1) addLi(ulGear, "Idol: Equilibrium");
     if (c.item_nobility == 1) addLi(ulGear, "Spellwoven Nobility Drape");
     if (c.item_thane == 1) addLi(ulGear, "Harness of the High Thane");
     if (c.item_kelp == 1) addLi(ulGear, "Pristine Enchanted South Seas Kelp");
@@ -1413,8 +1415,8 @@ function renderCombatChart(logData) {
         var dmg = parseFloat(entry.dmgNorm || 0) + parseFloat(entry.dmgEcl || 0) + parseFloat(entry.dmgCrit || 0);
         var resUp = entry.res ? entry.res.toUpperCase() : ""; // Groß/Kleinschreibung abfangen
         var isMiss = ["MISS", "RESIST", "IMMUNE", "DODGE", "PARRY"].includes(resUp);
-        var isSpell = entry.spell && (entry.spell.includes("Starfire") || entry.spell.includes("Wrath") || entry.spell.includes("Moonfire") || entry.spell.includes("Insect"));
-        
+        var isSpell = entry.spell && (entry.spell.includes("Starfire") || entry.spell.includes("Wrath") || entry.spell.includes("Moonfire") || entry.spell.includes("Insect") || entry.spell.includes("Idol of Acidity") || entry.spell.includes("Idol of Equil."));
+
         if (isSpell) {
             if (entry.evt === "CAST_START" || entry.evt === "CAST") {
                 // Bei IS und MF geben wir dem Cast 1 Dmg, damit er als Balken sichtbar wird
@@ -1563,7 +1565,8 @@ function renderCombatChart(logData) {
     var chartAreaBottom = posEcl + trackHeight + 10; 
     var chartAreaHeight = 140; // NEU: Feste Höhe. Schützt zu 100% vor Container- und Scrollbar-Überschneidungen
     
-    function getIconForSpell(spellName) {
+    function getIconForSpell(entry) {
+        var spellName = entry.spell;
         var cleanName = spellName.replace(" (Tick)", "").replace(" (Hit)", "").replace(/\s+/g, "");
         if (cleanName === "InsectSwarm") cleanName = "InsectSwarm"; 
         
@@ -1575,6 +1578,13 @@ function renderCombatChart(logData) {
         if (spellName.includes("Wrath")) return "spell_nature_abolishmagic";
         if (spellName.includes("Moonfire")) return "spell_nature_starfall";
         if (spellName.includes("Insect")) return "spell_nature_insectswarm";
+        
+        // NEU: Icons für die Idols
+        if (spellName.includes("Acidity")) return "spell_nature_acid_01";
+        if (spellName.includes("Equil.")) {
+            if (entry.res && entry.res.includes("MF")) return "spell_nature_starfall";
+            return "spell_nature_insectswarm";
+        }
         return "inv_misc_questionmark";
     }
 
@@ -1588,7 +1598,11 @@ function renderCombatChart(logData) {
 
         var barColor = "#888"; 
         if (entry.spell.includes("Starfire") || entry.spell.includes("Moonfire")) barColor = "var(--arcane-blue)";
-        if (entry.spell.includes("Wrath") || entry.spell.includes("Insect")) barColor = "var(--nature-green)";
+        if (entry.spell.includes("Wrath") || entry.spell.includes("Insect") || entry.spell.includes("Acidity")) barColor = "var(--nature-green)";
+        if (entry.spell.includes("Equil.")) {
+            if (entry.res && entry.res.includes("MF")) barColor = "var(--arcane-blue)";
+            else barColor = "var(--nature-green)";
+        }
         
         var resUp2 = entry.res ? entry.res.toUpperCase() : "";
         var isMissEvent = ["MISS", "RESIST", "IMMUNE", "DODGE", "PARRY"].includes(resUp2);
@@ -1600,7 +1614,7 @@ function renderCombatChart(logData) {
         }
 
         var isCrit = entry.dmgCrit > 0;
-        var iconName = getIconForSpell(entry.spell);
+        var iconName = getIconForSpell(entry);
 
        var wrapper = document.createElement("div");
         wrapper.style.position = "absolute";
@@ -2254,7 +2268,7 @@ function updatePatchUI() {
 
     // 3. Ensure Single Idol Selection when switching to 1.18.1
     if (ver.startsWith('1.18.1')) {
-        var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang"];
+        var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang","idolAcidity", "idolEquilibrium"];
         var found = false;
         idolIds.forEach(function (id) {
             var el = document.getElementById(id);

@@ -28,7 +28,7 @@ var CONFIG_IDS = [
     "start_boat", "wrath_flight",
     "rota_interrupt", "rota_interrupt_thresh",
     "t3_4p", "t3_6p", "t3_8p", "t35_5p",
-    "idolEoF", "idolMoon", "idolProp", "idolMoonfang",
+    "idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity", "idolEquilibrium",
     "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp", "item_sphere",
     "item_reos", "item_toep", "item_roop", "item_zhc",
     "char_race",
