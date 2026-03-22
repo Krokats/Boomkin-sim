@@ -1565,6 +1565,75 @@ function renderCombatChart(logData) {
     var chartAreaBottom = posEcl + trackHeight + 10; 
     var chartAreaHeight = 140; // NEU: Feste Höhe. Schützt zu 100% vor Container- und Scrollbar-Überschneidungen
     
+// --- NEU: DPS-Kurve (Gleitender Durchschnitt) ---
+    var windowSize = 10;
+    var dpsPoints = [];
+    var maxRollingDps = 0;
+    
+    // Berechne die DPS in 0.5-Sekunden-Schritten
+    for (var t = 0; t <= maxTime; t += 0.5) {
+        var wStart = Math.max(0, t - windowSize / 2);
+        var wEnd = Math.min(maxTime, t + windowSize / 2);
+        var actualWindow = wEnd - wStart;
+        if (actualWindow <= 0) actualWindow = 1;
+
+        var dmgInWindow = 0;
+        for (var i = 0; i < dmgEvents.length; i++) {
+            var evTime = parseFloat(dmgEvents[i].entry.t);
+            if (evTime >= wStart && evTime <= wEnd) {
+                // Die visuellen 1-Dmg Initial-Casts aus der Berechnung ausschließen
+                if (!dmgEvents[i].isCastVisual) {
+                    dmgInWindow += dmgEvents[i].dmg;
+                }
+            }
+        }
+        var currentDps = dmgInWindow / actualWindow;
+        if (currentDps > maxRollingDps) maxRollingDps = currentDps;
+        dpsPoints.push({ t: t, dps: currentDps });
+    }
+
+    // Zeichne die Linie als SVG, wenn Schaden existiert
+    if (maxRollingDps > 0) {
+        var svgNS = "http://www.w3.org/2000/svg";
+        var svg = document.createElementNS(svgNS, "svg");
+        svg.style.position = "absolute";
+        svg.style.left = "0px";
+        svg.style.bottom = chartAreaBottom + "px";
+        svg.style.width = (timelineWidth + chartOffsetX + 20) + "px";
+        svg.style.height = chartAreaHeight + "px";
+        svg.style.pointerEvents = "none";
+        svg.style.zIndex = "5"; // Hinter die Event-Balken, aber über dem Hintergrund
+
+        var polyline = document.createElementNS(svgNS, "polyline");
+        polyline.setAttribute("fill", "none");
+        polyline.setAttribute("stroke", "rgba(255, 255, 255, 0.4)"); // Transparentes Weiß
+        polyline.setAttribute("stroke-width", "2");
+        
+        var pointsStr = "";
+        dpsPoints.forEach(function(pt) {
+            var x = (pt.t / maxTime) * timelineWidth + chartOffsetX;
+            var pct = pt.dps / maxRollingDps;
+            // 10% Puffer nach oben, damit die Linie nicht am Rand klebt
+            var y = chartAreaHeight - (pct * (chartAreaHeight * 0.9)); 
+            pointsStr += x + "," + y + " ";
+        });
+        
+        polyline.setAttribute("points", pointsStr.trim());
+        svg.appendChild(polyline);
+        innerContainer.appendChild(svg);
+        
+        // Diskretes Label oben links für den Peak-DPS-Wert der Kurve
+        var maxLabel = document.createElement("div");
+        maxLabel.style.position = "absolute";
+        maxLabel.style.left = "4px";
+        maxLabel.style.bottom = (chartAreaBottom + chartAreaHeight - 14) + "px";
+        maxLabel.style.fontSize = "9px";
+        maxLabel.style.color = "rgba(255, 255, 255, 0.4)";
+        maxLabel.innerText = "Peak: " + Math.floor(maxRollingDps) + " DPS";
+        innerContainer.appendChild(maxLabel);
+    }
+    // --- ENDE DPS-Kurve ---
+
     function getIconForSpell(entry) {
         var spellName = entry.spell;
         var cleanName = spellName.replace(" (Tick)", "").replace(" (Hit)", "").replace(/\s+/g, "");
