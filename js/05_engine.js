@@ -112,19 +112,14 @@ async function runSimulation() {
                 // 3. Finalize
                 var aggregated = aggregateResults(allResults, config);
 
-                if (aggregated.closestRunIndex !== null) {
-                    aggregated.avg.log = allResults[aggregated.closestRunIndex].log;
-                    aggregated.avg.stats = allResults[aggregated.closestRunIndex].stats;
-                }
-
                 SIM_LIST[ACTIVE_SIM_INDEX].results = aggregated;
                 SIM_DATA = aggregated;
 
                 // UI Updates
                 if (document.getElementById("viewSeed")) setText("viewSeed", "Seed Run (" + aggregated.seed.dps.toFixed(1) + ")");
-                setText("viewAvg", "Average (" + aggregated.avg.dps.toFixed(1) + ")");
-                setText("viewMin", "Min (" + aggregated.min.dps.toFixed(1) + ")");
-                setText("viewMax", "Max (" + aggregated.max.dps.toFixed(1) + ")");
+                setText("viewMedian", "Median (" + aggregated.median.dps.toFixed(1) + ")");
+                setText("viewP5", "5% DPS (" + aggregated.p5.dps.toFixed(1) + ")");
+                setText("viewP95", "95% DPS (" + aggregated.p95.dps.toFixed(1) + ")");
                 
                 switchView(CURRENT_VIEW);
                 var btnW = document.getElementById("btnWeights");
@@ -1279,112 +1274,59 @@ function aggregateResults(results, cfg) {
     
     var n = results.length;
     var totalDmg = 0;
-    var minDmg = Infinity, maxDmg = -1;
-    var minRun = null, maxRun = null;
     
-    // NEU: Hilfsvariablen für Median-Suche und Varianz
     var dpsDistribution = [];
-    var closestRunIndex = null;
-    var smallestDiff = Infinity;
-
-    var sumStats = {
-        totalDmg: 0, totalMana: 0, 
-        dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
-        dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0,
-        casts: 0, misses: 0, hits: 0, dmgCrit: 0, 
-        uptimeAE: 0, uptimeNE: 0
-    };
-
-    var sumSpellStats = {};
-
-    // Pass 1: Summen & Min/Max finden
+    
+    // Pass 1: Alle Werte sammeln für Verteilung und Durchschnitt (für den Variationskoeffizienten)
     for (var i = 0; i < n; i++) {
         var r = results[i];
         var d = r.totalDmg; 
-        var currentDPS = d / cfg.maxTime; // NEU: DPS dieses Laufs
+        var currentDPS = d / cfg.maxTime;
         
-        dpsDistribution.push(currentDPS); // NEU: Für die Glockenkurve
+        dpsDistribution.push(currentDPS);
         totalDmg += d;
-        
-        if (d < minDmg) { minDmg = d; minRun = r; }
-        if (d > maxDmg) { maxDmg = d; maxRun = r; }
-        
-        for (var key in sumStats) {
-            if (r.stats[key]) sumStats[key] += r.stats[key];
-        }
-
-        if (r.stats.stepCounts) {
-            for (var sid in r.stats.stepCounts) {
-                if (!sumStats.stepCounts) sumStats.stepCounts = {};
-                sumStats.stepCounts[sid] = (sumStats.stepCounts[sid] || 0) + r.stats.stepCounts[sid];
-            }
-        }
-
-        if (r.stats.spellStats) {
-            for (var s in r.stats.spellStats) {
-                if (!sumSpellStats[s]) sumSpellStats[s] = { count: 0, timeSum: 0, hits: 0, crits: 0 };
-                sumSpellStats[s].count += r.stats.spellStats[s].count;
-                sumSpellStats[s].timeSum += r.stats.spellStats[s].timeSum;
-                sumSpellStats[s].hits += r.stats.spellStats[s].hits;
-                sumSpellStats[s].crits += r.stats.spellStats[s].crits;
-            }
-        }
     }
 
     var avgDpsVal = (totalDmg / n) / cfg.maxTime;
 
-    // NEU: Pass 1.5 - Den Lauf finden, der am nächsten am Durchschnitt liegt
-    for (var i = 0; i < n; i++) {
-        var diff = Math.abs(dpsDistribution[i] - avgDpsVal);
-        if (diff < smallestDiff) {
-            smallestDiff = diff;
-            closestRunIndex = i;
-        }
-    }
-
-    // Pass 2: Standard Error
+    // Pass 2: Standard Error und Varianz (CV) berechnen
     var sumSqDiff = 0;
-    for (var i = 0; i < n; i++) {
-        var dps = dpsDistribution[i];
+    for (var j = 0; j < n; j++) {
+        var dps = dpsDistribution[j];
         var diff = dps - avgDpsVal;
         sumSqDiff += (diff * diff);
     }
     var variance = (n > 1) ? sumSqDiff / (n - 1) : 0;
     var stdDev = Math.sqrt(variance);
     var stdErr = stdDev / Math.sqrt(n);
-    var cv = (avgDpsVal > 0) ? (stdDev / avgDpsVal) * 100 : 0; // Variationskoeffizient in %
+    var cv = (avgDpsVal > 0) ? (stdDev / avgDpsVal) * 100 : 0;
 
+    // Pass 3: Sortieren für 5% / 50% (Median) / 95%
+    var sortedResults = results.slice().sort(function(a, b) {
+        return a.totalDmg - b.totalDmg;
+    });
 
-    var avgStats = {};
-    for (var key in sumStats) {
-        avgStats[key] = sumStats[key] / n;
-    }
+    // Indizes sicher berechnen
+    var idxP5 = Math.floor(n * 0.05);
+    var idxMedian = Math.floor(n * 0.50);
+    var idxP95 = Math.floor(n * 0.95);
 
-    avgStats.spellStats = {};
-    for (var s in sumSpellStats) {
-        avgStats.spellStats[s] = {
-            count: sumSpellStats[s].count / n,
-            timeSum: sumSpellStats[s].timeSum / n,
-            hits: sumSpellStats[s].hits / n,
-            crits: sumSpellStats[s].crits / n
-        };
-    }
+    // Bounds-Check für Sicherheit
+    if (idxP5 >= n) idxP5 = n - 1;
+    if (idxMedian >= n) idxMedian = n - 1;
+    if (idxP95 >= n) idxP95 = n - 1;
 
-    avgStats.stepCounts = {};
-    if (sumStats.stepCounts) {
-        for (var sid in sumStats.stepCounts) {
-            avgStats.stepCounts[sid] = sumStats.stepCounts[sid] / n;
-        }
-    }
+    var p5Run = sortedResults[idxP5];
+    var medianRun = sortedResults[idxMedian];
+    var p95Run = sortedResults[idxP95];
 
     return {
-        avg: { stats: avgStats, dps: avgDpsVal, dpsSE: stdErr, log: [] },
-        min: { stats: minRun.stats, dps: minRun.totalDmg / cfg.maxTime, log: minRun.log },
-        max: { stats: maxRun.stats, dps: maxRun.totalDmg / cfg.maxTime, log: maxRun.log },
-        seed: { stats: results[0].stats, dps: results[0].totalDmg / cfg.maxTime, log: results[0].log }, // NEU: Den allerersten Lauf isolieren
-        dpsDistribution: dpsDistribution, // NEU: Für Visualisierung
-        closestRunIndex: closestRunIndex,   // NEU: Index für den repräsentativen Log
-        varianceCV: cv // NEU
+        median: { stats: medianRun.stats, dps: medianRun.totalDmg / cfg.maxTime, dpsSE: stdErr, log: medianRun.log },
+        p5: { stats: p5Run.stats, dps: p5Run.totalDmg / cfg.maxTime, log: p5Run.log },
+        p95: { stats: p95Run.stats, dps: p95Run.totalDmg / cfg.maxTime, log: p95Run.log },
+        seed: { stats: results[0].stats, dps: results[0].totalDmg / cfg.maxTime, log: results[0].log },
+        dpsDistribution: dpsDistribution,
+        varianceCV: cv
     };
 }
 
@@ -1423,9 +1365,9 @@ RNGHandler.prototype.checkFloat = function(prob) {
 // UI HOOK FOR ROTATION COUNTERS
 // ============================================================================
 function updateStepCounters() {
-    if (!SIM_DATA || !SIM_DATA.avg || !SIM_DATA.avg.stats.stepCounts) return;
+    if (!SIM_DATA || !SIM_DATA.median || !SIM_DATA.median.stats.stepCounts) return;
     
-    var counts = SIM_DATA.avg.stats.stepCounts;
+    var counts = SIM_DATA.median.stats.stepCounts;
     
     for (var stepId in counts) {
         var badge = document.getElementById("badge_step_" + stepId);

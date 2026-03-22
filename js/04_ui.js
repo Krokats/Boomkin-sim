@@ -378,9 +378,9 @@ function switchSim(index) {
         if (btnW) btnW.disabled = false;
 
         if (document.getElementById("viewSeed")) setText("viewSeed", "Seed Run (" + res.seed.dps.toFixed(1) + ")");
-        setText("viewAvg", "Average (" + res.avg.dps.toFixed(1) + ")");
-        setText("viewMin", "Min (" + res.min.dps.toFixed(1) + ")");
-        setText("viewMax", "Max (" + res.max.dps.toFixed(1) + ")");
+        setText("viewMedian", "Median (" + res.median.dps.toFixed(1) + ")");
+        setText("viewP5", "5% DPS (" + res.p5.dps.toFixed(1) + ")");
+        setText("viewP95", "95% DPS (" + res.p95.dps.toFixed(1) + ")");
     } else {
         SIM_DATA = null;
         document.getElementById('resultsArea').classList.add('hidden');
@@ -963,14 +963,14 @@ function renderComparisonTable() {
     var b = document.getElementById('comparisonBody');
     b.innerHTML = "";
     var max = 0;
-    SIM_LIST.forEach(s => { if (s.results && s.results.avg.dps > max) max = s.results.avg.dps; });
+    SIM_LIST.forEach(s => { if (s.results && s.results.median.dps > max) max = s.results.median.dps; });
 
     SIM_LIST.forEach(function (s, i) {
         var c = s.config;
         var r = s.results;
-        var avgDps = r ? r.avg.dps.toFixed(1) : "-";
-        var minDps = (r && r.min) ? r.min.dps.toFixed(1) : "-";
-        var maxDps = (r && r.max) ? r.max.dps.toFixed(1) : "-";
+        var avgDps = r ? r.median.dps.toFixed(1) : "-";
+        var minDps = (r && r.p5) ? r.p5.dps.toFixed(1) : "-";
+        var maxDps = (r && r.p95) ? r.p95.dps.toFixed(1) : "-";
         var method = c.calcMethod === 'S' ? 'RNG' : (c.calcMethod.includes('CYC') ? 'Cyc' : 'Avg');
         var rName = c.custom_rotation ? c.custom_rotation.name : "Custom";
         var rota = '<span class="detail-text">Rota: ' + rName + '</span>';
@@ -1029,9 +1029,9 @@ function generateSummaryImage() {
 
     setText("sumSimName", sim.name);
     setText("sumDate", new Date().toLocaleDateString());
-    setText("sumAvg", r.avg.dps.toFixed(1));
-    setText("sumMin", r.min.dps.toFixed(1));
-    setText("sumMax", r.max.dps.toFixed(1));
+    setText("sumMedian", r.median.dps.toFixed(1));
+    setText("sumP5", r.p5.dps.toFixed(1));
+    setText("sumP95", r.p95.dps.toFixed(1));
     setText("sumTime", c.maxTime + "s");
 
     var methodMap = { "S": "RNG", "D_CYC": "Deterministic (Cyc)", "D_AVG": "Deterministic (Avg)" };
@@ -1128,9 +1128,9 @@ function switchView(type) {
     for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
 
     if (type === 'seed') { var btn = document.getElementById('viewSeed'); if(btn) btn.classList.add('active'); }
-    if (type === 'avg') document.getElementById('viewAvg').classList.add('active');
-    if (type === 'min') document.getElementById('viewMin').classList.add('active');
-    if (type === 'max') document.getElementById('viewMax').classList.add('active');
+    if (type === 'median') document.getElementById('viewMedian').classList.add('active');
+    if (type === 'p5') document.getElementById('viewP5').classList.add('active');
+    if (type === 'p95') document.getElementById('viewP95').classList.add('active');
 
     var data = SIM_DATA[type];
 
@@ -1265,7 +1265,7 @@ function switchView(type) {
             if (document.getElementById("logBody")) document.getElementById("logBody").innerHTML = "<tr><td colspan='22' style='text-align:center; padding:20px; color:#666;'>Log available in Min/Max view or Single runs.</td></tr>";
         } else {
             // Geänderte Beschriftung für den Average-View und Seed-View
-                var labelSuffix = type === 'avg' ? "REPRESENTATIVE RUN" : (type === 'seed' ? "SEED RUN (ITERATION 0)" : type.toUpperCase());
+                var labelSuffix = type === 'median' ? "REPRESENTATIVE RUN" : (type === 'seed' ? "SEED RUN (ITERATION 0)" : type.toUpperCase());
                 logLabel.innerText = "(" + labelSuffix + ")";
                     renderCombatChart(data.log); // Zeichnet unser neues Diagramm
                     renderCombatLog(data.log);
@@ -2326,9 +2326,9 @@ function renderDPSDistribution(data) {
     });
 
     var maxBucket = Math.max(...buckets);
-    var avgDps = data.avg.dps;
-    var minDpsVal = data.min.dps; // NEU
-    var maxDpsVal = data.max.dps; // NEU
+    var medianDps = data.median.dps;
+    var p5DpsVal = data.p5.dps; // NEU
+    var p95DpsVal = data.p95.dps; // NEU
 
     // 3. Balken rendern
     buckets.forEach(function (count, i) {
@@ -2341,15 +2341,15 @@ function renderDPSDistribution(data) {
         var bucketEnd = bucketStart + step;
 
         // Highlight für Durchschnitt
-        if (avgDps >= bucketStart && avgDps <= bucketEnd) {
+        if (medianDps >= bucketStart && medianDps <= bucketEnd) {
             bar.classList.add('highlight');
         }
         // NEU: Highlight für Min (Blau)
-        if (minDpsVal >= bucketStart && minDpsVal <= bucketEnd) {
+        if (p5DpsVal >= bucketStart && p5DpsVal <= bucketEnd) {
             bar.classList.add('highlight-min');
         }
         // NEU: Highlight für Max (Grün)
-        if (maxDpsVal >= bucketStart && maxDpsVal <= bucketEnd) {
+        if (p95DpsVal >= bucketStart && p95DpsVal <= bucketEnd) {
             bar.classList.add('highlight-max');
         }
 
@@ -2520,8 +2520,8 @@ function renderRotationList() {
 
         // Exact Execution Count from Engine (Moonkin Engine hook compat)
         var exactCount = 0;
-        if (typeof SIM_DATA !== 'undefined' && SIM_DATA && SIM_DATA.avg && SIM_DATA.avg.stats && SIM_DATA.avg.stats.stepCounts && SIM_DATA.avg.stats.stepCounts[step.id]) {
-            exactCount = Math.round(SIM_DATA.avg.stats.stepCounts[step.id]);
+        if (typeof SIM_DATA !== 'undefined' && SIM_DATA && SIM_DATA.median && SIM_DATA.median.stats && SIM_DATA.median.stats.stepCounts && SIM_DATA.median.stats.stepCounts[step.id]) {
+            exactCount = Math.round(SIM_DATA.median.stats.stepCounts[step.id]);
         }
         // id="badge_step_${step.id}" is kept so 05_engine.js can update it natively!
         var countHtml = `<span class="rb-step-count" id="badge_step_${step.id}" style="${exactCount > 0 ? '' : 'display:none;'}">${exactCount}x</span>`;

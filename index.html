@@ -140,9 +140,9 @@
                                                 <th>Lvl</th>
                                                 <th>Rota / Talents</th>
                                                 <th>Gear & Sets</th>
-                                                <th style="color:#90caf9; text-align:right;">Min DPS</th>
-                                                <th style="color:#ffb74d; text-align:right;">Avg DPS</th>
-                                                <th style="color:#a5d6a7; text-align:right;">Max DPS</th>
+                                                <th style="color:#90caf9; text-align:right;">5% DPS</th>
+                                                <th style="color:#ffb74d; text-align:right;">Median DPS</th>
+                                                <th style="color:#a5d6a7; text-align:right;">95% DPS</th>
                                                 <th style="text-align:center;">Del</th>
                                             </tr>
                                         </thead>
@@ -701,9 +701,9 @@
                                 <div class="center-toggles">
                                     <div class="view-toggles">
                                         <button class="view-btn" onclick="switchView('seed')" id="viewSeed" title="Zeigt exakt den ersten berechneten Durchlauf (Iteration 0) für den gewählten Seed">Seed Run</button>
-                                        <button class="view-btn" onclick="switchView('min')" id="viewMin">Min DPS</button>
-                                        <button class="view-btn active" onclick="switchView('avg')" id="viewAvg">Average</button>
-                                        <button class="view-btn" onclick="switchView('max')" id="viewMax">Max DPS</button>
+                                        <button class="view-btn" onclick="switchView('p5')" id="viewP5">5% DPS</button>
+                                        <button class="view-btn active" onclick="switchView('median')" id="viewMedian">Median</button>
+                                        <button class="view-btn" onclick="switchView('p95')" id="viewP95">95% DPS</button>
                                     </div>
                                 </div>
                                 <!--<div class="right-actions"><button onclick="generateSummaryImage()" class="btn-mini"
@@ -827,56 +827,6 @@
         </main>
     </div>
 
-    <div id="summaryCard" class="summary-card">
-        <div class="summary-header">
-            <div class="summary-branding"><img src="Krokat.png" class="sum-avatar">
-                <div>
-                    <div class="summary-title">Moonkin Sim</div>
-                    <div class="summary-sim-name" id="sumSimName">Sim Name</div>
-                </div>
-            </div>
-            <div class="summary-meta">
-                <div id="sumDate">Date</div>
-                <div>Krokat's Sim 1.18</div>
-            </div>
-        </div>
-        <div class="summary-hero-row">
-            <div class="hero-box">
-                <div class="hero-label">Average DPS</div>
-                <div class="hero-val text-orange" id="sumAvg">0.0</div>
-                <div class="hero-sub">Range: <span id="sumMin">0</span> - <span id="sumMax">0</span></div>
-            </div>
-            <div class="hero-box">
-                <div class="hero-label">Duration</div>
-                <div class="hero-val" id="sumTime">120s</div>
-                <div class="hero-sub" id="sumMethod">RNG</div>
-            </div>
-        </div>
-        <div id="sumChartContainer" class="sum-chart-container"></div>
-        <div class="summary-grid">
-            <div class="sum-col">
-                <div class="sum-sec-title">Player Stats</div>
-                <div class="sum-row"><span>Total SP</span> <span id="sumSP">0</span></div>
-                <div class="sum-row"><span>Crit Chance</span> <span id="sumCrit">0%</span></div>
-                <div class="sum-row"><span>Hit Bonus</span> <span id="sumHit">0%</span></div>
-                <div class="sum-row"><span>Haste</span> <span id="sumHaste">0%</span></div>
-                <div class="sum-sec-title" style="margin-top:15px;">Enemy</div>
-                <div class="sum-row"><span>Level</span> <span id="sumLvl">63</span></div>
-                <div class="sum-row"><span>Resistances</span> <span id="sumRes">0 / 0</span></div>
-            </div>
-            <div class="sum-col">
-                <div class="sum-sec-title">Rotation Mechanics</div>
-                <ul class="sum-list" id="sumRotaList"></ul>
-            </div>
-            <div class="sum-col">
-                <div class="sum-sec-title">Gear & Sets</div>
-                <ul class="sum-list" id="sumGearList"></ul>
-                <div class="sum-sec-title" style="margin-top:15px;">Trinkets</div>
-                <ul class="sum-list" id="sumTrinketList"></ul>
-            </div>
-        </div>
-        <div class="summary-footer">Classic Moonkin Simulator</div>
-    </div>
 
     <script src="js/01_globals.js"></script>
     <script src="js/02_utils.js"></script>
