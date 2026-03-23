@@ -530,7 +530,7 @@ function runCoreSimulation(cfg) {
     var cosMod = 1 + 0.1 * cfg.enemy.cos;
 
     // Spells
-    var w_base = 310; var w_coeff = (2.0 / 3.5) * 1.05;
+    var w_base = 310; var w_coeff = 0.62; //(2.0 / 3.5) * 1.05;
     var sf_base = 540; var sf_coeff = 1.0;
     var mf_d_base = 210; var mf_d_coeff = 0.14;
     var mf_t_base = 95.6; var mf_t_coeff = 0.13;
