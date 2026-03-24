@@ -12,40 +12,18 @@ function setupUIListeners() {
     var methodSelect = document.getElementById('calcMethod');
     setupCollapsibleCards();
     var iterInput = document.getElementById('simCount');
-    if (methodSelect && iterInput) {
-        methodSelect.addEventListener('change', function () {
-            if (methodSelect.value === 'S') {
-                iterInput.disabled = false;
-                iterInput.parentElement.style.opacity = "1";
-            } else {
-                iterInput.disabled = true;
-                iterInput.parentElement.style.opacity = "0.5";
-            }
-            saveCurrentState();
-        });
-        if (methodSelect.value !== 'S') {
-            iterInput.disabled = true;
-            iterInput.parentElement.style.opacity = "0.5";
-        }
-    }
-    // PATCH 1.18.1 LOGIC: Game Version & Idols
-    var patchSel = document.getElementById('sim_patch');
-    if (patchSel) {
-        patchSel.addEventListener('change', function () {
-            updatePatchUI();
-            saveCurrentState();
-        });
+    if (iterInput) {
+        iterInput.disabled = false;
+        iterInput.parentElement.style.opacity = "1";
     }
 
-    // IDOL EXCLUSIVITY FOR 1.18.1
+    // IDOL EXCLUSIVITY FOR 1.18.1c
     var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity","idolEquilibrium"];
     idolIds.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) {
             el.addEventListener('change', function (e) {
-                // Nur aktiv wenn Patch 1.18.1 ausgewählt ist
-                var p = document.getElementById('sim_patch');
-                if (p && p.value.startsWith('1.18.1') && e.target.checked) {
+                if (e.target.checked) {
                     idolIds.forEach(function (otherId) {
                         if (otherId !== id) {
                             var other = document.getElementById(otherId);
@@ -103,14 +81,8 @@ function setupUIListeners() {
                 elArc.disabled = !active;
                 // Wenn deaktiviert, visuell auf Standard zurücksetzen
                 if (!active) {
-                    var patchVal = document.getElementById('sim_patch') ? document.getElementById('sim_patch').value : "";
-                    if (patchVal === '1.18.1c') {
-                        elNat.value = 60;
-                        elArc.value = 40;
-                    } else {
-                        elNat.value = 50;
-                        elArc.value = 30;
-                    }
+                    elNat.value = 60;
+                    elArc.value = 40;
                 }
             }
             saveCurrentState();
@@ -409,12 +381,12 @@ var CONFIG_VERSION = 2; // Version 2: Delta-Encoding aktiv!
 
 // Wörterbuch für die Standardwerte (alles was nicht hier steht, ist standardmäßig 0 oder "")
 var DEFAULT_CFG_VALUES = {
-    "sim_patch": "1.18",
+    "sim_patch": "1.18.1c",
     "maxTime": 60,
     "simCount": 10000,
     "calcMethod": "S",
-    "stat_proc_nature": 50,
-    "stat_proc_arcane": 30,
+    "stat_proc_nature": 60,
+    "stat_proc_arcane": 40,
     "enemy_level": 63,
     "char_race": "Tauren"
 };
@@ -971,7 +943,7 @@ function renderComparisonTable() {
         var avgDps = r ? r.median.dps.toFixed(1) : "-";
         var minDps = (r && r.p5) ? r.p5.dps.toFixed(1) : "-";
         var maxDps = (r && r.p95) ? r.p95.dps.toFixed(1) : "-";
-        var method = c.calcMethod === 'S' ? 'RNG' : (c.calcMethod.includes('CYC') ? 'Cyc' : 'Avg');
+        var method = 'RNG';
         var rName = c.custom_rotation ? c.custom_rotation.name : "Custom";
         var rota = '<span class="detail-text">Rota: ' + rName + '</span>';
         var activeSpells = [];
@@ -1020,6 +992,7 @@ function renderComparisonTable() {
     });
 }
 
+/*
 function generateSummaryImage() {
     if (!SIM_DATA) { alert("Run Sim first."); return; }
 
@@ -1108,7 +1081,7 @@ function generateSummaryImage() {
             link.click();
         });
     }
-}
+}*/
 
 // ============================================================================
 // VIEW RENDERING
@@ -1278,7 +1251,7 @@ function switchView(type) {
 function renderCombatLog(logData) {
     if (!logData || logData.length === 0) return;
     var cfg = getInputs();
-    var showBoat = (cfg.sim_patch === "1.18");
+    var showBoat = false;
 
     // Container und Header-Referenzen
     var thead = document.getElementById("logHeader");
@@ -2303,63 +2276,42 @@ function applyImportData(importedItems, race, charName) {
 }
 
 function updatePatchUI() {
-    var p = document.getElementById('sim_patch');
-    var ver = p ? p.value : "1.18";
-
-    // 1. Disable BoaT Stacks Input for 1.18.1 (Passiv)
+    // 1. Disable BoaT Stacks Input for 1.18.1c (Passiv)
     var boatInput = document.getElementById('start_boat');
     if (boatInput) {
-        if (ver.startsWith('1.18.1')) {
-            boatInput.disabled = true;
-            boatInput.parentElement.style.opacity = "0.5";
-            boatInput.value = 0; // Reset visual value
-        } else {
-            boatInput.disabled = false;
-            boatInput.parentElement.style.opacity = "1";
-        }
+        boatInput.disabled = true;
+        boatInput.parentElement.style.opacity = "0.5";
+        boatInput.value = 0; // Reset visual value
     }
 
-    // 2. Disable External DoTs if not 1.18.1
+    // 2. Enable External DoTs
     var extIds = ["enemy_ext_mf", "enemy_ext_is"];
     extIds.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) {
-            if (!ver.startsWith('1.18.1')) {
-                el.checked = false; // Force false
-                el.disabled = true; // Prevent input
-                if (el.parentElement) el.parentElement.style.opacity = "0.5"; // Visual feedback
-            } else {
-                el.disabled = false;
-                if (el.parentElement) el.parentElement.style.opacity = "1";
-            }
+            el.disabled = false;
+            if (el.parentElement) el.parentElement.style.opacity = "1";
         }
     });
 
-    // 3. Ensure Single Idol Selection when switching to 1.18.1
-    if (ver.startsWith('1.18.1')) {
-        var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang","idolAcidity", "idolEquilibrium"];
-        var found = false;
-        idolIds.forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el && el.checked) {
-                if (found) el.checked = false; // Deselect others if one is already found
-                found = true;
-            }
-        });
-    }
+    // 3. Ensure Single Idol Selection
+    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang","idolAcidity", "idolEquilibrium"];
+    var found = false;
+    idolIds.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.checked) {
+            if (found) el.checked = false; // Deselect others if one is already found
+            found = true;
+        }
+    });
 
     // 4. Update Eclipse Default Values visually if override is disabled
     var elEclOver = document.getElementById('stat_override_eclipse');
     var elNat = document.getElementById('stat_proc_nature');
     var elArc = document.getElementById('stat_proc_arcane');
     if (elEclOver && !elEclOver.checked && elNat && elArc) {
-        if (ver === '1.18.1c') {
-            elNat.value = 60;
-            elArc.value = 40;
-        } else {
-            elNat.value = 50;
-            elArc.value = 30;
-        }
+        elNat.value = 60;
+        elArc.value = 40;
     }
 }
 

@@ -319,11 +319,8 @@
                                                 <div class="input-group">
                                                     <label>Game Version</label>
                                                     <div class="select-wrapper">
-                                                        <select id="sim_patch">
-                                                            <option value="1.18">1.18 (Current)</option>
-                                                            <option value="1.18.1a">1.18.1a (Rev. 0)</option>
-                                                            <option value="1.18.1b">1.18.1b (Rev. 1)</option>
-                                                            <option value="1.18.1c">1.18.1c (Rev. 2)</option>
+                                                        <select id="sim_patch" disabled>
+                                                            <option value="1.18.1c" selected>1.18.1c (Rev. 2)</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -332,7 +329,7 @@
                                                 <div class="input-group"><label>Cast Delay (ms)</label><input
                                                         type="number" id="avcd" value="30"></div>
                                                 <div class="input-group"><label>Calculation Method</label>
-                                                    <div class="select-wrapper"><select id="calcMethod">
+                                                    <div class="select-wrapper"><select id="calcMethod" disabled>
                                                             <option value="S">Stochastic (RNG)</option>
                                                         </select></div>
                                                 </div>

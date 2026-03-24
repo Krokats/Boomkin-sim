@@ -23,14 +23,14 @@ function getInputs() {
     var hasteMultVal = hasteInput && hasteInput.getAttribute("data-mult") ? parseFloat(hasteInput.getAttribute("data-mult")) : 1.0;
 
     // Eclipse Override Logic
-    var patchVer = document.getElementById("sim_patch") ? document.getElementById("sim_patch").value : "1.18";
+    var patchVer = "1.18.1c";
     var useOver = getVal("stat_override_eclipse");
-    var valNE = useOver ? getVal("stat_proc_nature") : (patchVer === "1.18.1c" ? 60 : 50);
-    var valAE = useOver ? getVal("stat_proc_arcane") : (patchVer === "1.18.1c" ? 40 : 30);
+    var valNE = useOver ? getVal("stat_proc_nature") : 60;
+    var valAE = useOver ? getVal("stat_proc_arcane") : 40;
 
     return {
         sim_patch: patchVer,
-        mode: m, iterations: (m.startsWith("D")) ? 1 : (rawSims > 0 ? rawSims : 1), maxTime: getVal("maxTime"), avcd: getVal("avcd") / 1000,
+        mode: "S", iterations: (rawSims > 0 ? rawSims : 1), maxTime: getVal("maxTime"), avcd: getVal("avcd") / 1000,
         rng_seed: document.getElementById("rng_seed") ? document.getElementById("rng_seed").value : "",
         rota: {
             spellInterrupt: getVal("rota_interrupt"),
@@ -57,11 +57,6 @@ function getInputs() {
 
 async function runSimulation() {
     var config = getInputs();
-
-    // Deterministische Modi (Cycle/Avg) laufen immer nur 1x
-    if (config.mode !== 'S') {
-        config.iterations = 1;
-    }
 
     // 1. UI Setup
     showProgress("Simulating...");
@@ -511,10 +506,6 @@ function runCoreSimulation(cfg) {
     // 1. RNG Setup
     var rngHandler = new RNGHandler(cfg.seed);
 
-    if (!cfg.sim_patch.startsWith("1.18.1")) {
-        cfg.enemy.extMF = 0;
-        cfg.enemy.extIS = 0;
-    }
     // 2. Statische Werte vorbereiten
     var effResNat = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resNat - cfg.power.pen);
     var effResArc = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resArc - cfg.power.pen);
@@ -530,8 +521,10 @@ function runCoreSimulation(cfg) {
     var cosMod = 1 + 0.1 * cfg.enemy.cos;
 
     // Spells
-    var w_base = 310; var w_coeff = 0.62; //(2.0 / 3.5) * 1.05;
-    var sf_base = 540; var sf_coeff = 1.0;
+    var w_min = 292, w_max = 328; // Wrath: 292-328 (Avg 310)
+    var sf_min = 496, sf_max = 584; // Starfire: 496-584 (Avg 540)
+    var w_coeff = 0.62; //(2.0 / 3.5) * 1.05;
+    var sf_coeff = 1.0;
     var mf_d_base = 210; var mf_d_coeff = 0.14;
     var mf_t_base = 95.6; var mf_t_coeff = 0.13;
     var is_base = 53.35; var is_coeff = ((18 / 15) * 0.95 * 1.25) / 9;
@@ -539,8 +532,8 @@ function runCoreSimulation(cfg) {
     var durIS = 18.0 + (cfg.gear.t3_4p ? 2.0 : 0); 
 
     var Spells = {
-        Wrath: { name: "Wrath", id: "Wrath", type: "Nature", baseCast: 1.5, base: w_base, coeff: w_coeff, flight: cfg.rota.wrathFlight, isDot: false, cost: 149, dur: 0, tick: 0 },
-        Starfire: { name: "Starfire", id: "Starfire", type: "Arcane", baseCast: 3.0, base: sf_base, coeff: sf_coeff, flight: 0.0, isDot: false, cost: 241, dur: 0, tick: 0 },
+        Wrath: { name: "Wrath", id: "Wrath", type: "Nature", baseCast: 1.5, min: w_min, max: w_max, base: 310, coeff: w_coeff, flight: cfg.rota.wrathFlight, isDot: false, cost: 149, dur: 0, tick: 0 },
+        Starfire: { name: "Starfire", id: "Starfire", type: "Arcane", baseCast: 3.0, min: sf_min, max: sf_max, base: 540, coeff: sf_coeff, flight: 0.0, isDot: false, cost: 241, dur: 0, tick: 0 },
         Moonfire: { name: "Moonfire", id: "Moonfire", type: "Arcane", baseCast: 0, base: mf_d_base, coeff: mf_d_coeff, tickBase: mf_t_base, tickCoeff: mf_t_coeff, dur: durMF, tick: 3.0, flight: 0.0, isDot: true, cost: 266 },
         InsectSwarm: { name: "Insect Swarm", id: "InsectSwarm", type: "Nature", baseCast: 0, base: 0, coeff: 0, tickBase: is_base, tickCoeff: is_coeff, dur: durIS, tick: 2.0, flight: 0.0, isDot: true, cost: 128 }
     };
@@ -577,29 +570,13 @@ function runCoreSimulation(cfg) {
     
     var RunLog = [];
 
-    // 4. Internes RNG Objekt (Hybrid: Seeded für 'S', Akkumulator für Deterministic)
+    // 4. Internes RNG Objekt (Stochastisch)
     var RNG = {
-        mode: cfg.mode,
-        acc: { hit: 0, crit: 0, procNE: 0, procAE: 0, procBoaT: 0, procT36p: 0, binding: 0, scythe: 0, procNobility: 0, procSulfuras: 0, procSigil: 0, procChromie: 0, procSphere: 0, ooc: 0, boon: 0, procAcidity: 0,procEquilWrath: 0, procEquilSF: 0 },
-
-        // Prüft prozentuale Chance (0-100)
         check: function (chance, id) {
-            if (this.mode === "S") return rngHandler.check(chance);
-            
-            // Deterministischer Modus: Akkumulieren
-            this.acc[id] += chance;
-            if (this.acc[id] >= 100) { this.acc[id] -= 100; return true; }
-            return false;
+            return rngHandler.check(chance);
         },
-        
-        // Prüft Hit Chance (0.0 - 1.0)
         checkHit: function (chance) {
-            if (this.mode === "S") return rngHandler.checkFloat(chance);
-            if (this.mode === "D_AVG") return true; // Average Mode trifft immer (Schaden wird gemittelt)
-            
-            this.acc.hit += (1.0 - chance);
-            if (this.acc.hit >= 1.0) { this.acc.hit -= 1.0; return false; }
-            return true;
+            return rngHandler.checkFloat(chance);
         }
     };
 
@@ -675,7 +652,6 @@ function runCoreSimulation(cfg) {
     var getResist = function (school) { 
         var currentAvgMitNat = (State.t < State.acidityEnd) ? avgMitNatAcidity : avgMitNat;
         var avgMit = (school === "Nature") ? currentAvgMitNat : avgMitArc; 
-        if (cfg.mode !== "S") { return { val: 1.0 - avgMit, txt: "" }; }
         
         // Resist Logic
         var range = avgMit / 0.25; 
@@ -772,10 +748,9 @@ function runCoreSimulation(cfg) {
         var base = baseCast; 
         if (State.ng && (spellId === "Wrath" || spellId === "Starfire")) base -= 0.5; 
         if (spellId === "Starfire") { 
-            if (cfg.sim_patch === "1.18" && State.boat > 0) base -= cfg.talents.boatReduc; 
             if (cfg.gear.idolEoF) base -= 0.2;
         } 
-        if (base < 0) base = 0; 
+        if (base < 0) base = 0;
         var hasteFactor = cfg.stats.hasteFactor; // Nutzt jetzt den echten multiplikativen Wert aus dem UI/Gear
         if (cfg.gear.t3_8p && State.t < State.t38End) hasteFactor *= 1.10;
         // NEU: Scythe of Elune Haste Buff
@@ -790,12 +765,19 @@ function runCoreSimulation(cfg) {
     var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData) { 
         var useEcl = (forceSnap !== undefined) ? forceSnap : ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE())); 
         var currentSP = getCurrentSP(spell.type); 
-        var baseRaw = (isTick) ? (spell.tickBase + spell.tickCoeff * currentSP) : (spell.base + spell.coeff * currentSP); 
         
-        // --- MOONFURY CHANGE (1.18.1b: 10% -> 12%) ---
-        var baseMoonfury = 0.10;
-        if (cfg.sim_patch === "1.18.1b" || cfg.sim_patch === "1.18.1c" ) baseMoonfury = 0.12;
-        var diff = baseMoonfury - 0.10; // 0.00 or 0.02
+        // Base Damage calculation with variability
+        var baseDmg = spell.base;
+        if (!isTick && spell.min !== undefined && spell.max !== undefined) {
+            // Stochastic mode: Roll between min and max
+            baseDmg = spell.min + (rngHandler.rand() * (spell.max - spell.min));
+        }
+
+        var baseRaw = (isTick) ? (spell.tickBase + spell.tickCoeff * currentSP) : (baseDmg + spell.coeff * currentSP);
+        
+        // --- MOONFURY 1.18.1c ---
+        var baseMoonfury = 0.12;
+        var diff = 0.02; // difference to 0.10 for calculations
 
         var baseClassMod = baseMoonfury; 
         // Add diff to existing hardcoded overrides to maintain relation
@@ -816,17 +798,7 @@ function runCoreSimulation(cfg) {
         var debuffMult = 1.0; 
         if (spell.type === "Arcane") debuffMult = 1.0 * cosMod; 
         
-        if (cfg.mode === "D_AVG") { 
-            var hitM = cfg.stats.hit; 
-            var currentAvgMitNat = (State.t < State.acidityEnd) ? avgMitNatAcidity : avgMitNat;
-            var avgRes = (spell.type === "Nature" ? currentAvgMitNat : avgMitArc); 
-            var critM = 1.0;
-            if (!isTick) critM = (1.0 + (cfg.stats.crit / 100)); 
-            debuffMult *= hitM * critM * (1.0 - avgRes); 
-            isCrit = false; 
-        } else { 
-            if (resistData) debuffMult *= resistData.val; 
-        } 
+        if (resistData) debuffMult *= resistData.val; 
         
         var finalDmg = baseRaw * classMult * debuffMult; 
         var critBonus = isCrit ? finalDmg : 0; 
@@ -839,26 +811,16 @@ function runCoreSimulation(cfg) {
         var logCrit = 0; 
         var logEcl = 0;
 
-        if (cfg.mode === "D_AVG" && !isTick) { 
-            var critM = (1.0 + (cfg.stats.crit / 100)); 
-            var nonCritTotal = total / critM; 
-            logCrit = total - nonCritTotal; 
-            var ratioEcl = (classMultNoEcl / classMult); 
-            var normBase = nonCritTotal * ratioEcl; 
-            logEcl = nonCritTotal - normBase; 
-            logNorm = normBase; 
+        if (isCrit) { 
+            logCrit = total / 2; 
+            var basePart = logCrit; 
+            logNorm = basePart * ratio; 
+            logEcl = basePart - logNorm; 
         } else { 
-            if (isCrit) { 
-                logCrit = total / 2; 
-                var basePart = logCrit; 
-                logNorm = basePart * ratio; 
-                logEcl = basePart - logNorm; 
-            } else { 
-                logCrit = 0; 
-                logNorm = total * ratio; 
-                logEcl = total - logNorm; 
-            } 
-        } 
+            logCrit = 0; 
+            logNorm = total * ratio; 
+            logEcl = total - logNorm; 
+        }
         
         var t3Part = 0; 
         if (hasT3) { 
@@ -880,12 +842,11 @@ function runCoreSimulation(cfg) {
         var cost = spell.cost; 
         var note = ""; 
         if (State.ooc) { cost = 0; State.ooc = false; note = "OoC"; } 
-        else if (cfg.sim_patch === "1.18" && spell.id === "Wrath" && State.boon > 0) { cost = cost / 2; State.boon--; note = "Boon"; } 
         RunStats.totalMana += cost;
 
-        // 1.18.1 BoaT: Wrath returns Mana if IS is up (Self or External)
+        // 1.18.1c BoaT: Wrath returns Mana if IS is up (Self or External)
         var isISActive = (State.activeIS && State.activeIS.exp > State.t) || cfg.enemy.extIS;
-        if (cfg.sim_patch.startsWith("1.18.1") && spell.id === "Wrath" && isISActive) {
+        if (spell.id === "Wrath" && isISActive) {
             var boatManaFactor = 0.30; // 30% Base (3/3 Talents)
             if (cfg.gear.t35_5p) boatManaFactor *= 1.5; // T3.5 Bonus -> 45%
             var returnAmt = cost * boatManaFactor; 
@@ -899,8 +860,7 @@ function runCoreSimulation(cfg) {
         if(spell.stepId) RunStats.stepCounts[spell.stepId] = (RunStats.stepCounts[spell.stepId] || 0) + 1;
         log(State.t, "CAST_START", spell.name, "-", null, ct.toFixed(2), note, cost); 
         if (State.ng && (spell.id === "Wrath" || spell.id === "Starfire")) State.ng = false; 
-        if (cfg.sim_patch === "1.18" && spell.id === "Starfire" && State.boat > 0) State.boat--;
-        if (spell.id === "Wrath" || spell.id === "Starfire") State.fishingLastCast = spell.id; 
+        if (spell.id === "Wrath" || spell.id === "Starfire") State.fishingLastCast = spell.id;
         
         // FIX: Variable definieren
         var eclActive = ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE()));
@@ -936,16 +896,11 @@ function runCoreSimulation(cfg) {
         
         // CRIT CHECK
         var finalCritChance = cfg.stats.crit;
-        // 1.18.1 BoaT: Starfire Crit if MF is up (Self or External)
+        // 1.18.1c BoaT: Starfire Crit if MF is up (Self or External)
         var isMFActive = (State.activeMF && State.activeMF.exp > State.t) || cfg.enemy.extMF;
-        // Check for both 1.18.1 AND 1.18.1b, 1.18.1c
-        if (cfg.sim_patch.startsWith("1.18.1") && spell.id === "Starfire" && isMFActive) {
-            var boatCritBonus = 6.0; // 6% Base (3/3 Talents)
-            
-            // UPDATE 1.18.1b: Increased to 9% base
-            if (cfg.sim_patch === "1.18.1b" || cfg.sim_patch === "1.18.1c") boatCritBonus = 9.0;
-
-            if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 9% (or 13.5% in 1.18.1b and c)
+        if (spell.id === "Starfire" && isMFActive) {
+            var boatCritBonus = 9.0;
+            if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 13.5%
             finalCritChance += boatCritBonus;
         }
 
@@ -1153,13 +1108,7 @@ function runCoreSimulation(cfg) {
         if (payload.spellId === "InsectSwarm") RunStats.dmgIS += d.total; 
         if (payload.spellId === "Moonfire") RunStats.dmgMFTick += d.total; 
         
-        // OLD BoaT Procs (Only 1.18)
-        if (cfg.sim_patch === "1.18") {
-            if (payload.spellId === "Moonfire" && cfg.talents.boon && RNG.check(30, "boon") && State.boon < 3) State.boon++; 
-            if (payload.spellId === "InsectSwarm" && RNG.check(cfg.talents.boatChance * 100, "procBoaT") && State.boat < 3) State.boat++; 
-        }
-        
-        if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
+        if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) {
             State.t3End = State.t + 6.0; 
             log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick"); 
         } 
