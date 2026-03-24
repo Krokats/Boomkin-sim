@@ -112,7 +112,7 @@ var PRESET_ROTATIONS = {
             ], disabled: false },
             { id: 8, skill: "Wrath", conditions: [
                 { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" },
-                { type: "time_remaining",  op: ">=", val: "11.5"}
+                { type: "time_remaining",  op: ">=", val: "1.5"}
             ], disabled: false },
             { id: 9, skill: "Starfire", conditions: [
                 { type: "player_debuff_rem", target: "Natural Solstice", op: ">", val: "0" },
