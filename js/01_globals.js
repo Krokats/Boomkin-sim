@@ -266,7 +266,61 @@ var PRESET_ROTATIONS = {
                 { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" },
                 { type: "time_remaining",  op: ">=", val: "1.5"}
             ], disabled: false },
-            { id: 11, skill: "Wrath", conditions: [], disabled: false },
+            { id: 11, skill: "Wrath", conditions: [
+                { type: "time_remaining",  op: ">=", val: "1.5"}], disabled: false },
+            { id: 12, skill: "Moonfire", conditions: [
+                { type: "time_remaining",  op: "<", val: "1.5"}
+            ], disabled: false }
+                
+        ]
+    },
+    "Standard 2": {
+        name: "Full Rotation (Starfire Fishing)",
+        desc: "Default rotation with DoTs and Eclipse. Refresh DoTs at End of Eclipse, use Starfire for Fishing outside of Solstices.",
+        steps: [
+            { id: 1, skill: "Trinket1", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 2, skill: "Trinket2", conditions: [{ type: "time_elapsed",  op: "<=", val: "0" }], disabled: false },
+            { id: 3, skill: "InsectSwarm", conditions: [
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "0"}, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"},
+                { type: "time_remaining",  op: ">=", val: "15"}
+            ], disabled: false },
+            { id: 4, skill: "InsectSwarm", conditions: [
+                { type: "ecl_vs_cast", target: "Wrath", bool: "false" }, 
+                { type:"buff_rem", target: "Nature Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Insect Swarm", op: "<=", val: "12"}, 
+                { type: "time_remaining",  op: ">=", val: "15"}
+            ], disabled: false },
+            { id: 5, skill: "Moonfire", conditions: [
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
+                { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "time_remaining",  op: ">=", val: "15"}
+            ], disabled: false },
+            { id: 6, skill: "Moonfire", conditions: [
+                { type: "ecl_vs_cast", target: "Starfire", bool: "false" }, 
+                { type:"buff_rem", target: "Arcane Eclipse", op: ">", val: "0"},
+                { type: "debuff_rem", target: "Moonfire", op: "<=", val: "12"}, 
+                { type: "time_remaining",  op: ">=", val: "15"}
+            ], disabled: false },
+            { id: 7, skill: "Starfire", conditions: [
+                { type: "buff_rem", target: "Arcane Eclipse", op: ">", val: "0" },
+                { type: "time_remaining",  op: ">=", val: "2.5"}
+            ], disabled: false },
+            { id: 8, skill: "Wrath", conditions: [
+                { type: "buff_rem", target: "Nature Eclipse", op: ">", val: "0" },
+                { type: "time_remaining",  op: ">=", val: "1.5"}
+            ], disabled: false },
+            { id: 9, skill: "Starfire", conditions: [
+                { type: "player_debuff_rem", target: "Natural Solstice", op: ">", val: "0" },
+                { type: "time_remaining",  op: ">=", val: "2.5"}
+            ], disabled: false },
+            { id: 10, skill: "Wrath", conditions: [
+                { type: "player_debuff_rem", target: "Arcane Solstice", op: ">", val: "0" },
+                { type: "time_remaining",  op: ">=", val: "1.5"}
+            ], disabled: false },
+            { id: 11, skill: "Starfire", conditions: [
+                { type: "time_remaining",  op: ">=", val: "2.5"}], disabled: false },
             { id: 12, skill: "Moonfire", conditions: [
                 { type: "time_remaining",  op: "<", val: "1.5"}
             ], disabled: false }
