@@ -1262,6 +1262,7 @@ function renderCombatLog(logData) {
     if (showBoat) baseCols += `<th style="width: 30px;">BoaT</th>`;
     baseCols += `<th style="width: 30px;">NG</th><th style="width: 30px;">OoC</th><th style="width: 30px;">NB</th><th style="width: 40px;">SP</th><th style="width: 45px; color:#ff9800;">Haste</th><th style="width: 30px;">T3.6</th><th style="width: 30px;">T3.8</th><th style="width: 40px; color:#00b0ff;">Mana</th>`;
     if (cfg.gear.binding) baseCols += `<th style="width: 40px; color:#e91e63;">Bind</th>`;
+    if (cfg.gear.stag_5p) baseCols += `<th style="width: 40px; color:#ffeb3b;">Stag</th>`;
     if (cfg.gear.reos) baseCols += `<th style="width: 40px; color:#e91e63;">REoS</th>`;
     if (cfg.gear.toep) baseCols += `<th style="width: 40px; color:#e91e63;">ToEP</th>`;
     if (cfg.gear.roop) baseCols += `<th style="width: 40px; color:#e91e63;">RoOP</th>`;
@@ -1303,6 +1304,7 @@ function renderCombatLog(logData) {
         if (showBoat) html += `<td>${boatStr}</td>`;
         html += `<td>${ngStr}</td><td>${oocStr}</td><td>${boonStr}</td><td class="col-sp">${entry.sp}</td><td style="color:#ffb74d;">${entry.haste}</td><td>${entry.t36}</td><td>${entry.t38}</td><td class="col-mana">${entry.mana}</td>`;
         if (cfg.gear.binding) html += `<td>${entry.bBind}</td>`;
+        if (cfg.gear.stag_5p) html += `<td style="color:#ffeb3b;">${entry.stag > 0 ? '+' + entry.stag + '%' : '-'}</td>`;
         if (cfg.gear.reos) html += `<td>${entry.bReos}</td>`;
         if (cfg.gear.toep) html += `<td>${entry.bToep}</td>`;
         if (cfg.gear.roop) html += `<td>${entry.bRoop}</td>`;

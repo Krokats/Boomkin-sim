@@ -23,7 +23,42 @@ var ENCHANT_SELECTION = {};
 // GEAR PRESETS (BiS Lists)
 // ============================================================================
 var GEAR_PRESETS = {
-    "AQ40 BiS": {
+    "BWL+ES+TMH BiS": {
+        gear: {
+            "Head": 19375, // Ersetze 0 durch die tatsächliche Item-ID
+            "Neck": 61522,
+            "Shoulder": 33381,
+            "Back": 19857,
+            "Chest": 61524,
+            "Wrist": 47349,
+            "Hands": 47350,
+            "Waist": 19388,
+            "Legs": 33384,
+            "Feet": 33385,
+            "Finger 1": 22721,
+            "Finger 2": 19403,
+            "Trinket 1": 61209,
+            "Trinket 2": 19379,
+            "Main Hand": 19356,
+            "Off Hand": 0,
+            "Relic": 0
+        },
+        enchants: {
+            "Head": 22844,
+            "Neck": 51043,
+            "Shoulder": 57156,
+            "Back": 25084,
+            "Chest": 57135,
+            "Wrist": 57028,
+            "Hands": 13948,
+            "Waist": 57182,
+            "Legs": 22844,
+            "Feet": 57135,
+            "Finger 1": 51043,
+            "Finger 2": 51043,
+            "Main Hand": 22749,
+        },
+        "AQ40 BiS": {
         gear: {
             "Head": 41077, // Ersetze 0 durch die tatsächliche Item-ID
             "Neck": 61522,
@@ -46,7 +81,7 @@ var GEAR_PRESETS = {
         enchants: {
             "Head": 22844,
             "Neck": 51043,
-            "Shoulder": 29467,
+            "Shoulder": 57156,
             "Back": 25084,
             "Chest": 57135,
             "Wrist": 57028,
@@ -58,7 +93,8 @@ var GEAR_PRESETS = {
             "Finger 2": 51043,
             "Main Hand": 22749,
         }
-    },"Naxx BiS": {
+    },
+    "Naxx BiS": {
         gear: {
             "Head": 41077, // Ersetze 0 durch die tatsächliche Item-ID
             "Neck": 23057,
@@ -160,6 +196,7 @@ var GEAR_PRESETS = {
             "Finger 1": 51043,
             "Finger 2": 51043,
             "Main Hand": 22749,
+            }
         }
     }
 };
@@ -172,7 +209,7 @@ var CONFIG_IDS = [
     "enemy_level", "res_arcane", "res_nature", "enemy_cos", "enemy_ext_mf", "enemy_ext_is",
     "start_boat", "wrath_flight",
     "rota_interrupt", "rota_interrupt_thresh",
-    "t3_4p", "t3_6p", "t3_8p", "t35_5p",
+    "stag_5p","t3_4p", "t3_6p", "t3_8p", "t35_5p",
     "idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity", "idolEquilibrium",
     "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp", "item_sphere",
     "item_reos", "item_toep", "item_roop", "item_zhc",

@@ -738,6 +738,7 @@ function calculateGearStats() {
     var setCounts = {};
 
     // Counters for Auto-Checkbox Logic
+    var countStag = 0;
     var countT3 = 0;
     var countT35 = 0;
     var hasBinding = false;
@@ -798,6 +799,7 @@ function calculateGearStats() {
 
                 // --- AUTO CHECKBOX LOGIC ---
                 // Corrected Set Name
+                if (item.setName === "Majesty of the Stag") countStag++;
                 if (item.setName === "Dreamwalker Regalia") countT3++;
                 if (item.setName === "Regalia of the Talon") countT35++;
 
@@ -826,6 +828,7 @@ function calculateGearStats() {
     var elT36 = document.getElementById('t3_6p'); if (elT36) elT36.checked = countT3 >= 6;
     var elT38 = document.getElementById('t3_8p'); if (elT38) elT38.checked = countT3 >= 8;
     var elT35 = document.getElementById('t35_5p'); if (elT35) elT35.checked = countT35 >= 5;
+    var elStag = document.getElementById('stag_5p'); if (elStag) elStag.checked = countStag >= 5;
 
     var elBind = document.getElementById('item_binding'); if (elBind) elBind.checked = hasBinding;
     var elScythe = document.getElementById('item_scythe'); if (elScythe) elScythe.checked = hasScythe;

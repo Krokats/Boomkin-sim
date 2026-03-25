@@ -42,7 +42,7 @@ function getInputs() {
         stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), hasteFactor: hasteMultVal, baseHitProb: baseHit },
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
-        gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), 
+        gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), stag_5p: getVal("stag_5p"),
             idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), idolAcidity: getVal("idolAcidity"),idolEquilibrium: getVal("idolEquilibrium"),
             binding: getVal("item_binding"), scythe: getVal("item_scythe"), nobility: getVal("item_nobility"), thane: getVal("item_thane"), 
             sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"), sphere: getVal("item_sphere"),
@@ -551,7 +551,7 @@ function runCoreSimulation(cfg) {
         scytheEnd: 0.0, scytheCD: 0.0,
         nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
         makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, // NEU: Sphere of the Endless Gulch
-        ooc: false, boon: 0, acidityEnd: 0.0
+        ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0
     };
 
     var RunStats = { 
@@ -627,7 +627,8 @@ function runCoreSimulation(cfg) {
             bToep: (State.toepEnd > time) ? (State.toepEnd - time).toFixed(1) : "-",
             bRoop: (State.roopEnd > time) ? (State.roopEnd - time).toFixed(1) : "-",
             bZhc: (State.zhcEnd > time) ? (State.zhcVal) : "-",
-            isAE: isAE(), isNE: isNE() 
+            isAE: isAE(), isNE: isNE(),
+            stag: State.stagCritBonus 
         }); 
     };
 
@@ -912,7 +913,20 @@ function runCoreSimulation(cfg) {
             finalCritChance += 2.0;
         }
 
+        if (cfg.gear.stag_5p) {
+            finalCritChance += State.stagCritBonus;
+        }
+
         var isCrit = RNG.check(finalCritChance, "crit");
+
+        // Stag Bonus Update: Reset bei Crit, Stack bei Non-Crit (nur direkter Schaden)
+        if (cfg.gear.stag_5p) {
+            if (isCrit) {
+                State.stagCritBonus = 0;
+            } else if (spell.base > 0) { // spell.base > 0 bedeutet: es ist direkter Schaden
+                State.stagCritBonus += 2.0;
+            }
+        }
 
         var eclActive = ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE())); 
         
