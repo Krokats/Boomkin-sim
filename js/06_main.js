@@ -8,6 +8,7 @@
 
 function init() {
     setupUIListeners();
+    populateBiSDropdown();
     addSim(true);
     updateEnemyInfo();
     updateSpellStats();

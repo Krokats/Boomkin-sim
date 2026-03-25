@@ -158,6 +158,24 @@
                             <div class="char-left" id="charLeftCol"></div>
 
                             <div class="char-middle">
+                                
+                                <div style="margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                        <label style="white-space: nowrap; margin: 0; color: var(--text-color); font-size: 0.85rem;">Gear Preset:</label>
+                                        <div class="select-wrapper" style="flex-grow: 1; margin: 0;">
+                                            <select id="bis_preset_select" style="width: 100%; margin: 0; padding: 6px;">
+                                                <option value="">-- Select Preset --</option>
+                                            </select>
+                                        </div>
+                                        <button class="btn-mini" style="margin: 0; padding: 6px 15px; white-space: nowrap;" onclick="loadBiSPreset()">Load</button>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+                                        <button class="btn-mini" style="color:#a5d6a7; border-color:#a5d6a7; padding: 4px 10px; margin: 0;" onclick="saveCustomGearPreset()">Save</button>
+                                        <button class="btn-mini" style="color:#f44336; border-color:#f44336; padding: 4px 10px; margin: 0;" onclick="deleteCustomGearPreset()">Del</button>
+                                        <button class="btn-mini" style="color:#90caf9; border-color:#90caf9; padding: 4px 10px; margin: 0;" onclick="shareGearPreset()">🔗 Share</button>
+                                        <button class="btn-mini" style="color:#ffb74d; border-color:#ffb74d; padding: 4px 10px; margin: 0;" onclick="importGearPreset()">📥 Import</button>
+                                    </div>
+                                </div>
                                 <h2 style="margin-bottom:10px; font-size:1rem;">Stat Weights</h2>
                                 <div class="gp-stats-config">
                                     <div class="gp-input-group"><label>Hit</label><input type="number" id="weight_hit"

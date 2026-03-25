@@ -19,6 +19,151 @@ var ENCHANT_DB = [];
 var GEAR_SELECTION = {};
 var ENCHANT_SELECTION = {};
 
+// ============================================================================
+// GEAR PRESETS (BiS Lists)
+// ============================================================================
+var GEAR_PRESETS = {
+    "AQ40 BiS": {
+        gear: {
+            "Head": 41077, // Ersetze 0 durch die tatsächliche Item-ID
+            "Neck": 61522,
+            "Shoulder": 47347,
+            "Back": 22731,
+            "Chest": 21357,
+            "Wrist": 47349,
+            "Hands": 21585,
+            "Waist": 22730,
+            "Legs": 21356,
+            "Feet": 21355,
+            "Finger 1": 21709,
+            "Finger 2": 21836,
+            "Trinket 1": 61209,
+            "Trinket 2": 19379,
+            "Main Hand": 19356,
+            "Off Hand": 0,
+            "Relic": 0
+        },
+        enchants: {
+            "Head": 22844,
+            "Neck": 51043,
+            "Shoulder": 29467,
+            "Back": 25084,
+            "Chest": 57135,
+            "Wrist": 57028,
+            "Hands": 13948,
+            "Waist": 57182,
+            "Legs": 22844,
+            "Feet": 57135,
+            "Finger 1": 51043,
+            "Finger 2": 51043,
+            "Main Hand": 22749,
+        }
+    },"Naxx BiS": {
+        gear: {
+            "Head": 41077, // Ersetze 0 durch die tatsächliche Item-ID
+            "Neck": 23057,
+            "Shoulder": 47373,
+            "Back": 23050,
+            "Chest": 47374,
+            "Wrist": 47375,
+            "Hands": 47376,
+            "Waist": 47377,
+            "Legs": 47378,
+            "Feet": 47379,
+            "Finger 1": 47380,
+            "Finger 2": 23025,
+            "Trinket 1": 23046,
+            "Trinket 2": 19379,
+            "Main Hand": 22632,
+            "Off Hand": 0,
+            "Relic": 0
+        },
+        enchants: {
+            "Head": 22844,
+            "Neck": 51043,
+            "Shoulder": 29467,
+            "Back": 25084,
+            "Chest": 57135,
+            "Wrist": 57028,
+            "Hands": 13948,
+            "Waist": 57182,
+            "Legs": 22844,
+            "Feet": 57135,
+            "Finger 1": 51043,
+            "Finger 2": 51043,
+            "Main Hand": 22749,
+        }
+    },
+    "Kara40 BiS": {
+        gear: {"Head": 47396,
+            "Neck": 47401,
+            "Shoulder": 47397,
+            "Back": 23050,
+            "Chest": 47398,
+            "Wrist": 55106,
+            "Hands": 55354,
+            "Waist": 55355,
+            "Legs": 47399,
+            "Feet": 47400,
+            "Finger 1": 55094,
+            "Finger 2": 61251,
+            "Trinket 1": 55093,
+            "Trinket 2": 19379,
+            "Main Hand": 55120,
+            "Off Hand": 23049,
+            "Relic": 0},  
+         enchants: {
+            "Head": 22844,
+            "Neck": 51043,
+            "Shoulder": 29467,
+            "Back": 25084,
+            "Chest": 57135,
+            "Wrist": 57028,
+            "Hands": 13948,
+            "Waist": 57182,
+            "Legs": 22844,
+            "Feet": 57135,
+            "Finger 1": 51043,
+            "Finger 2": 51043,
+            "Main Hand": 22749,
+        }
+    },
+    "Kara40+Scythe BiS": {
+        gear: {"Head": 47396,
+            "Neck": 47401,
+            "Shoulder": 47397,
+            "Back": 23050,
+            "Chest": 47398,
+            "Wrist": 55106,
+            "Hands": 55354,
+            "Waist": 55355,
+            "Legs": 47399,
+            "Feet": 47400,
+            "Finger 1": 55094,
+            "Finger 2": 61251,
+            "Trinket 1": 55505,
+            "Trinket 2": 19379,
+            "Main Hand": 55348,
+            "Off Hand": 0,
+            "Relic": 0},  
+         enchants: {
+            "Head": 22844,
+            "Neck": 51043,
+            "Shoulder": 29467,
+            "Back": 25084,
+            "Chest": 57135,
+            "Wrist": 57028,
+            "Hands": 13948,
+            "Waist": 57182,
+            "Legs": 22844,
+            "Feet": 57135,
+            "Finger 1": 51043,
+            "Finger 2": 51043,
+            "Main Hand": 22749,
+        }
+    }
+};
+
 var CONFIG_IDS = [
     "weight_haste_steps", "sim_patch", "maxTime", "simCount", "rng_seed", "avcd", "calcMethod",
     "statHit", "statCrit", "statHaste",
