@@ -57,7 +57,7 @@ var GEAR_PRESETS = {
             "Finger 1": 51043,
             "Finger 2": 51043,
             "Main Hand": 22749,
-        },
+        }},
         "AQ40 BiS": {
         gear: {
             "Head": 41077, // Ersetze 0 durch die tatsächliche Item-ID
@@ -198,8 +198,7 @@ var GEAR_PRESETS = {
             "Main Hand": 22749,
             }
         }
-    }
-};
+    };
 
 var CONFIG_IDS = [
     "weight_haste_steps", "sim_patch", "maxTime", "simCount", "rng_seed", "avcd", "calcMethod",
