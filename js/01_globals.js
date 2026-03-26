@@ -41,7 +41,7 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 19356,
             "Off Hand": 0,
-            "Relic": 55497
+            "Idol": 55497
         },
         enchants: {
             "Head": 41077,
@@ -77,7 +77,7 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 19356,
             "Off Hand": 0,
-            "Relic": 55497
+            "Idol": 55497
         },
         enchants: {
             "Head": 41077,
@@ -113,7 +113,7 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 22632,
             "Off Hand": 0,
-            "Relic": 55497},  
+            "Idol": 55497},  
          enchants: {
             "Head": 22840,
             "Neck": 51043,
@@ -147,7 +147,7 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 55120,
             "Off Hand": 23049,
-            "Relic": 55497},  
+            "Idol": 55497},  
          enchants: {
             "Head": 22840,
             "Neck": 51043,
@@ -181,7 +181,8 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 55348,
             "Off Hand": 0,
-            "Relic": 55497},  
+            "Idol": 55497
+        },  
          enchants: {
             "Head": 22840,
             "Neck": 51043,
