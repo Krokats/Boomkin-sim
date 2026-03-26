@@ -381412,25 +381412,6 @@
     ]
   },
   {
-    "id": 58179,
-    "url": "https://database.turtlecraft.gg/?item=58179",
-    "name": "Idol of Propagation",
-    "requiredLevel": 33,
-    "icon": "inv_gauntlets_07",
-    "quality": 3,
-    "allowableClasses": 512,
-    "slot": "Relic",
-    "boe": false,
-    "unique": false,
-    "effects": {
-      "onUse": false,
-      "custom": ["Equip: Your Insect Swarm spreads a deadly fungus, dealing 120 Nature damage over 12 sec. If the target falls below 20% health, the fungus bursts, instantly dealing 150 Nature damage and reducing movement speed by 20% for 5 sec."]
-    },
-    "setName": "",
-    "setBonuses": {},
-    "setItems": []
-  },
-  {
     "id": 55497,
     "url": "https://database.turtlecraft.gg/?item=55497",
     "name": "Idol of Ebb and Flow",
@@ -381469,19 +381450,19 @@
     "setItems": []
   },
   {
-    "id": 61293,
-    "url": "https://database.turtlecraft.gg/?item=61293",
-    "name": "Idol of the Moonfang",
-    "requiredLevel": 60,
-    "icon": "inv_qirajidol_night",
-    "quality": 4,
+    "id": 58179,
+    "url": "https://database.turtlecraft.gg/?item=58179",
+    "name": "Idol of Propagation",
+    "requiredLevel": 33,
+    "icon": "inv_gauntlets_07",
+    "quality": 3,
     "allowableClasses": 512,
     "slot": "Relic",
     "boe": false,
     "unique": false,
     "effects": {
       "onUse": false,
-      "custom": ["Equip: Moonfire, Savage Bite and Shred restore 50 mana and 125 health. This effect is doubled on a critical strike."]
+      "custom": ["Equip: Your Insect Swarm spreads a deadly fungus, dealing 120 Nature damage over 12 sec. If the target falls below 20% health, the fungus bursts, instantly dealing 150 Nature damage and reducing movement speed by 20% for 5 sec."]
     },
     "setName": "",
     "setBonuses": {},
@@ -381558,6 +381539,25 @@
     "effects": {
       "onUse": false,
       "custom": ["Equip: Critical strikes of your Wrath refresh the duration of your Insect Swarm, critical strikes Starfire refresh the duration of your Moonfire."]
+    },
+    "setName": "",
+    "setBonuses": {},
+    "setItems": []
+  },
+  {
+    "id": 61293,
+    "url": "https://database.turtlecraft.gg/?item=61293",
+    "name": "Idol of the Moonfang",
+    "requiredLevel": 60,
+    "icon": "inv_qirajidol_night",
+    "quality": 4,
+    "allowableClasses": 512,
+    "slot": "Relic",
+    "boe": false,
+    "unique": false,
+    "effects": {
+      "onUse": false,
+      "custom": ["Equip: Moonfire, Savage Bite and Shred restore 50 mana and 125 health. This effect is doubled on a critical strike."]
     },
     "setName": "",
     "setBonuses": {},
