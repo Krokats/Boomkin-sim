@@ -260,7 +260,7 @@
                                     <h2>✨ Buffs & Consumables</h2>
                                 </div>
                                 <div class="card-body">
-                                    <div class="gear-section-title">Auras & Group Buffs</div>
+                                    <div class="gear-section-title">Auras & Group Buffs <span style="float:right; font-size:0.8em; cursor:pointer; font-weight:normal;"><a onclick="toggleBuffs(this, true)">[All]</a> <a onclick="toggleBuffs(this, false)">[None]</a></span></div>
                                     <div class="checkbox-grid">
                                         <label class="custom-checkbox"><input type="checkbox" id="buff_moonkin"><span
                                                 class="checkmark"></span> Moonkin Aura<br>(3% Crit)</label>
@@ -275,7 +275,7 @@
                                             Warlock<br>(33 SP)</label>
                                     </div>
 
-                                    <div class="gear-section-title">Class Buffs</div>
+                                    <div class="gear-section-title">Class Buffs <span style="float:right; font-size:0.8em; cursor:pointer; font-weight:normal;"><a onclick="toggleBuffs(this, true)">[All]</a> <a onclick="toggleBuffs(this, false)">[None]</a></span></div>
                                     <div class="checkbox-grid">
                                         <label class="custom-checkbox"><input type="checkbox"
                                                 id="buff_arcane_brilliance"><span class="checkmark"></span> Arcane
@@ -288,15 +288,17 @@
                                                 class="checkmark"></span> Gift of the Wild<br>(+16 Int)</label>
                                     </div>
 
-                                    <div class="gear-section-title">Food</div>
+                                    <div class="gear-section-title">Food <span style="float:right; font-size:0.8em; cursor:pointer; font-weight:normal;"><a onclick="toggleBuffs(this, true)">[All]</a> <a onclick="toggleBuffs(this, false)">[None]</a></span></div>
                                     <div class="checkbox-grid">
                                         <label class="custom-checkbox"><input type="checkbox" id="buff_food_sp"><span
                                                 class="checkmark"></span> Danonzo's Delight<br>(+22 SP)</label>
+                                        <label class="custom-checkbox"><input type="checkbox" id="buff_food_medley"><span
+                                                class="checkmark"></span> Danonzo's Medley<br>(+2% Haste)</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="buff_food_int"><span
                                                 class="checkmark"></span> Medivh's Merlot<br>(+15 Int)</label>
                                     </div>
 
-                                    <div class="gear-section-title">Potions & Flasks</div>
+                                    <div class="gear-section-title">Potions & Flasks <span style="float:right; font-size:0.8em; cursor:pointer; font-weight:normal;"><a onclick="toggleBuffs(this, true)">[All]</a> <a onclick="toggleBuffs(this, false)">[None]</a></span></div>
                                     <div class="checkbox-grid">
                                         <label class="custom-checkbox"><input type="checkbox"
                                                 id="buff_elixir_dreamshard"><span class="checkmark"></span> Dreamshard

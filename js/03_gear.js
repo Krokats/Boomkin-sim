@@ -956,6 +956,10 @@ function calculateGearStats() {
 
     // Food
     if (getVal("buff_food_sp")) buffSP += 22;
+    if (getVal("buff_food_medley")) {
+        charStats.haste += 2;
+        charStats.hasteMult *= 1.02;
+    }
     if (getVal("buff_food_int")) buffInt += 15;
 
     // Potions

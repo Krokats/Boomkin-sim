@@ -61,6 +61,20 @@ function setupUIListeners() {
         });
     }
 
+    // FOOD EXCLUSIVITY
+    var fSp = document.getElementById('buff_food_sp');
+    var fMedley = document.getElementById('buff_food_medley');
+    if (fSp && fMedley) {
+        fSp.addEventListener('change', function (e) {
+            if (e.target.checked) fMedley.checked = false;
+            saveCurrentState();
+        });
+        fMedley.addEventListener('change', function (e) {
+            if (e.target.checked) fSp.checked = false;
+            saveCurrentState();
+        });
+    }
+
     var raceSel = document.getElementById('char_race');
     if (raceSel) {
         raceSel.addEventListener('change', function () {
@@ -2826,5 +2840,35 @@ function clearRotation() {
         CUSTOM_ROTATION = { name: "Blank", desc: "", steps: [] };
         document.getElementById("rotation_preset_select").value = "";
         renderRotationList();
+    }
+}
+
+// ============================================================================
+// BUFF TOGGLE LOGIC
+// ============================================================================
+function toggleBuffs(btnElement, checkState) {
+    var titleDiv = btnElement.closest('.gear-section-title');
+    if (titleDiv && titleDiv.nextElementSibling && titleDiv.nextElementSibling.classList.contains('checkbox-grid')) {
+        var checkboxes = titleDiv.nextElementSibling.querySelectorAll('input[type="checkbox"]');
+        
+        checkboxes.forEach(function(cb) {
+            if (!cb.disabled) {
+                cb.checked = checkState;
+            }
+        });
+        
+        // Exklusivität sicherstellen, falls "All" in der Food-Sektion geklickt wurde
+        if (checkState) {
+            var fSp = document.getElementById('buff_food_sp');
+            var fMedley = document.getElementById('buff_food_medley');
+            if (fSp && fMedley && fSp.checked && fMedley.checked) {
+                fMedley.checked = false; // Wir priorisieren Delight (SP), wenn "All" geklickt wird
+            }
+        }
+        
+        if (typeof calculateGearStats === 'function') {
+            calculateGearStats();
+        }
+        saveCurrentState();
     }
 }

@@ -217,7 +217,7 @@ var CONFIG_IDS = [
     // BUFFS
     "buff_moonkin", "buff_atiesh_druid", "buff_atiesh_mage", "buff_atiesh_warlock",
     "buff_arcane_brilliance", "buff_bok", "buff_emerald", "buff_gotw",
-    "buff_food_sp", "buff_food_int",
+    "buff_food_sp","buff_food_medley","buff_food_int",
     "buff_elixir_dreamshard", "buff_elixir_nature", "buff_elixir_arcane_power", "buff_elixir_greater_arcane",
     "buff_dreamtonic", "buff_cerebral", "buff_wizard_oil", "buff_flask"
 ];
