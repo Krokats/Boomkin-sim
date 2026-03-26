@@ -41,10 +41,10 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 19356,
             "Off Hand": 0,
-            "Relic": 0
+            "Relic": 55497
         },
         enchants: {
-            "Head": 22844,
+            "Head": 41077,
             "Neck": 51043,
             "Shoulder": 57156,
             "Back": 25084,
@@ -52,7 +52,7 @@ var GEAR_PRESETS = {
             "Wrist": 57028,
             "Hands": 13948,
             "Waist": 57182,
-            "Legs": 22844,
+            "Legs": 22840,
             "Feet": 57135,
             "Finger 1": 51043,
             "Finger 2": 51043,
@@ -77,10 +77,10 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 19356,
             "Off Hand": 0,
-            "Relic": 0
+            "Relic": 55497
         },
         enchants: {
-            "Head": 22844,
+            "Head": 41077,
             "Neck": 51043,
             "Shoulder": 57156,
             "Back": 25084,
@@ -88,7 +88,7 @@ var GEAR_PRESETS = {
             "Wrist": 57028,
             "Hands": 13948,
             "Waist": 57182,
-            "Legs": 22844,
+            "Legs": 22840,
             "Feet": 57135,
             "Finger 1": 51043,
             "Finger 2": 51043,
@@ -113,10 +113,9 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 22632,
             "Off Hand": 0,
-            "Relic": 0
-        },
-        enchants: {
-            "Head": 22844,
+            "Relic": 55497},  
+         enchants: {
+            "Head": 22840,
             "Neck": 51043,
             "Shoulder": 29467,
             "Back": 25084,
@@ -124,12 +123,12 @@ var GEAR_PRESETS = {
             "Wrist": 57028,
             "Hands": 13948,
             "Waist": 57182,
-            "Legs": 22844,
+            "Legs": 22840,
             "Feet": 57135,
             "Finger 1": 51043,
             "Finger 2": 51043,
             "Main Hand": 22749,
-        }
+            }
     },
     "Kara40 BiS": {
         gear: {"Head": 47396,
@@ -148,9 +147,9 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 55120,
             "Off Hand": 23049,
-            "Relic": 0},  
+            "Relic": 55497},  
          enchants: {
-            "Head": 22844,
+            "Head": 22840,
             "Neck": 51043,
             "Shoulder": 29467,
             "Back": 25084,
@@ -158,12 +157,12 @@ var GEAR_PRESETS = {
             "Wrist": 57028,
             "Hands": 13948,
             "Waist": 57182,
-            "Legs": 22844,
+            "Legs": 22840,
             "Feet": 57135,
             "Finger 1": 51043,
             "Finger 2": 51043,
             "Main Hand": 22749,
-        }
+            }
     },
     "Kara40+Scythe BiS": {
         gear: {"Head": 47396,
@@ -182,9 +181,9 @@ var GEAR_PRESETS = {
             "Trinket 2": 19379,
             "Main Hand": 55348,
             "Off Hand": 0,
-            "Relic": 0},  
+            "Relic": 55497},  
          enchants: {
-            "Head": 22844,
+            "Head": 22840,
             "Neck": 51043,
             "Shoulder": 29467,
             "Back": 25084,
@@ -192,7 +191,7 @@ var GEAR_PRESETS = {
             "Wrist": 57028,
             "Hands": 13948,
             "Waist": 57182,
-            "Legs": 22844,
+            "Legs": 22840,
             "Feet": 57135,
             "Finger 1": 51043,
             "Finger 2": 51043,
