@@ -408,8 +408,11 @@ function selectItem(itemId) {
         if (CURRENT_SELECTING_SLOT === "Main Hand" && itemId != 0) {
             var item = ITEM_ID_MAP[itemId];
             // If item is Two-Handed, clear Off Hand
-            if (item && (item.slot === "Twohand" || item.slot === "Staff" || item.slot === "Polearm")) {
-                GEAR_SELECTION["Off Hand"] = 0;
+            if (item) {
+                var s = item.slot ? item.slot.toLowerCase().replace(/[\s-]/g, "") : "";
+                if (s === "twohand" || s === "staff" || s === "polearm") {
+                    GEAR_SELECTION["Off Hand"] = 0;
+                }
             }
         }
 
@@ -419,8 +422,11 @@ function selectItem(itemId) {
             var mhId = GEAR_SELECTION["Main Hand"];
             if (mhId) {
                 var mhItem = ITEM_ID_MAP[mhId];
-                if (mhItem && (mhItem.slot === "Two-hand" || mhItem.slot === "Staff" || mhItem.slot === "Polearm")) {
-                    GEAR_SELECTION["Main Hand"] = 0; // Unequip 2H
+                if (mhItem) {
+                    var s = mhItem.slot ? mhItem.slot.toLowerCase().replace(/[\s-]/g, "") : "";
+                    if (s === "twohand" || s === "staff" || s === "polearm") {
+                        GEAR_SELECTION["Main Hand"] = 0; // Unequip 2H
+                    }
                 }
             }
         }

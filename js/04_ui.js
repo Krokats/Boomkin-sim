@@ -111,6 +111,7 @@ function setupUIListeners() {
                 // maxTime hinzugefügt, damit bei Änderung neu gerechnet wird
                 if (id.startsWith("buff_") || id === "maxTime") calculateGearStats();
                 if (id === "maxTime") recalcItemScores();
+                updateSpellStats(); // NEU: Automatisches Update der Damage Scaling Tabelle
                 saveCurrentState();
             });
 
