@@ -790,7 +790,7 @@ function runCoreSimulation(cfg) {
         var currentEclMod = useEcl ? eclFactor : 0; 
         var idolMod = 0; 
         if (spell.id === "Moonfire" && cfg.gear.idolMoon) idolMod = 0.17; 
-        if (spell.id === "InsectSwarm" && cfg.gear.idolProp) idolMod = 0.17; 
+        //if (spell.id === "InsectSwarm" && cfg.gear.idolProp) idolMod = 0.17; 
         
         var t3Mod = 0; 
         var hasT3 = false; 
@@ -934,11 +934,28 @@ function runCoreSimulation(cfg) {
         if (spell.isDot) { 
             State.dotCounter++; 
             var dot = { id: State.dotCounter, spell: spell, next: State.t + spell.tick, exp: State.t + spell.dur, snap: eclActive, tickCount: 0 }; 
-            if (spell.id === "Moonfire") State.activeMF = dot; 
-            else State.activeIS = dot; 
+            
+            if (spell.id === "Moonfire") {
+                State.activeMF = dot; 
+            } else {
+                State.activeIS = dot; 
+                
+                // NEU: Idol of Propagation Proc
+                if (spell.id === "InsectSwarm" && cfg.gear.idolProp) {
+                    // Refresh logic: Alte Ticks entfernen, falls IS erneuert wird
+                    State.pendingImpacts = State.pendingImpacts.filter(function(e) { return e.type !== "PROPAGATION_TICK"; });
+                    log(State.t, "PROC", "Idol of Prop.", "Fungus", null, null, "120 Nat Dmg over 12s");
+                    
+                    // 12 Ticks á 10 Schaden (1 pro Sekunde)
+                    for (var p = 1; p <= 12; p++) {
+                        addEvt(State.t + p, "PROPAGATION_TICK", { dmg: 10 });
+                    }
+                }
+            }
+            
             addEvt(dot.next, "DOT_TICK", { spellId: spell.id, dotId: dot.id }); 
             if (spell.base > 0) handleImpact(spell, isCrit, eclActive); 
-        } else { 
+        } else {
             addEvt(State.t + spell.flight, "IMPACT", { spell: spell, crit: isCrit, snap: eclActive }); 
         }
     };
@@ -1228,6 +1245,12 @@ function runCoreSimulation(cfg) {
                 RunStats.totalDmg += tickDmg;
                 RunStats.dmgIdol += tickDmg;
                 log(State.t, "TICK", "Idol of Acidity", "Tick", {norm: tickDmg, ecl: 0, crit: 0, total: tickDmg}, null, "Nature Dmg");
+            }
+            else if (evt.type === "PROPAGATION_TICK") {
+                var pDmg = evt.data.dmg;
+                RunStats.totalDmg += pDmg;
+                RunStats.dmgIdol += pDmg;
+                log(State.t, "TICK", "Idol of Prop.", "Tick", {norm: pDmg, ecl: 0, crit: 0, total: pDmg}, null, "Nature Dmg");
             }
         }
         var gcdReady = State.t >= (State.gcdEnd - 0.001) && State.t >= (State.castEnd - 0.001);
