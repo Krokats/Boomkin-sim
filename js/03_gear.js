@@ -762,6 +762,7 @@ function calculateGearStats() {
     var hasIdolAcidity = false;
     var hasIdolEquilibrium = false;
     var hasIdolEquilibriumV2 = false;
+    var hasIdolEquilibriumV3 = false;
 
 
     // ITEMS
@@ -834,7 +835,8 @@ function calculateGearStats() {
                 if (item.name === "Idol of Acidity") hasIdolAcidity = true;
                 if (item.name === "Idol of Equilibrium") hasIdolEquilibrium = true;
                 if (item.name === "Idol of Equilibrium (v2 Krokat)") hasIdolEquilibriumV2 = true;
-        
+                if (item.name === "Idol of Equilibrium (v3 Krokat)") hasIdolEquilibriumV3 = true;
+
             }
         }
     }
@@ -867,6 +869,7 @@ function calculateGearStats() {
     var elIdolAcidity = document.getElementById('idolAcidity'); if (elIdolAcidity) elIdolAcidity.checked = hasIdolAcidity;
     var elIdolEquilibrium = document.getElementById('idolEquilibrium'); if (elIdolEquilibrium) elIdolEquilibrium.checked = hasIdolEquilibrium;
     var elIdolEquilibriumV2 = document.getElementById('idolEquilibriumV2'); if (elIdolEquilibriumV2) elIdolEquilibriumV2.checked = hasIdolEquilibriumV2;
+    var elIdolEquilibriumV3 = document.getElementById('idolEquilibriumV3'); if (elIdolEquilibriumV3) elIdolEquilibriumV3.checked = hasIdolEquilibriumV3;
 
     // ENCHANTS
     // "Boni der Enchants auch in den Gear-Stats (nicht im Gear Score)"

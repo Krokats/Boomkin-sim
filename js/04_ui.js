@@ -18,7 +18,7 @@ function setupUIListeners() {
     }
 
     // IDOL EXCLUSIVITY FOR 1.18.1c
-    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity","idolEquilibrium","idolEquilibriumV2"];
+    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity","idolEquilibrium","idolEquilibriumV2","idolEquilibriumV3"];
     idolIds.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) {
@@ -2300,7 +2300,7 @@ function updatePatchUI() {
     });
 
     // 3. Ensure Single Idol Selection
-    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang","idolAcidity", "idolEquilibrium","idolEquilibriumV2"];
+    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang","idolAcidity", "idolEquilibrium","idolEquilibriumV2","idolEquilibriumV3"];
     var found = false;
     idolIds.forEach(function (id) {
         var el = document.getElementById(id);
