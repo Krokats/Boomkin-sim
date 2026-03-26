@@ -381538,7 +381538,7 @@
     "unique": false,
     "effects": {
       "onUse": false,
-      "custom": ["Equip: Gives your Wrath a 8% chance to refresh the duration of your Insect Swarm, and your Starfire a 15% chance to refresh the duration of your Moonfire."]
+      "custom": ["Equip: Gives your Wrath a 25% chance to refresh the duration of your Insect Swarm, and your Starfire a 50% chance to refresh the duration of your Moonfire."]
     },
     "setName": "",
     "setBonuses": {},
