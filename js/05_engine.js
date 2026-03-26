@@ -1023,10 +1023,16 @@ function runCoreSimulation(cfg) {
         // Idol of Acidity Proc
         if (spell.id === "Wrath" && cfg.gear.idolAcidity && State.t >= State.acidityEnd && RNG.check(8, "procAcidity")) {
             State.acidityEnd = State.t + 6.0;
-            log(State.t, "PROC", "Idol of Acidity", "", null, null, "-25 Nat Res & 300 Dmg over 6s");
-            addEvt(State.t + 2.0, "ACIDITY_TICK", {});
-            addEvt(State.t + 4.0, "ACIDITY_TICK", {});
-            addEvt(State.t + 6.0, "ACIDITY_TICK", {});
+            
+            // Schaden berechnen (Snapshotting der aktuellen Nature SP inklusive temporärer Buffs)
+            var currentNatSP = getCurrentSP("Nature");
+            var totalAcidityDmg = 300 + (0.061 * currentNatSP);
+            var tickAcidityDmg = totalAcidityDmg / 3;
+            
+            log(State.t, "PROC", "Idol of Acidity", "", null, null, "-25 Nat Res & " + Math.floor(totalAcidityDmg) + " Dmg over 6s");
+            addEvt(State.t + 2.0, "ACIDITY_TICK", { dmg: tickAcidityDmg });
+            addEvt(State.t + 4.0, "ACIDITY_TICK", { dmg: tickAcidityDmg });
+            addEvt(State.t + 6.0, "ACIDITY_TICK", { dmg: tickAcidityDmg });
         }
 
         // Idol of Equilibrium Proc - Wrath -> Insect Swarm
@@ -1215,9 +1221,10 @@ function runCoreSimulation(cfg) {
             else if (evt.type === "IMPACT") handleImpact(evt.data.spell, evt.data.crit, evt.data.snap);
             else if (evt.type === "DOT_TICK") handleTick(evt.data);
             else if (evt.type === "ACIDITY_TICK") {
-                RunStats.totalDmg += 100;
-                RunStats.dmgIdol += 100;
-                log(State.t, "TICK", "Idol of Acidity", "Tick", {norm: 100, ecl: 0, crit: 0, total: 100}, null, "Nature Dmg");
+                var tickDmg = evt.data.dmg;
+                RunStats.totalDmg += tickDmg;
+                RunStats.dmgIdol += tickDmg;
+                log(State.t, "TICK", "Idol of Acidity", "Tick", {norm: tickDmg, ecl: 0, crit: 0, total: tickDmg}, null, "Nature Dmg");
             }
         }
         var gcdReady = State.t >= (State.gcdEnd - 0.001) && State.t >= (State.castEnd - 0.001);
