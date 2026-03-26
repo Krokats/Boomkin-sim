@@ -57,7 +57,8 @@ var GEAR_PRESETS = {
             "Finger 1": 51043,
             "Finger 2": 51043,
             "Main Hand": 22749,
-        }},
+        }
+    },
         "AQ40 BiS": {
         gear: {
             "Head": 41077, // Ersetze 0 durch die tatsächliche Item-ID
@@ -209,7 +210,7 @@ var CONFIG_IDS = [
     "start_boat", "wrath_flight",
     "rota_interrupt", "rota_interrupt_thresh",
     "stag_5p","t3_4p", "t3_6p", "t3_8p", "t35_5p",
-    "idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity", "idolEquilibrium",
+    "idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity", "idolEquilibrium","idolEquilibriumV2",
     "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp", "item_sphere",
     "item_reos", "item_toep", "item_roop", "item_zhc",
     "char_race",
@@ -224,7 +225,7 @@ var CONFIG_IDS = [
 var SLOT_LAYOUT = {
     left: ["Head", "Neck", "Shoulder", "Back", "Chest", "Wrist"],
     right: ["Hands", "Waist", "Legs", "Feet", "Finger 1", "Finger 2", "Trinket 1", "Trinket 2"],
-    bottom: ["Main Hand", "Off Hand"]
+    bottom: ["Main Hand", "Off Hand", "Idol"]
 };
 
 // Base 3.38% Crit for Druids, Base Hit 0

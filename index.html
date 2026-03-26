@@ -243,10 +243,11 @@
                                 </div>
                                 <div id="dbStatus" style="font-size:0.65rem; color:#666; margin-top:10px;">DB not loaded
                                 </div>
-                                <div class="char-bottom" id="charBottomRow"></div>
+                                
 
                             </div>
                             <div class="char-right" id="charRightCol"></div>
+                            <div class="char-bottom" id="charBottomRow"></div>
 
 
 
@@ -546,59 +547,6 @@
                                 </div>
                             </div>
 
-                            <div class="card full-width" style="overflow: visible !important;">
-                                <div class="card-header clickable" onclick="toggleCard(this)">
-                                    <h2>🛠️ Rotation Builder</h2>
-                                    <span class="toggle-icon">▼</span>
-                                </div>
-                                <div class="card-body">
-                                    <div class="rotation-builder-container">
-                                        <div class="rb-header" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:15px; border-bottom:1px solid var(--border-color); padding-bottom:15px; flex-wrap:wrap; gap:10px;">
-                                            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
-                                                <div class="input-group" style="margin:0; width:200px;">
-                                                    <label>Presets</label>
-                                                    <div class="select-wrapper">
-                                                        <select id="rotation_preset_select"></select>
-                                                    </div>
-                                                </div>
-                                                <button class="btn-mini" onclick="loadSelectedPreset()">Load Preset</button>
-                                                <button class="btn-mini" onclick="saveCustomPreset()" style="color:#a5d6a7; border-color:#a5d6a7;">Save</button>
-                                                <button class="btn-mini" onclick="deleteCustomPreset()" style="color:#f44336; border-color:#f44336;">Del</button>
-                                            </div>
-                                            <button class="btn-mini" onclick="clearRotation()" style="color:#f44336; border-color:#f44336; padding:8px 12px;">🗑️ Clear Rotation</button>
-                                        </div>
-                                        
-                                        <div class="rb-meta" style="display:flex; gap:15px; margin-bottom:15px; padding-bottom:15px; border-bottom:1px dashed #444;">
-                                            <div class="input-group" style="margin:0; flex:1; max-width:250px;">
-                                                <label>Rotation Name</label>
-                                                <input type="text" id="rb_meta_name" placeholder="My Custom Rota" onchange="updateRotationMeta('name', this.value)">
-                                            </div>
-                                            <div class="input-group" style="margin:0; flex:2;">
-                                                <label>Description (Optional)</label>
-                                                <input type="text" id="rb_meta_desc" placeholder="Describe what this rotation does..." onchange="updateRotationMeta('desc', this.value)">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="rb-layout" style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start;">
-                                            
-                                            <div class="rb-toolbox" id="rbToolbox" style="width:220px; flex-shrink:0;">
-                                                <div style="font-family:'Cinzel', serif; font-size:1rem; color:var(--text-muted); border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:15px;">Skills (Drag)</div>
-                                                <div class="rb-skills-grid" id="rbSkillsList" style="display:flex; flex-direction:column; gap:8px;">
-                                                    </div>
-                                            </div>
-
-                                            <div class="rb-dropzone-container" style="flex:1; min-width:300px;">
-                                                <div style="font-family:'Cinzel', serif; font-size:1rem; color:var(--text-muted); border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:15px;">Priority List (Top to Bottom)</div>
-                                                <div class="rb-dropzone" id="rbDropzone" style="min-height:150px; background:rgba(0,0,0,0.2); border:1px dashed #555; border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:10px;">
-                                                    <div style="color:#666; text-align:center; padding:20px; font-style:italic;" id="rbEmptyState">Drag skills here...</div>
-                                                </div>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="card full-width collapsed">
                                 <div class="card-header">
                                     <h2>🛡️ Gear & Sets</h2>
@@ -619,18 +567,20 @@
                                     </div>
                                     <div class="gear-section-title">Idols (Selectable)</div>
                                     <div class="checkbox-grid">
-                                        <label class="custom-checkbox"><input type="checkbox" id="idolEoF"><span
+                                        <label class="custom-checkbox"><input type="checkbox" id="idolEoF" disabled><span
                                                 class="checkmark"></span> Idol: Ebb & Flow</label>
-                                        <label class="custom-checkbox"><input type="checkbox" id="idolMoon"><span
+                                        <label class="custom-checkbox"><input type="checkbox" id="idolMoon" disabled><span
                                                 class="checkmark"></span> Idol: Moon</label>
-                                        <label class="custom-checkbox"><input type="checkbox" id="idolProp"><span
+                                        <label class="custom-checkbox"><input type="checkbox" id="idolProp" disabled><span
                                                 class="checkmark"></span> Idol: Propagation</label>
-                                        <label class="custom-checkbox"><input type="checkbox" id="idolMoonfang"><span
+                                        <label class="custom-checkbox"><input type="checkbox" id="idolMoonfang" disabled><span
                                                 class="checkmark"></span> Idol: Moonfang (Mana)</label>
-                                        <label class="custom-checkbox"><input type="checkbox" id="idolAcidity"><span
+                                        <label class="custom-checkbox"><input type="checkbox" id="idolAcidity" disabled><span
                                                 class="checkmark"></span> Idol: Acidity</label>
-                                        <label class="custom-checkbox"><input type="checkbox" id="idolEquilibrium"><span
+                                        <label class="custom-checkbox"><input type="checkbox" id="idolEquilibrium" disabled><span
                                                 class="checkmark"></span> Idol: Equilibrium</label>
+                                        <label class="custom-checkbox"><input type="checkbox" id="idolEquilibriumV2"><span
+                                                class="checkmark"></span> Idol: Equilibrium (v2 Krokat)</label>
                                     </div>
                                     <div class="gear-section-title">Procs (Passive)</div>
                                     <div class="checkbox-grid">
@@ -703,7 +653,61 @@
                                     </table>
                                 </div>
                             </div>
+
+                            <div class="card full-width" style="overflow: visible !important;">
+                                <div class="card-header clickable" onclick="toggleCard(this)">
+                                    <h2>🛠️ Rotation Builder</h2>
+                                    <span class="toggle-icon">▼</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="rotation-builder-container">
+                                        <div class="rb-header" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:15px; border-bottom:1px solid var(--border-color); padding-bottom:15px; flex-wrap:wrap; gap:10px;">
+                                            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                                                <div class="input-group" style="margin:0; width:200px;">
+                                                    <label>Presets</label>
+                                                    <div class="select-wrapper">
+                                                        <select id="rotation_preset_select"></select>
+                                                    </div>
+                                                </div>
+                                                <button class="btn-mini" onclick="loadSelectedPreset()">Load Preset</button>
+                                                <button class="btn-mini" onclick="saveCustomPreset()" style="color:#a5d6a7; border-color:#a5d6a7;">Save</button>
+                                                <button class="btn-mini" onclick="deleteCustomPreset()" style="color:#f44336; border-color:#f44336;">Del</button>
+                                            </div>
+                                            <button class="btn-mini" onclick="clearRotation()" style="color:#f44336; border-color:#f44336; padding:8px 12px;">🗑️ Clear Rotation</button>
+                                        </div>
+                                        
+                                        <div class="rb-meta" style="display:flex; gap:15px; margin-bottom:15px; padding-bottom:15px; border-bottom:1px dashed #444;">
+                                            <div class="input-group" style="margin:0; flex:1; max-width:250px;">
+                                                <label>Rotation Name</label>
+                                                <input type="text" id="rb_meta_name" placeholder="My Custom Rota" onchange="updateRotationMeta('name', this.value)">
+                                            </div>
+                                            <div class="input-group" style="margin:0; flex:2;">
+                                                <label>Description (Optional)</label>
+                                                <input type="text" id="rb_meta_desc" placeholder="Describe what this rotation does..." onchange="updateRotationMeta('desc', this.value)">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="rb-layout" style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start;">
+                                            
+                                            <div class="rb-toolbox" id="rbToolbox" style="width:220px; flex-shrink:0;">
+                                                <div style="font-family:'Cinzel', serif; font-size:1rem; color:var(--text-muted); border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:15px;">Skills (Drag)</div>
+                                                <div class="rb-skills-grid" id="rbSkillsList" style="display:flex; flex-direction:column; gap:8px;">
+                                                    </div>
+                                            </div>
+
+                                            <div class="rb-dropzone-container" style="flex:1; min-width:300px;">
+                                                <div style="font-family:'Cinzel', serif; font-size:1rem; color:var(--text-muted); border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:15px;">Priority List (Top to Bottom)</div>
+                                                <div class="rb-dropzone" id="rbDropzone" style="min-height:150px; background:rgba(0,0,0,0.2); border:1px dashed #555; border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:10px;">
+                                                    <div style="color:#666; text-align:center; padding:20px; font-style:italic;" id="rbEmptyState">Drag skills here...</div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="action-area button-row"><button id="btnRun" onclick="runSimulation()"
                                 class="primary-btn"><span class="btn-icon">⚡</span> Run Simulation</button><button
                                 id="btnWeights" onclick="calculateWeights()" class="secondary-btn" disabled><span

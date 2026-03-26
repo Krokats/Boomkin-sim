@@ -381410,5 +381410,138 @@
       "Vigor of the Stag",
       "Path of the Stag"
     ]
+  },
+  {
+    "id": 58179,
+    "url": "https://database.turtlecraft.gg/?item=58179",
+    "name": "Idol of Propagation",
+    "requiredLevel": 33,
+    "icon": "inv_gauntlets_07",
+    "quality": 3,
+    "allowableClasses": 512,
+    "slot": "Relic",
+    "boe": false,
+    "unique": false,
+    "effects": {
+      "onUse": false,
+      "custom": ["Equip: Your Insect Swarm spreads a deadly fungus, dealing 120 Nature damage over 12 sec. If the target falls below 20% health, the fungus bursts, instantly dealing 150 Nature damage and reducing movement speed by 20% for 5 sec."]
+    },
+    "setName": "",
+    "setBonuses": {},
+    "setItems": []
+  },
+  {
+    "id": 55497,
+    "url": "https://database.turtlecraft.gg/?item=55497",
+    "name": "Idol of Ebb and Flow",
+    "requiredLevel": 60,
+    "icon": "inv_qirajidol_night",
+    "quality": 4,
+    "allowableClasses": 512,
+    "slot": "Relic",
+    "boe": false,
+    "unique": false,
+    "effects": {
+      "onUse": false,
+      "custom": ["Equip: Reduces the cast time of Starfire by 0.2 sec."]
+    },
+    "setName": "",
+    "setBonuses": {},
+    "setItems": []
+  },
+  {
+    "id": 23197,
+    "url": "https://database.turtlecraft.gg/?item=23197",
+    "name": "Idol of the Moon",
+    "requiredLevel": 60,
+    "icon": "inv_relics_idolofrejuvenation",
+    "quality": 3,
+    "allowableClasses": 512,
+    "slot": "Relic",
+    "boe": false,
+    "unique": false,
+    "effects": {
+      "onUse": false,
+      "custom": ["Equip: Increase the damage of your Moonfire spell by up to 17%."]
+    },
+    "setName": "",
+    "setBonuses": {},
+    "setItems": []
+  },
+  {
+    "id": 61293,
+    "url": "https://database.turtlecraft.gg/?item=61293",
+    "name": "Idol of the Moonfang",
+    "requiredLevel": 60,
+    "icon": "inv_qirajidol_night",
+    "quality": 4,
+    "allowableClasses": 512,
+    "slot": "Relic",
+    "boe": false,
+    "unique": false,
+    "effects": {
+      "onUse": false,
+      "custom": ["Equip: Moonfire, Savage Bite and Shred restore 50 mana and 125 health. This effect is doubled on a critical strike."]
+    },
+    "setName": "",
+    "setBonuses": {},
+    "setItems": []
+  },
+  {
+    "id": 1,
+    "url": "https://database.turtlecraft.gg/?item=1",
+    "name": "Idol of Acidity",
+    "requiredLevel": 60,
+    "icon": "inv_trinket_naxxramas01",
+    "quality": 4,
+    "allowableClasses": 512,
+    "slot": "Relic",
+    "boe": false,
+    "unique": false,
+    "effects": {
+      "onUse": false,
+      "custom": ["Equip: Your successful Wrath hits have a 8% chance to splash acid on the target, reducing Nature Resistance by 25 and dealing 300 Nature damage over 6 sec."]
+    },
+    "setName": "",
+    "setBonuses": {},
+    "setItems": []
+  },
+  {
+    "id": 2,
+    "url": "https://database.turtlecraft.gg/?item=2",
+    "name": "Idol of Equilibrium",
+    "requiredLevel": 60,
+    "icon": "inv_trinket_naxxramas03",
+    "quality": 4,
+    "allowableClasses": 512,
+    "slot": "Relic",
+    "boe": false,
+    "unique": false,
+    "effects": {
+      "onUse": false,
+      "custom": ["Equip: Gives your Wrath a 8% chance to instantly trigger an addiotional tick of your Insect Swarm, and your Starfire a 15% chance to instantly trigger an additional tick of your Moonfire."]
+    },
+    "setName": "",
+    "setBonuses": {},
+    "setItems": []
+  },
+  {
+    "id": 3,
+    "url": "https://database.turtlecraft.gg/?item=3",
+    "name": "Idol of Equilibrium (v2 Krokat)",
+    "requiredLevel": 60,
+    "icon": "inv_trinket_naxxramas03",
+    "quality": 4,
+    "allowableClasses": 512,
+    "slot": "Relic",
+    "boe": false,
+    "unique": false,
+    "effects": {
+      "onUse": false,
+      "custom": ["Equip: Gives your Wrath a 8% chance to refresh the duration of your Insect Swarm, and your Starfire a 15% chance to refresh the duration of your Moonfire."]
+    },
+    "setName": "",
+    "setBonuses": {},
+    "setItems": []
   }
 ]

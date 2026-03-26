@@ -43,7 +43,7 @@ function getInputs() {
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
         gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_5p: getVal("t35_5p"), stag_5p: getVal("stag_5p"),
-            idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), idolAcidity: getVal("idolAcidity"),idolEquilibrium: getVal("idolEquilibrium"),
+            idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"), idolAcidity: getVal("idolAcidity"),idolEquilibrium: getVal("idolEquilibrium"),idolEquilibriumV2: getVal("idolEquilibriumV2"),
             binding: getVal("item_binding"), scythe: getVal("item_scythe"), nobility: getVal("item_nobility"), thane: getVal("item_thane"), 
             sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"), sphere: getVal("item_sphere"),
             reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc") },
@@ -1056,6 +1056,18 @@ function runCoreSimulation(cfg) {
                 log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
             }
             log(State.t, "PROC DMG", "Idol of Equil.", "Tick (MF)", dMF, null, "Extra MF Tick");
+        }
+
+        // Idol of Equilibrium (v2 Krokat) Proc - Wrath -> Insect Swarm
+        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV2 && State.activeIS && State.activeIS.exp > State.t && RNG.check(8, "procEquilV2Wrath")) {
+            State.activeIS.exp = State.t + State.activeIS.spell.dur;
+            log(State.t, "PROC", "Idol of Equil. v2", "Refresh (IS)", null, null, "IS Duration Refreshed");
+        }
+
+        // Idol of Equilibrium (v2 Krokat) Proc - Starfire -> Moonfire
+        if (spell.id === "Starfire" && cfg.gear.idolEquilibriumV2 && State.activeMF && State.activeMF.exp > State.t && RNG.check(15, "procEquilV2SF")) {
+            State.activeMF.exp = State.t + State.activeMF.spell.dur;
+            log(State.t, "PROC", "Idol of Equil. v2", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
         
         if (crit) {

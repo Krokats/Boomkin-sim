@@ -353,7 +353,7 @@ function renderItemList(filterText) {
     var slotKey = CURRENT_SELECTING_SLOT;
     if (slotKey.includes("Finger")) slotKey = "Finger";
     if (slotKey.includes("Trinket")) slotKey = "Trinket";
-    //if(slotKey === "Idol") slotKey = "Relic";
+    if(slotKey === "Idol") slotKey = "Relic";
 
     var relevantItems = ITEM_DB.filter(function (i) {
         if (CURRENT_SELECTING_SLOT === "Main Hand") {
@@ -755,6 +755,14 @@ function calculateGearStats() {
     var hasKelp = false;
     var hasSphere = false;
 
+    var hasIdolEoF = false;
+    var hasIdolMoon = false;
+    var hasIdolProp = false;
+    var hasIdolMoonfang = false;
+    var hasIdolAcidity = false;
+    var hasIdolEquilibrium = false;
+    var hasIdolEquilibriumV2 = false;
+
 
     // ITEMS
     for (var slot in GEAR_SELECTION) {
@@ -818,6 +826,14 @@ function calculateGearStats() {
                 if (item.name === "Zandalarian Hero Charm") hasZhc = true;
                 if (item.name === "Pristine Enchanted South Seas Kelp") hasKelp = true;
                 if (item.name === "Sphere of the Endless Gulch") hasSphere = true;
+
+                if (item.name === "Idol of Ebb and Flow" || item.id === 55497) hasIdolEoF = true;
+                if (item.name === "Idol of the Moon" || item.id === 23197) hasIdolMoon = true;
+                if (item.name === "Idol of Propagation" || item.id === 58179) hasIdolProp = true;
+                if (item.name === "Idol of the Moonfang" || item.id === 61293) hasIdolMoonfang = true;
+                if (item.name === "Idol of Acidity") hasIdolAcidity = true;
+                if (item.name === "Idol of Equilibrium") hasIdolEquilibrium = true;
+                if (item.name === "Idol of Equilibrium (v2 Krokat)") hasIdolEquilibriumV2 = true;
         
             }
         }
@@ -844,6 +860,13 @@ function calculateGearStats() {
     var elRoop = document.getElementById('item_roop'); if (elRoop) elRoop.checked = hasRoop;
     var elZhc = document.getElementById('item_zhc'); if (elZhc) elZhc.checked = hasZhc;
 
+    var elIdolEoF = document.getElementById('idolEoF'); if (elIdolEoF) elIdolEoF.checked = hasIdolEoF;
+    var elIdolMoon = document.getElementById('idolMoon'); if (elIdolMoon) elIdolMoon.checked = hasIdolMoon;
+    var elIdolProp = document.getElementById('idolProp'); if (elIdolProp) elIdolProp.checked = hasIdolProp;
+    var elIdolMoonfang = document.getElementById('idolMoonfang'); if (elIdolMoonfang) elIdolMoonfang.checked = hasIdolMoonfang;
+    var elIdolAcidity = document.getElementById('idolAcidity'); if (elIdolAcidity) elIdolAcidity.checked = hasIdolAcidity;
+    var elIdolEquilibrium = document.getElementById('idolEquilibrium'); if (elIdolEquilibrium) elIdolEquilibrium.checked = hasIdolEquilibrium;
+    var elIdolEquilibriumV2 = document.getElementById('idolEquilibriumV2'); if (elIdolEquilibriumV2) elIdolEquilibriumV2.checked = hasIdolEquilibriumV2;
 
     // ENCHANTS
     // "Boni der Enchants auch in den Gear-Stats (nicht im Gear Score)"

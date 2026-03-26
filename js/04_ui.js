@@ -18,7 +18,7 @@ function setupUIListeners() {
     }
 
     // IDOL EXCLUSIVITY FOR 1.18.1c
-    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity","idolEquilibrium"];
+    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity","idolEquilibrium","idolEquilibriumV2"];
     idolIds.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) {
@@ -2250,6 +2250,9 @@ function applyImportData(importedItems, race, charName) {
         else if (slotKey === "Held In Off-Hand") {
             slotToAssign = "Off Hand";
         }
+        else if (slotKey === "Relic") {
+            slotToAssign = "Idol";
+        }
         else {
             // Direct Match (Head, Chest, Hands, etc.)
             slotToAssign = slotKey;
@@ -2297,7 +2300,7 @@ function updatePatchUI() {
     });
 
     // 3. Ensure Single Idol Selection
-    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang","idolAcidity", "idolEquilibrium"];
+    var idolIds = ["idolEoF", "idolMoon", "idolProp", "idolMoonfang","idolAcidity", "idolEquilibrium","idolEquilibriumV2"];
     var found = false;
     idolIds.forEach(function (id) {
         var el = document.getElementById(id);
