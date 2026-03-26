@@ -1059,13 +1059,13 @@ function runCoreSimulation(cfg) {
         }
 
         // Idol of Equilibrium (v2 Krokat) Proc - Wrath -> Insect Swarm
-        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV2 && State.activeIS && State.activeIS.exp > State.t && RNG.check(8, "procEquilV2Wrath")) {
+        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV2 && State.activeIS && State.activeIS.exp > State.t && RNG.check(25, "procEquilV2Wrath")) {
             State.activeIS.exp = State.t + State.activeIS.spell.dur;
             log(State.t, "PROC", "Idol of Equil. v2", "Refresh (IS)", null, null, "IS Duration Refreshed");
         }
 
         // Idol of Equilibrium (v2 Krokat) Proc - Starfire -> Moonfire
-        if (spell.id === "Starfire" && cfg.gear.idolEquilibriumV2 && State.activeMF && State.activeMF.exp > State.t && RNG.check(15, "procEquilV2SF")) {
+        if (spell.id === "Starfire" && cfg.gear.idolEquilibriumV2 && State.activeMF && State.activeMF.exp > State.t && RNG.check(50, "procEquilV2SF")) {
             State.activeMF.exp = State.t + State.activeMF.spell.dur;
             log(State.t, "PROC", "Idol of Equil. v2", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
