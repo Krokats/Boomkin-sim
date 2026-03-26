@@ -1021,15 +1021,18 @@ function runCoreSimulation(cfg) {
         }
 
         // Idol of Acidity Proc
-        if (spell.id === "Wrath" && cfg.gear.idolAcidity && State.t >= State.acidityEnd && RNG.check(8, "procAcidity")) {
+        if (spell.id === "Wrath" && cfg.gear.idolAcidity && RNG.check(8, "procAcidity")) {
             State.acidityEnd = State.t + 6.0;
             
             // Schaden berechnen (Snapshotting der aktuellen Nature SP inklusive temporärer Buffs)
             var currentNatSP = getCurrentSP("Nature");
-            var totalAcidityDmg = 300 + (0.061 * currentNatSP);
+            var totalAcidityDmg = 300 + (0.055 * currentNatSP);
             var tickAcidityDmg = totalAcidityDmg / 3;
             
-            log(State.t, "PROC", "Idol of Acidity", "", null, null, "-25 Nat Res & " + Math.floor(totalAcidityDmg) + " Dmg over 6s");
+            // Bisherige ausstehende Ticks entfernen, damit der DoT nicht stackt (Refresh-Logik)
+            State.pendingImpacts = State.pendingImpacts.filter(function(e) { return e.type !== "ACIDITY_TICK"; });
+            
+            log(State.t, "PROC", "Idol of Acidity", "Refresh", null, null, "-25 Nat Res & " + Math.floor(totalAcidityDmg) + " Dmg over 6s");
             addEvt(State.t + 2.0, "ACIDITY_TICK", { dmg: tickAcidityDmg });
             addEvt(State.t + 4.0, "ACIDITY_TICK", { dmg: tickAcidityDmg });
             addEvt(State.t + 6.0, "ACIDITY_TICK", { dmg: tickAcidityDmg });
