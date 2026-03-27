@@ -1097,16 +1097,16 @@ function runCoreSimulation(cfg) {
             log(State.t, "PROC", "Idol of Equil. v2", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
 
-        // Idol of Equilibrium (v3 Krokat) Proc - Wrath Crit -> Insect Swarm
-        if (spell.id === "Wrath" && crit && cfg.gear.idolEquilibriumV3 && State.activeIS && State.activeIS.exp > State.t) {
+        // Idol of Equilibrium (v2 Krokat) Proc - Wrath -> Insect Swarm
+        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV3 && State.activeIS && State.activeIS.exp > State.t ) {
             State.activeIS.exp = State.t + State.activeIS.spell.dur;
-            log(State.t, "PROC", "Idol of Equil. v3", "Refresh (IS)", null, null, "IS Duration Refreshed (Crit)");
+            log(State.t, "PROC", "Idol of Equil. v3", "Refresh (IS)", null, null, "IS Duration Refreshed");
         }
 
-        // Idol of Equilibrium (v3 Krokat) Proc - Starfire Crit -> Moonfire
-        if (spell.id === "Starfire" && crit && cfg.gear.idolEquilibriumV3 && State.activeMF && State.activeMF.exp > State.t) {
+        // Idol of Equilibrium (v2 Krokat) Proc - Starfire -> Moonfire
+        if (spell.id === "Starfire" && cfg.gear.idolEquilibriumV3 && State.activeMF && State.activeMF.exp > State.t) {
             State.activeMF.exp = State.t + State.activeMF.spell.dur;
-            log(State.t, "PROC", "Idol of Equil. v3", "Refresh (MF)", null, null, "MF Duration Refreshed (Crit)");
+            log(State.t, "PROC", "Idol of Equil. v3", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
         
         if (crit) {

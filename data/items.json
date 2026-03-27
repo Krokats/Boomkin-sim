@@ -381266,7 +381266,7 @@
     "unique": false,
     "effects": {
       "onUse": false,
-      "custom": ["Equip: Critical strikes of your Wrath refresh the duration of your Insect Swarm, critical strikes Starfire refresh the duration of your Moonfire."]
+      "custom": ["Equip: Your successful Wrath hits refresh the duration of your Insect Swarm, Your successful Starfire hits refresh the duration of your Moonfire."]
     },
     "setName": "",
     "setBonuses": {},
