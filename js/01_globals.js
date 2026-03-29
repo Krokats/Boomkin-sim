@@ -209,7 +209,7 @@ var CONFIG_IDS = [
     "enemy_level", "res_arcane", "res_nature", "enemy_cos", "enemy_ext_mf", "enemy_ext_is",
     "start_boat", "wrath_flight",
     "rota_interrupt", "rota_interrupt_thresh",
-    "stag_5p","t3_4p", "t3_6p", "t3_8p", "t35_5p",
+    "stag_5p","t3_4p", "t3_6p", "t3_8p", "t35_3p", "t35_5p",
     "idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity", "idolEquilibrium","idolEquilibriumV2","idolEquilibriumV3",
     "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp", "item_sphere",
     "item_reos", "item_toep", "item_roop", "item_zhc",
@@ -219,7 +219,8 @@ var CONFIG_IDS = [
     "buff_arcane_brilliance", "buff_bok", "buff_emerald", "buff_gotw",
     "buff_food_sp","buff_food_medley","buff_food_int",
     "buff_elixir_dreamshard", "buff_elixir_nature", "buff_elixir_arcane_power", "buff_elixir_greater_arcane",
-    "buff_dreamtonic", "buff_cerebral", "buff_wizard_oil", "buff_flask"
+    "buff_dreamtonic", "buff_cerebral", "buff_wizard_oil", "buff_flask",
+    "aoe_targets", "aoe_mode"
 ];
 
 var SLOT_LAYOUT = {

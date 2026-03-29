@@ -639,7 +639,7 @@ input:checked + .slider::before { transform: translateX(16px); background-color:
 }
 .info-table th, .info-table td {
     padding: 8px 10px;
-    text-align: right;
+    text-align: left;
     border-bottom: 1px solid #333;
 }
 .info-table th { text-align: left; color: var(--text-muted); }
@@ -1733,4 +1733,59 @@ input:checked + .slider::before { transform: translateX(16px); background-color:
     margin-top: -10px;
     border-bottom: 1px dashed var(--border-color);
 }
+
+/* --- Auto-Generated Rotation Description --- */
+.rb-auto-desc-header {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px dashed #555;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.rb-auto-desc-header:hover {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: var(--druid-orange);
+    color: var(--druid-orange);
+}
+
+/* Wenn die Box aufgeklappt ist, passen wir die Ecken des Headers an, damit es wie EINE Box aussieht */
+.rb-auto-desc-header.is-open {
+    border-bottom: none;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    color: var(--druid-orange);
+}
+
+.rb-auto-desc {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px dashed #555;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.rb-auto-desc:empty {
+    display: none; /* Versteckt die Box, falls kein Text generiert wurde */
+}
+
+.rb-auto-desc strong {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+/* Hilfsklassen für farbliche Hervorhebungen im Text */
+.desc-spell-arcane { color: var(--arcane-blue); font-weight: 600; }
+.desc-spell-nature { color: var(--nature-green); font-weight: 600; }
+.desc-spell-item { color: #ce93d8; font-weight: 600; }
+.desc-condition { color: #ffd54f; font-style: italic; }
 

@@ -1866,6 +1866,35 @@ function updateSpellStats() {
     var is_coeff = ((18 / 15) * 0.95 * 1.25) / 9; var is_mod = 0.25;
     if (cfg.gear.idolProp) is_mod += 0.17;
     tbody.innerHTML += calcRow("Insect Swarm (Tick)", 53.35, is_coeff, (cfg.power.sp + cfg.power.nat), is_mod, eclFactor, 0, "Nature");
+
+    // --- Hurricane Berechnung ---
+    var hurr_base = 134;
+    var hurr_coeff = 0.096;
+    var hurr_sp = cfg.power.sp + cfg.power.nat;
+    var hurr_raw = hurr_base + (hurr_coeff * hurr_sp);
+    var hurr_moonfury = 0.12;
+    var hurr_genesis = 0.15;
+    var eclipseModification = 1 + eclFactor; // (1 + Eclipse-Bonus) analog zur bestehenden Engine-Mathematik
+
+    // Normaler Hurricane
+    var hurr_scaledNoEcl = hurr_raw * (1 + hurr_moonfury + hurr_genesis);
+    var hurr_scaledEcl = hurr_scaledNoEcl * eclipseModification;
+    
+    tbody.innerHTML += '<tr><td>Hurricane (Tick)</td><td>' + hurr_base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_scaledEcl) + '</td><td>0.00s</td></tr>';
+
+    // T3.5 Hurricane Zusatzschaden
+    if (cfg.gear.t35_3p) {
+        var hurr_t35_scaledNoEcl = hurr_raw / 2;
+        var hurr_t35_scaledEcl = (hurr_raw * eclipseModification) / 2;
+        
+        tbody.innerHTML += '<tr><td>Hurricane T3.5 (Tick)</td><td>' + (hurr_base / 2).toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_t35_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_t35_scaledEcl) + '</td><td>0.00s</td></tr>';
+    }
+
+    // AoE Chart immer direkt neu zeichnen, wenn Stats/Boni sich ändern
+    /*if (typeof renderAoEChart === 'function') {
+        renderAoEChart();
+    }*/
+    
 }
 
 // ============================================================================
@@ -2599,6 +2628,7 @@ function renderRotationList() {
     });
     
     saveCurrentState();
+    generateAutoDescription();
 }
 
 function createConditionRow(stepIdx, condIdx, cond) {
@@ -2844,6 +2874,146 @@ function clearRotation() {
     }
 }
 
+function generateAutoDescription() {
+    var container = document.getElementById("rb_auto_desc");
+    var header = document.getElementById("rb_auto_desc_header"); // Referenz auf den neuen Header
+    if (!container) return;
+
+    if (!CUSTOM_ROTATION || !CUSTOM_ROTATION.steps || CUSTOM_ROTATION.steps.length === 0) {
+        container.innerHTML = "<em>No rotation configured.</em>";
+        if (header) header.style.display = "none"; // Verstecke den Header, wenn leer
+        return;
+    }
+
+    var activeSteps = CUSTOM_ROTATION.steps.filter(function(s) { return !s.disabled; });
+
+    if (activeSteps.length === 0) {
+        container.innerHTML = "<em>All rotation steps are disabled.</em>";
+        if (header) header.style.display = "none"; // Verstecke den Header, wenn leer
+        return;
+    }
+
+    // Zeige den Header an, da wir aktive Rotations-Schritte haben
+    if (header) header.style.display = "flex";
+
+    // Der Titel "Rotation Priority:" wurde entfernt, da er jetzt im klickbaren Header steht
+    var text = "<div style='margin-top: 5px;'>";
+
+    function formatSpell(skillId) {
+        var sDef = ROTATION_SKILLS.find(function(s) { return s.id === skillId; }) || { name: skillId };
+        var name = sDef.name;
+        var cls = "desc-spell-arcane"; 
+        if (skillId === "Wrath" || skillId === "InsectSwarm") cls = "desc-spell-nature";
+        if (skillId.includes("Trinket")) cls = "desc-spell-item";
+        return "<span class='" + cls + "'>" + name + "</span>";
+    }
+
+    function formatCond(cond) {
+        var target = cond.target ? cond.target : "";
+        var val = parseFloat(cond.val) || 0;
+        var op = cond.op || "==";
+
+        switch (cond.type) {
+            case "debuff_rem":
+            case "buff_rem":
+            case "player_debuff_rem":
+                if (op === "<=" && val === 0) return target + " is not active";
+                if ((op === ">" || op === ">=") && val === 0) return target + " is active";
+                if (op === "<=" || op === "<") return target + " has " + val + "s or less remaining";
+                if (op === ">=" || op === ">") return target + " has more than " + val + "s remaining";
+                return target + " duration is " + op + " " + val + "s";
+                
+            case "time_elapsed":
+                if (op === "<=" && val === 0) return "combat just started";
+                return "combat time is " + op + " " + val + "s";
+                
+            case "time_remaining":
+                return "the fight has " + op + " " + val + "s left";
+                
+            case "ecl_vs_cast":
+                if (cond.bool === "false") return "there is not enough Eclipse time left to cast " + target;
+                return "there is enough Eclipse time left to cast " + target;
+                
+            case "last_cast":
+                return "the last cast was " + target;
+                
+            default:
+                return "a specific condition is met";
+        }
+    }
+
+    var groupedSteps = [];
+    activeSteps.forEach(function(step) {
+        var lastGroup = groupedSteps[groupedSteps.length - 1];
+        if (lastGroup && lastGroup.skill === step.skill) {
+            lastGroup.conditionGroups.push(step.conditions || []);
+        } else {
+            groupedSteps.push({
+                skill: step.skill,
+                conditionGroups: [step.conditions || []]
+            });
+        }
+    });
+
+    groupedSteps.forEach(function(group, idx) {
+        var spellHtml = formatSpell(group.skill);
+        var isLast = (idx === groupedSteps.length - 1);
+        
+        var groupTexts = [];
+        var hasUnconditional = false;
+
+        group.conditionGroups.forEach(function(conds) {
+            if (!conds || conds.length === 0) {
+                hasUnconditional = true;
+            } else {
+                var condTexts = conds.map(function(c) { 
+                    return "<span class='desc-condition'>" + formatCond(c) + "</span>"; 
+                });
+                groupTexts.push(condTexts.join(" <strong>and</strong> "));
+            }
+        });
+        
+        var condString = "";
+        if (!hasUnconditional && groupTexts.length > 0) {
+            condString = "<div style='margin-left: 20px; opacity: 0.9; margin-top: 2px;'>&#8627; if " + groupTexts.join(" <strong style='color:var(--text-color);'>OR</strong> if ") + "</div>";
+        }
+
+        var stepText = "";
+        if (idx === 0) {
+            stepText = "First, cast " + spellHtml;
+        } else if (isLast && hasUnconditional) {
+            stepText = "Otherwise, default to " + spellHtml + " as your filler.";
+        } else {
+            var trans = ["Next, use ", "Then, cast ", "After that, prioritize ", "Followed by "][(idx - 1) % 4];
+            stepText = trans + spellHtml;
+        }
+
+        text += "<div style='margin-bottom: 8px;'>" + stepText + condString + "</div>";
+    });
+
+    text += "</div>";
+    container.innerHTML = text;
+}
+
+// Neue Funktion für das Auf- und Zuklappen der Beschreibung
+function toggleAutoDesc() {
+    var content = document.getElementById("rb_auto_desc");
+    var header = document.getElementById("rb_auto_desc_header");
+    var icon = document.getElementById("rb_auto_desc_icon");
+    
+    if (!content || !header || !icon) return;
+    
+    if (content.style.display === "none" || content.style.display === "") {
+        content.style.display = "block"; // Aufklappen
+        header.classList.add("is-open"); // Passt das CSS für abgerundete Ecken an
+        icon.innerHTML = "&#9650;"; // Ändert das Icon auf einen Pfeil nach oben
+    } else {
+        content.style.display = "none"; // Zuklappen
+        header.classList.remove("is-open");
+        icon.innerHTML = "&#9660;"; // Ändert das Icon auf einen Pfeil nach unten
+    }
+}
+
 // ============================================================================
 // BUFF TOGGLE LOGIC
 // ============================================================================
@@ -2872,4 +3042,219 @@ function toggleBuffs(btnElement, checkState) {
         }
         saveCurrentState();
     }
+}
+
+// ============================================================================
+// NEW: AOE DAMAGE COMPARISON CHART
+// ============================================================================
+function renderAoEChart() {
+    var container = document.getElementById("aoeChartContainer");
+    if (!container) return;
+    
+    var targetsInput = document.getElementById("aoe_targets");
+    var numTargets = targetsInput ? parseInt(targetsInput.value) : 3;
+    if (isNaN(numTargets) || numTargets < 1) numTargets = 1;
+    
+    var modeInput = document.getElementById("aoe_mode");
+    var mode = modeInput ? modeInput.value : "dps";
+    
+    // Holt sich die aktuellsten Werte aus der Engine
+    var cfg = getInputs(); 
+    
+    // --- Mathematische Grundlagen ---
+    var eclFactor = (10 + 60 * (cfg.stats.crit / 100)) / 100;
+    var eclipseModification = 1 + eclFactor;
+    var cosMod = 1 + 0.1 * cfg.enemy.cos;
+    
+    // Hurricane (Nature)
+    var hurr_base = 134;
+    var hurr_coeff = 0.096;
+    var hurr_sp = cfg.power.sp + cfg.power.nat;
+    var hurr_raw = hurr_base + (hurr_coeff * hurr_sp);
+    var hurr_tick_dmg = hurr_raw * (1 + 0.12 + 0.15) * eclipseModification;
+    if (cfg.gear.t35_3p) {
+        hurr_tick_dmg += (hurr_raw * eclipseModification) / 2;
+    }
+    
+    // Moonfire (Arcane, profitiert von Curse of Shadow)
+    var mf_hit_mod = 0.20 + 0.02; // Moonfury
+    if (cfg.gear.idolMoon) mf_hit_mod += 0.17;
+    var mf_direct_dmg = (210 + 0.14 * (cfg.power.sp + cfg.power.arc)) * (1 + mf_hit_mod) * eclipseModification * cosMod;
+    
+    var mf_tick_mod = 0.35 + 0.02; 
+    if (cfg.gear.idolMoon) mf_tick_mod += 0.17;
+    var mf_tick_dmg = (95.6 + 0.13 * (cfg.power.sp + cfg.power.arc)) * (1 + mf_tick_mod) * eclipseModification * cosMod;
+    var durMF = 18.0 + (cfg.gear.t3_4p ? 3.0 : 0);
+    
+    // Insect Swarm (Nature)
+    var is_coeff = ((18 / 15) * 0.95 * 1.25) / 9;
+    var is_mod = 0.25 + 0.02;
+    if (cfg.gear.idolProp) is_mod += 0.17;
+    var is_tick_dmg = (53.35 + is_coeff * (cfg.power.sp + cfg.power.nat)) * (1 + is_mod) * eclipseModification;
+    var durIS = 18.0 + (cfg.gear.t3_4p ? 2.0 : 0);
+    
+    // --- Simulation (60 Sekunden, 0.5s Schritte) ---
+    var history = [];
+    var totalHurr = 0, totalMF = 0, totalIS = 0;
+    var activeMF = [], activeIS = [];
+    var gcdMF = 0, gcdIS = 0;
+    
+    for (var t = 0; t <= 60; t += 0.5) {
+        var dmgHurrThisStep = 0, dmgMFThisStep = 0, dmgISThisStep = 0;
+        
+        // Hurricane (tickt jede Sekunde auf alle Ziele)
+        if (t > 0 && t % 1.0 === 0) {
+            dmgHurrThisStep = hurr_tick_dmg * numTargets;
+            totalHurr += dmgHurrThisStep;
+        }
+        
+        // Moonfire Cast & Tick Logik
+        if (t >= gcdMF) {
+            if (activeMF.length < numTargets) {
+                dmgMFThisStep += mf_direct_dmg;
+                activeMF.push({ exp: t + durMF, nextTick: t + 3.0 });
+                gcdMF = t + 1.5;
+            } else {
+                var oldestMF = -1, oldestExpMF = 999;
+                for(var i=0; i<activeMF.length; i++) {
+                    if (activeMF[i].exp < oldestExpMF) {
+                        oldestExpMF = activeMF[i].exp;
+                        oldestMF = i;
+                    }
+                }
+                if (oldestExpMF <= t) { // Recast
+                    dmgMFThisStep += mf_direct_dmg;
+                    activeMF[oldestMF] = { exp: t + durMF, nextTick: t + 3.0 };
+                    gcdMF = t + 1.5;
+                }
+            }
+        }
+        for(var i=0; i<activeMF.length; i++) {
+            if (activeMF[i].exp >= t && activeMF[i].nextTick === t) {
+                dmgMFThisStep += mf_tick_dmg;
+                activeMF[i].nextTick += 3.0;
+            }
+        }
+        totalMF += dmgMFThisStep;
+        
+        // Insect Swarm Cast & Tick Logik
+        if (t >= gcdIS) {
+            if (activeIS.length < numTargets) {
+                activeIS.push({ exp: t + durIS, nextTick: t + 2.0 });
+                gcdIS = t + 1.5;
+            } else {
+                var oldestIS = -1, oldestExpIS = 999;
+                for(var i=0; i<activeIS.length; i++) {
+                    if (activeIS[i].exp < oldestExpIS) {
+                        oldestExpIS = activeIS[i].exp;
+                        oldestIS = i;
+                    }
+                }
+                if (oldestExpIS <= t) { // Recast
+                    activeIS[oldestIS] = { exp: t + durIS, nextTick: t + 2.0 };
+                    gcdIS = t + 1.5;
+                }
+            }
+        }
+        for(var i=0; i<activeIS.length; i++) {
+            if (activeIS[i].exp >= t && activeIS[i].nextTick === t) {
+                dmgISThisStep += is_tick_dmg;
+                activeIS[i].nextTick += 2.0;
+            }
+        }
+        totalIS += dmgISThisStep;
+        
+        // Status für das Diagramm erfassen ("Treppen" bauen)
+        var currentDpsHurr = hurr_tick_dmg * numTargets;
+        var currentDpsMF = (activeMF.length * (mf_tick_dmg / 3.0)) + ((t < gcdMF) ? (mf_direct_dmg / 1.5) : 0);
+        var currentDpsIS = (activeIS.length * (is_tick_dmg / 2.0));
+        
+        history.push({
+            t: t,
+            dpsH: currentDpsHurr, dpsM: currentDpsMF, dpsI: currentDpsIS,
+            totH: totalHurr, totM: totalMF, totI: totalIS
+        });
+    }
+    
+    // --- SVG Rendering ---
+    var maxVal = 0;
+    history.forEach(function(pt) {
+        var vH = mode === "total" ? pt.totH : pt.dpsH;
+        var vM = mode === "total" ? pt.totM : pt.dpsM;
+        var vI = mode === "total" ? pt.totI : pt.dpsI;
+        if (vH > maxVal) maxVal = vH;
+        if (vM > maxVal) maxVal = vM;
+        if (vI > maxVal) maxVal = vI;
+    });
+    if (maxVal === 0) maxVal = 1;
+    maxVal = maxVal * 1.15; // 15% Puffer nach oben im Diagramm
+    
+    var svgNS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgNS, "svg");
+    svg.style.width = "100%";
+    svg.style.height = "100%";
+    
+    var width = container.clientWidth || 600;
+    var height = container.clientHeight || 220;
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.setAttribute("preserveAspectRatio", "none");
+    
+    function createLine(key, color) {
+        var polyline = document.createElementNS(svgNS, "polyline");
+        polyline.setAttribute("fill", "none");
+        polyline.setAttribute("stroke", color);
+        polyline.setAttribute("stroke-width", "2");
+        
+        var pointsStr = "";
+        history.forEach(function(pt) {
+            var val = mode === "total" ? pt["tot" + key] : pt["dps" + key];
+            var x = (pt.t / 60) * width;
+            var y = height - (val / maxVal) * height;
+            pointsStr += x + "," + y + " ";
+        });
+        polyline.setAttribute("points", pointsStr.trim());
+        return polyline;
+    }
+    
+    // Raster & Labels zeichnen
+    var gridLines = 4;
+    for(var i=0; i<=gridLines; i++) {
+        var yPos = height - (i/gridLines)*height;
+        var line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", "0");
+        line.setAttribute("x2", width);
+        line.setAttribute("y1", yPos);
+        line.setAttribute("y2", yPos);
+        line.setAttribute("stroke", "rgba(255,255,255,0.1)");
+        line.setAttribute("stroke-width", "1");
+        svg.appendChild(line);
+        
+        var label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", "5");
+        label.setAttribute("y", yPos > 15 ? yPos - 5 : yPos + 15);
+        label.setAttribute("fill", "rgba(255,255,255,0.4)");
+        label.setAttribute("font-size", "10px");
+        label.setAttribute("font-family", "sans-serif");
+        label.textContent = Math.floor((i/gridLines)*maxVal);
+        svg.appendChild(label);
+    }
+    
+    [0, 15, 30, 45, 60].forEach(function(tVal) {
+        var xPos = (tVal / 60) * width;
+        var label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", xPos === 0 ? 2 : (xPos >= width ? width - 20 : xPos - 5));
+        label.setAttribute("y", height - 5);
+        label.setAttribute("fill", "rgba(255,255,255,0.4)");
+        label.setAttribute("font-size", "10px");
+        label.setAttribute("font-family", "sans-serif");
+        label.textContent = tVal + "s";
+        svg.appendChild(label);
+    });
+    
+    svg.appendChild(createLine("H", "#00bcd4")); // Cyan für Hurricane
+    svg.appendChild(createLine("M", "var(--arcane-blue)"));
+    svg.appendChild(createLine("I", "var(--nature-green)"));
+    
+    container.innerHTML = "";
+    container.appendChild(svg);
 }

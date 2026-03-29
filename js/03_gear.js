@@ -851,6 +851,7 @@ function calculateGearStats() {
     var elT34 = document.getElementById('t3_4p'); if (elT34) elT34.checked = countT3 >= 4;
     var elT36 = document.getElementById('t3_6p'); if (elT36) elT36.checked = countT3 >= 6;
     var elT38 = document.getElementById('t3_8p'); if (elT38) elT38.checked = countT3 >= 8;
+    var elT35 = document.getElementById('t35_3p'); if (elT35) elT35.checked = countT35 >= 3;
     var elT35 = document.getElementById('t35_5p'); if (elT35) elT35.checked = countT35 >= 5;
     var elStag = document.getElementById('stag_5p'); if (elStag) elStag.checked = countStag >= 5;
 

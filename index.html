@@ -564,8 +564,10 @@
                                                 class="checkmark"></span> T3/6p (Proc Dmg)</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="t3_8p" disabled><span
                                                 class="checkmark"></span> T3/8p (Haste)</label>
+                                        <label class="custom-checkbox"><input type="checkbox" id="t35_3p" disabled><span
+                                                class="checkmark"></span> T3.5/3p (Hurricane)</label>
                                         <label class="custom-checkbox"><input type="checkbox" id="t35_5p" disabled><span
-                                                class="checkmark"></span> T3.5/5p (BoaT)</label>
+                                                class="checkmark"></span> T3.5/5p (BoaT)</label>                                
                                     </div>
                                     <div class="gear-section-title">Idols (Selectable)</div>
                                     <div class="checkbox-grid">
@@ -657,6 +659,41 @@
                                 </div>
                             </div>
 
+                            <!-- 
+                            <div class="card full-width collapsed">
+                                <div class="card-header">
+                                    <h2>🌪️ AoE Damage Comparison</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="grid-container" style="margin:0; padding:0; margin-bottom: 15px; display: flex; gap: 15px;">
+                                        <div class="input-group" style="margin:0; flex: 1;">
+                                            <label>Number of Targets</label>
+                                            <input type="number" id="aoe_targets" value="3" min="1" max="40" onchange="if(typeof renderAoEChart === 'function') renderAoEChart()">
+                                        </div>
+                                        <div class="input-group" style="margin:0; flex: 1;">
+                                            <label>Display Mode</label>
+                                            <div class="select-wrapper">
+                                                <select id="aoe_mode" onchange="if(typeof renderAoEChart === 'function') renderAoEChart()">
+                                                    <option value="dps" selected>Current DPS</option>
+                                                    <option value="total">Total Damage (Cumulative)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 15px; font-size: 0.8rem; margin-bottom: 10px; justify-content: center;">
+                                        <span style="color: #00bcd4;">&#9608; Hurricane</span>
+                                        <span style="color: var(--arcane-blue);">&#9608; Moonfire</span>
+                                        <span style="color: var(--nature-green);">&#9608; Insect Swarm</span>
+                                    </div>
+
+                                    <div id="aoeChartContainer" style="height: 220px; background: rgba(0,0,0,0.2); border: 1px dashed #444; border-radius: 8px; position: relative; width: 100%;">
+                                        <div style="color:#666; text-align:center; padding-top: 100px; font-style:italic;" id="aoeEmptyState">Loading chart...</div>
+                                    </div>
+                                    <div style="text-align: center; font-size: 0.7rem; color: #666; margin-top: 5px;">X-Axis: Time (0 to 60s)</div>
+                                </div>
+                            </div> -->
+
                             <div class="card full-width collapsed"  style="overflow: visible !important;">
                                 <div class="card-header clickable" onclick="toggleCard(this)">
                                     <h2>🛠️ Rotation Builder</h2>
@@ -688,6 +725,13 @@
                                                 <label>Description (Optional)</label>
                                                 <input type="text" id="rb_meta_desc" placeholder="Describe what this rotation does..." onchange="updateRotationMeta('desc', this.value)">
                                             </div>
+                                        </div>
+
+                                        <div class="rb-auto-desc-wrapper" style="margin-bottom: 20px;">
+                                            <div id="rb_auto_desc_header" class="rb-auto-desc-header" onclick="toggleAutoDesc()" style="display: none;">
+                                                <strong>Rotation Priority</strong> <span id="rb_auto_desc_icon">&#9660;</span>
+                                            </div>
+                                            <div id="rb_auto_desc" class="rb-auto-desc" style="display: none; margin-bottom: 0; border-top-left-radius: 0; border-top-right-radius: 0; border-top: none;"></div>
                                         </div>
                                         
                                         <div class="rb-layout" style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start;">
