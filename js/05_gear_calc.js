@@ -196,7 +196,8 @@ function calculateGearStats() {
         hit: baseStats.hit,
         int: baseStats.int,
         haste: baseStats.haste, // Additiv für UI
-        hasteMult: 1.0 + (baseStats.haste / 100) // Multiplikativ für Engine
+        hasteMult: 1.0 + (baseStats.haste / 100), // Multiplikativ für Engine
+        fortune: 0
     };
 
     // Gear Only Stats (Accumulates ONLY items + sets, NO base, NO enchants)
@@ -207,7 +208,8 @@ function calculateGearStats() {
         hit: 0,
         int: 0,
         haste: baseStats.haste, // Additiv für UI
-        hasteMult: 1.0 + (baseStats.haste / 100) // Multiplikativ für Engine
+        hasteMult: 1.0 + (baseStats.haste / 100), // Multiplikativ für Engine
+        fortune: 0
     };
 
     var setCounts = {};
@@ -257,6 +259,7 @@ function calculateGearStats() {
                 var critVal = (e.spellCrit || 0);
                 var hitVal = (e.spellHit || 0);
                 var hasteVal = (e.spellHaste || 0);
+                var fortuneVal = (e.fortune || 0);
 
                 // Add to Character (Total)
                 charStats.int += intVal;
@@ -266,6 +269,7 @@ function calculateGearStats() {
                 charStats.crit += critVal;
                 charStats.hit += hitVal;
                 charStats.haste += hasteVal;
+                charStats.fortune += fortuneVal;
                 if (hasteVal) charStats.hasteMult *= (1 + (hasteVal / 100));
 
                 // Add to Gear Only (GS)
@@ -275,6 +279,7 @@ function calculateGearStats() {
                 gearOnlyStats.crit += critVal;
                 gearOnlyStats.hit += hitVal;
                 gearOnlyStats.haste += hasteVal;
+                gearOnlyStats.fortune += fortuneVal;
                 if (hasteVal) gearOnlyStats.hasteMult *= (1 + (hasteVal / 100));
 
                 if (item.setName) {
@@ -364,6 +369,7 @@ function calculateGearStats() {
                 var critVal = (ench.effects.spellCrit || 0);
                 var hitVal = (ench.effects.spellHit || 0);
                 var hasteVal = (ench.effects.spellHaste || 0);
+                var fortuneVal = (ench.effects.fortune || 0)
 
                 // Add to Character (Total) - YES
                 charStats.int += intVal;
@@ -373,6 +379,7 @@ function calculateGearStats() {
                 charStats.crit += critVal;
                 charStats.hit += hitVal;
                 charStats.haste += hasteVal;
+                charStats.fortune += fortuneVal;
                 if (hasteVal) charStats.hasteMult *= (1 + (hasteVal / 100));
             }
         }
@@ -395,6 +402,7 @@ function calculateGearStats() {
                     var critVal = (bonus.spellCrit || 0);
                     var hitVal = (bonus.spellHit || 0);
                     var hasteVal = (bonus.spellHaste || 0);
+                    var fortuneVal = (bonus.fortune || 0);
 
                     // Add to Character (Total)
                     charStats.sp += spVal;
@@ -403,6 +411,7 @@ function calculateGearStats() {
                     charStats.crit += critVal;
                     charStats.hit += hitVal;
                     charStats.haste += hasteVal;
+                    charStats.fortune += fortuneVal;
                     if (hasteVal) charStats.hasteMult *= (1 + (hasteVal / 100));
 
                     // Add to Gear Only (GS) - Sets usually count as Gear Power
@@ -410,6 +419,7 @@ function calculateGearStats() {
                     gearOnlyStats.crit += critVal;
                     gearOnlyStats.hit += hitVal;
                     gearOnlyStats.haste += hasteVal;
+                    gearOnlyStats.fortune += fortuneVal;
                     if (hasteVal) gearOnlyStats.hasteMult *= (1 + (hasteVal / 100));
                 }
             });
@@ -539,6 +549,7 @@ function calculateGearStats() {
     var elCrit = document.getElementById("gp_crit"); if (elCrit) elCrit.innerText = charStats.crit.toFixed(2) + "%";
     var elHit = document.getElementById("gp_hit"); if (elHit) elHit.innerText = charStats.hit;
     var elHaste = document.getElementById("gp_haste"); if (elHaste) elHaste.innerText = charStats.haste.toFixed(2) + "%";
+    var elFortune = document.getElementById("gp_fortune"); if (elFortune) elFortune.innerText = charStats.fortune.toFixed(2) + "%";
     var elInt = document.getElementById("gp_int"); if (elInt) elInt.innerText = charStats.int;
 
     // Update Main Simulation Inputs (TOTAL STATS - SPLIT)
@@ -552,6 +563,10 @@ function calculateGearStats() {
         inHaste.value = charStats.haste.toFixed(2); 
         inHaste.setAttribute("data-mult", charStats.hasteMult); // NEU: Multiplikativer Wert für die Engine speichern
         inHaste.dispatchEvent(new Event('change')); 
+    }
+    var inFortune = document.getElementById("statFortune"); if (inFortune) { 
+        inFortune.value = charStats.fortune.toFixed(2); 
+        inFortune.dispatchEvent(new Event('change')); 
     }
 
 }

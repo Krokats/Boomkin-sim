@@ -7,6 +7,7 @@ function runCoreSimulation(cfg) {
     var rngHandler = new RNGHandler(cfg.seed);
 
     // 2. Statische Werte vorbereiten
+    var fortuneMult = 1.0 + ((cfg.stats.fortune || 0) / 100);
     var effResNat = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resNat - cfg.power.pen);
     var effResArc = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resArc - cfg.power.pen);
     var avgMitNat = Math.min(0.75, (effResNat / (cfg.enemy.level * 5)) * 0.75);
@@ -489,13 +490,13 @@ function runCoreSimulation(cfg) {
         if (spell.id === "Moonfire" && cfg.talents.boon && RNG.check(30, "boon")) { if (State.boon < 3) State.boon++; } 
         if (spell.id === "Moonfire" && cfg.gear.idolMoonfang) { RunStats.totalMana -= 50; log(State.t, "PROC", "Moonfang", "", null, null, "Restore 50", "-50"); } 
         
-        if (cfg.gear.binding && State.t >= State.bindingCD && RNG.check(5, "binding")) { 
+        if (cfg.gear.binding && State.t >= State.bindingCD && RNG.check(5 * fortuneMult, "binding")) { 
             State.bindingEnd = State.t + 5.0; 
             State.bindingCD = State.t + 15.0; 
             log(State.t, "PROC", "Binding", "", null, null, "+100 SP"); 
         } 
         
-        if (cfg.gear.scythe && RNG.check(5, "scythe")) { 
+        if (cfg.gear.scythe && RNG.check(5 * fortuneMult, "scythe")) { 
             var baseScythe = 375 + rngHandler.rand() * (500 - 375); 
             if (cfg.mode !== "S") baseScythe = 437.5; 
             var scytheDmg = baseScythe * cosMod; 
@@ -504,27 +505,27 @@ function runCoreSimulation(cfg) {
             log(State.t, "PROC DMG", "Scythe of Elune", "Hit", { norm: scytheDmg, ecl: 0, crit: 0, total: scytheDmg }, null, "Arcane Dmg"); 
         }
 
-        if (cfg.gear.nobility && RNG.check(10, "procNobility")) {
+        if (cfg.gear.nobility && RNG.check(10 * fortuneMult, "procNobility")) {
             State.nobilityEnd = State.t + 6.0;
             log(State.t, "PROC", "Highborne Insight", "", null, null, "+150 Int");
         }
-        if (cfg.gear.sulfuras && RNG.check(8, "procSulfuras")) {
+        if (cfg.gear.sulfuras && RNG.check(8 * fortuneMult, "procSulfuras")) {
             State.sulfurasEnd = State.t + 6.0;
             log(State.t, "PROC", "Band of Sulfuras", "", null, null, "+5% Haste");
         }
-        if (cfg.gear.sigil && RNG.check(8, "procSigil")) {
+        if (cfg.gear.sigil && RNG.check(8 * fortuneMult, "procSigil")) {
             var sigilDmg = 400 * cosMod;
             RunStats.totalDmg += sigilDmg;
             RunStats.dmgSigil += sigilDmg;
             log(State.t, "PROC DMG", "Sigil of Accord", "Hit", { norm: sigilDmg, ecl: 0, crit: 0, total: sigilDmg }, null, "Arcane Dmg");
         }
-        if (cfg.gear.chromie && RNG.check(10, "procChromie")) {
+        if (cfg.gear.chromie && RNG.check(10 * fortuneMult, "procChromie")) {
             State.chromieEnd = State.t + 15.0;
             log(State.t, "PROC", "Pocket Watch", "", null, null, "-10% Haste");
         }
         
         // Sphere of the Endless Gulch
-        if (cfg.gear.sphere && State.t >= State.sphereCD &&  State.t >= State.enlightenedEnd && RNG.check(20, "procSphere")) {
+        if (cfg.gear.sphere && State.t >= State.sphereCD &&  State.t >= State.enlightenedEnd && RNG.check(20 * fortuneMult, "procSphere")) {
             State.sphereCD = State.t + 3.0; // Interner Cooldown von 3 Sekunden
             State.makaruStacks++;
             if (State.makaruStacks >= 20) {
@@ -537,7 +538,7 @@ function runCoreSimulation(cfg) {
         }
 
         // Idol of Acidity Proc
-        if (spell.id === "Wrath" && cfg.gear.idolAcidity && RNG.check(8, "procAcidity")) {
+        if (spell.id === "Wrath" && cfg.gear.idolAcidity && RNG.check(8* fortuneMult, "procAcidity")) {
             State.acidityEnd = State.t + 6.0;
             
             // Schaden berechnen (Snapshotting der aktuellen Nature SP inklusive temporärer Buffs)
@@ -562,7 +563,7 @@ function runCoreSimulation(cfg) {
             RunStats.dmgT36p += dIS.t3Part;
             RunStats.dmgIS += dIS.total;
             RunStats.dmgIdol += dIS.total;
-            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
+            if (cfg.gear.t3_6p && RNG.check(8* fortuneMult, "procT36p")) { 
                 State.t3End = State.t + 6.0; 
                 log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
             }
@@ -570,14 +571,14 @@ function runCoreSimulation(cfg) {
         }
 
         // Idol of Equilibrium Proc - Starfire -> Moonfire
-        if (spell.id === "Starfire" && cfg.gear.idolEquilibrium && State.activeMF && State.activeMF.exp > State.t && RNG.check(15, "procEquilSF")) {
+        if (spell.id === "Starfire" && cfg.gear.idolEquilibrium && State.activeMF && State.activeMF.exp > State.t && RNG.check(15* fortuneMult, "procEquilSF")) {
             var dot = State.activeMF;
             var dMF = calculateDamageFull(dot.spell, true, dot.snap, false, null);
             RunStats.totalDmg += dMF.total;
             RunStats.dmgT36p += dMF.t3Part;
             RunStats.dmgMFTick += dMF.total;
             RunStats.dmgIdol += dMF.total;
-            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
+            if (cfg.gear.t3_6p && RNG.check(8* fortuneMult, "procT36p")) { 
                 State.t3End = State.t + 6.0; 
                 log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
             }
@@ -585,13 +586,13 @@ function runCoreSimulation(cfg) {
         }
 
         // Idol of Equilibrium (v2 Krokat) Proc - Wrath -> Insect Swarm
-        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV2 && State.activeIS && State.activeIS.exp > State.t && RNG.check(25, "procEquilV2Wrath")) {
+        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV2 && State.activeIS && State.activeIS.exp > State.t && RNG.check(25* fortuneMult, "procEquilV2Wrath")) {
             State.activeIS.exp = State.t + State.activeIS.spell.dur;
             log(State.t, "PROC", "Idol of Equil. v2", "Refresh (IS)", null, null, "IS Duration Refreshed");
         }
 
         // Idol of Equilibrium (v2 Krokat) Proc - Starfire -> Moonfire
-        if (spell.id === "Starfire" && cfg.gear.idolEquilibriumV2 && State.activeMF && State.activeMF.exp > State.t && RNG.check(50, "procEquilV2SF")) {
+        if (spell.id === "Starfire" && cfg.gear.idolEquilibriumV2 && State.activeMF && State.activeMF.exp > State.t && RNG.check(50* fortuneMult, "procEquilV2SF")) {
             State.activeMF.exp = State.t + State.activeMF.spell.dur;
             log(State.t, "PROC", "Idol of Equil. v2", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
@@ -672,13 +673,13 @@ function runCoreSimulation(cfg) {
         if (payload.spellId === "InsectSwarm") RunStats.dmgIS += d.total; 
         if (payload.spellId === "Moonfire") RunStats.dmgMFTick += d.total; 
         
-        if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) {
+        if (cfg.gear.t3_6p && RNG.check(8* fortuneMult, "procT36p")) {
             State.t3End = State.t + 6.0; 
             log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick"); 
         } 
 
         // Heart of Decay Proc
-        if (cfg.gear.decay && State.t >= State.decayCD && RNG.check(5, "procDecay")) {
+        if (cfg.gear.decay && State.t >= State.decayCD && RNG.check(5* fortuneMult, "procDecay")) {
             State.decayCD = State.t + 5.0;
             var currentNatSP = getCurrentSP("Nature");
             var currentEclipseMod = isNE() ? (1.0 + eclFactor) : 1.0;

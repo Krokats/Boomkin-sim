@@ -17,6 +17,10 @@ function getInputs() {
     // NEU: Haste Multiplikator aus dem DOM abgreifen
     var hasteInput = document.getElementById("statHaste");
     var hasteMultVal = hasteInput && hasteInput.getAttribute("data-mult") ? parseFloat(hasteInput.getAttribute("data-mult")) : 1.0;
+    
+    // NEU: Fortune aus dem DOM abgreifen
+    var fortuneInput = document.getElementById("statFortune");
+    var fortuneVal = fortuneInput ? parseFloat(fortuneInput.value) : 0.0;
 
     // Eclipse Override Logic
     var patchVer = "1.18.1c";
@@ -35,7 +39,7 @@ function getInputs() {
             interruptThresh: getVal("rota_interrupt_thresh") 
         },
         custom_rotation: (typeof CUSTOM_ROTATION !== 'undefined') ? JSON.parse(JSON.stringify(CUSTOM_ROTATION)) : { steps: [] },
-        stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), hasteFactor: hasteMultVal, baseHitProb: baseHit },
+        stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), hasteFactor: hasteMultVal, fortune: fortuneVal, baseHitProb: baseHit },
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
         enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
         gear: { t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_3p: getVal("t35_3p"), t35_5p: getVal("t35_5p"), stag_5p: getVal("stag_5p"),
