@@ -212,7 +212,7 @@ var CONFIG_IDS = [
     "stag_5p","t3_4p", "t3_6p", "t3_8p", "t35_3p", "t35_5p",
     "idolEoF", "idolMoon", "idolProp", "idolMoonfang", "idolAcidity", "idolEquilibrium","idolEquilibriumV2","idolEquilibriumV3",
     "item_binding", "item_scythe", "item_nobility", "item_thane", "item_sulfuras", "item_sigil", "item_chromie", "item_kelp", "item_sphere",
-    "item_reos", "item_toep", "item_roop", "item_zhc",
+    "item_reos", "item_toep", "item_roop", "item_zhc", "item_decay",
     "char_race",
     // BUFFS
     "buff_moonkin", "buff_atiesh_druid", "buff_atiesh_mage", "buff_atiesh_warlock",
