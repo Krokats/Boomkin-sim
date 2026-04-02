@@ -563,7 +563,7 @@ function runCoreSimulation(cfg) {
             RunStats.dmgT36p += dIS.t3Part;
             RunStats.dmgIS += dIS.total;
             RunStats.dmgIdol += dIS.total;
-            if (cfg.gear.t3_6p && RNG.check(8* fortuneMult, "procT36p")) { 
+            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
                 State.t3End = State.t + 6.0; 
                 log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
             }
@@ -578,7 +578,7 @@ function runCoreSimulation(cfg) {
             RunStats.dmgT36p += dMF.t3Part;
             RunStats.dmgMFTick += dMF.total;
             RunStats.dmgIdol += dMF.total;
-            if (cfg.gear.t3_6p && RNG.check(8* fortuneMult, "procT36p")) { 
+            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
                 State.t3End = State.t + 6.0; 
                 log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
             }
@@ -673,7 +673,7 @@ function runCoreSimulation(cfg) {
         if (payload.spellId === "InsectSwarm") RunStats.dmgIS += d.total; 
         if (payload.spellId === "Moonfire") RunStats.dmgMFTick += d.total; 
         
-        if (cfg.gear.t3_6p && RNG.check(8* fortuneMult, "procT36p")) {
+        if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) {
             State.t3End = State.t + 6.0; 
             log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick"); 
         } 
