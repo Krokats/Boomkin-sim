@@ -207,40 +207,23 @@ function runCoreSimulation(cfg) {
         var currentAvgMitNat = (State.t < State.acidityEnd) ? avgMitNatAcidity : avgMitNat;
         var avgMit = (school === "Nature") ? currentAvgMitNat : avgMitArc; 
         
+        // Verhindert unnötige Berechnungen, wenn keine Resistenz vorliegt
         if (avgMit <= 0) return { val: 1.0, txt: "" };
 
-        // Resist Logic: Standard-Classic-Dreiecksverteilung
-        var probabilities = [0, 0, 0, 0];
-        var roll = rngHandler.rand(); 
-        var cumulative = 0;
-        var selectedBucket = 0;
-
-        // Wahrscheinlichkeiten für 0%, 25%, 50% und 75% Resist berechnen
-        for (var i = 0; i <= 3; i++) {
-            var bucketVal = i * 0.25;
-            // Formel: P(x) = 50% - 250% * |x - avgMit|
-            var prob = 0.5 - 2.5 * Math.abs(bucketVal - avgMit);
-            if (prob > 0) {
-                probabilities[i] = prob;
-            }
-        }
-
-        // Normalisieren, um kleine Rundungsfehler abzufangen
-        var sum = probabilities[0] + probabilities[1] + probabilities[2] + probabilities[3];
+        // Zurück zur korrekten Classic 2-Bucket Interpolation!
+        // Diese Logik garantiert, dass die avgMit über Zeit exakt getroffen wird.
+        var range = avgMit / 0.25; 
+        var bucket = Math.floor(range); 
+        var remainder = range - bucket; 
         
-        for (var j = 0; j <= 3; j++) {
-            if (probabilities[j] > 0) {
-                cumulative += (probabilities[j] / sum);
-                if (roll <= cumulative) {
-                    selectedBucket = j;
-                    break;
-                }
-            }
-        }
+        // Würfelt den "Rest" aus, um ggf. in den nächsthöheren 25%-Bucket zu rutschen
+        if (rngHandler.checkFloat(remainder)) bucket++; 
+        if (bucket > 3) bucket = 3; 
         
-        var resistPct = selectedBucket * 0.25; 
+        var resistPct = bucket * 0.25; 
         var dmgFactor = 1.0 - resistPct; 
         var txt = (resistPct > 0) ? "Part " + (resistPct * 100).toFixed(0) + "%" : ""; 
+        
         return { val: dmgFactor, txt: txt }; 
     };
 
