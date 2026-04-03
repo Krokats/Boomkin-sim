@@ -464,7 +464,7 @@ function runCoreSimulation(cfg) {
             // Droplet Proc on Full Resist
             if (cfg.gear.droplet && State.t >= State.dropletCD) {
                 State.dropletEnd = State.t + 10.0;
-                State.dropletCD = State.t + 10.0;
+                State.dropletCD = State.t + 4.0;
                 log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Full Resist)");
             }
             return;
@@ -544,11 +544,15 @@ function runCoreSimulation(cfg) {
         var d = calculateDamageFull(spell, false, snap, crit, resData); 
 
         // Droplet Proc on Partial Resist
-        if (cfg.gear.droplet && resData.val < 1.0 && State.t >= State.dropletCD) {
-            State.dropletEnd = State.t + 10.0;
-            State.dropletCD = State.t + 10.0;
-            log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Partial Resist)");
-        }
+         if (cfg.gear.droplet && resData.val < 1.0 ) {
+            if (cfg.gear.droplet && resData.val < 1.0 && State.t >= State.dropletCD) {
+                    State.dropletEnd = State.t + 10.0;
+                    State.dropletCD = State.t + 4.0;
+                    log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Partial Resist)");
+                }
+         }
+
+        
 
         if (State.thaneActive) {
             State.thaneActive = false;
