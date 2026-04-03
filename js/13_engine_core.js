@@ -8,14 +8,31 @@ function runCoreSimulation(cfg) {
 
     // 2. Statische Werte vorbereiten
     var fortuneMult = 1.0 + ((cfg.stats.fortune || 0) / 100);
-    var effResNat = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resNat - cfg.power.pen);
-    var effResArc = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resArc - cfg.power.pen);
-    var avgMitNat = Math.min(0.75, (effResNat / (cfg.enemy.level * 5)) * 0.75);
-    var avgMitArc = Math.min(0.75, (effResArc / (cfg.enemy.level * 5)) * 0.75);
+
+    // NEU: Level-Resistenz und durchdringbare Resistenz trennen
+    var levelRes = Math.max(0, (cfg.enemy.level - 60) * 5);
+    var baseResNat = Math.max(0, cfg.enemy.resNat - cfg.power.pen);
+    var baseResArc = Math.max(0, cfg.enemy.resArc - cfg.power.pen);
+    
+    var effResNat = levelRes + baseResNat;
+    var effResArc = levelRes + baseResArc;
+
+    // NEU: Hilfsfunktion für die korrekte Mitigation (Softcap bei 2/3 des Hardcaps, max 69%)
+    var calcMitigation = function(res, lvl) {
+        var cap = lvl * 5;
+        var softCap = cap * (2/3);
+        if (res <= 0) return 0;
+        if (res <= softCap) return (res / softCap) * 0.50;
+        return Math.min(0.69, 0.50 + ((res - softCap) / (cap - softCap)) * 0.19);
+    };
+
+    var avgMitNat = calcMitigation(effResNat, cfg.enemy.level);
+    var avgMitArc = calcMitigation(effResArc, cfg.enemy.level);
     
     // Idol of Acidity Mitigation (Pre-Calculated)
-    var effResNatAcidity = Math.max(0, (cfg.enemy.level - 60) * 5 + cfg.enemy.resNat - cfg.power.pen - 25);
-    var avgMitNatAcidity = Math.min(0.75, (effResNatAcidity / (cfg.enemy.level * 5)) * 0.75);
+    var baseResNatAcidity = Math.max(0, cfg.enemy.resNat - cfg.power.pen - 25);
+    var effResNatAcidity = levelRes + baseResNatAcidity;
+    var avgMitNatAcidity = calcMitigation(effResNatAcidity, cfg.enemy.level);
 
     var eclipseMod = 10 + 60 * (cfg.stats.crit / 100);
     var eclFactor = eclipseMod / 100;
@@ -161,14 +178,38 @@ function runCoreSimulation(cfg) {
         var currentAvgMitNat = (State.t < State.acidityEnd) ? avgMitNatAcidity : avgMitNat;
         var avgMit = (school === "Nature") ? currentAvgMitNat : avgMitArc; 
         
-        // Resist Logic
-        var range = avgMit / 0.25; 
-        var bucket = Math.floor(range); 
-        var remainder = range - bucket; 
-        if (rngHandler.checkFloat(remainder)) bucket++; 
-        if (bucket > 3) bucket = 3; 
+        if (avgMit <= 0) return { val: 1.0, txt: "" };
+
+        // Resist Logic: Standard-Classic-Dreiecksverteilung
+        var probabilities = [0, 0, 0, 0];
+        var roll = rngHandler.rand(); 
+        var cumulative = 0;
+        var selectedBucket = 0;
+
+        // Wahrscheinlichkeiten für 0%, 25%, 50% und 75% Resist berechnen
+        for (var i = 0; i <= 3; i++) {
+            var bucketVal = i * 0.25;
+            // Formel: P(x) = 50% - 250% * |x - avgMit|
+            var prob = 0.5 - 2.5 * Math.abs(bucketVal - avgMit);
+            if (prob > 0) {
+                probabilities[i] = prob;
+            }
+        }
+
+        // Normalisieren, um kleine Rundungsfehler abzufangen
+        var sum = probabilities[0] + probabilities[1] + probabilities[2] + probabilities[3];
         
-        var resistPct = bucket * 0.25; 
+        for (var j = 0; j <= 3; j++) {
+            if (probabilities[j] > 0) {
+                cumulative += (probabilities[j] / sum);
+                if (roll <= cumulative) {
+                    selectedBucket = j;
+                    break;
+                }
+            }
+        }
+        
+        var resistPct = selectedBucket * 0.25; 
         var dmgFactor = 1.0 - resistPct; 
         var txt = (resistPct > 0) ? "Part " + (resistPct * 100).toFixed(0) + "%" : ""; 
         return { val: dmgFactor, txt: txt }; 
