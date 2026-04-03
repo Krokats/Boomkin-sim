@@ -22,15 +22,55 @@ function calculateItemScore(item, slotNameOverride) {
     var score = 0;
     var e = item.effects || {};
 
+    // --- EFFECTIVE HIT CALCULATION ---
+    var currentSlot = slotNameOverride || CURRENT_SELECTING_SLOT;
+    var currentTotalHit = parseFloat(document.getElementById("statHit") ? document.getElementById("statHit").value : 0);
+    
+    function getHitContribution(testItem) {
+        if (!testItem) return 0;
+        var h = testItem.effects ? (testItem.effects.spellHit || 0) : 0;
+        if (testItem.name === "Droplet of Nordrassil") h += (3.0 * 0.42);
+        if (testItem.setName) {
+            var otherSetItemsCount = 0;
+            for (var slot in GEAR_SELECTION) {
+                if (currentSlot && slot === currentSlot) continue;
+                var id = GEAR_SELECTION[slot];
+                if (id && typeof id === 'object' && id.id) id = id.id;
+                if (!id || id == 0) continue;
+                var equipped = ITEM_ID_MAP[id];
+                if (equipped && equipped.setName === testItem.setName) {
+                    otherSetItemsCount++;
+                }
+            }
+            var newTotalCount = otherSetItemsCount + 1;
+            if (testItem.setBonuses && !Array.isArray(testItem.setBonuses)) {
+                for (var k in testItem.setBonuses) {
+                    if (parseInt(k) === newTotalCount) {
+                        h += (testItem.setBonuses[k].spellHit || 0);
+                    }
+                }
+            }
+        }
+        return h;
+    }
+
+    var currentEquippedId = currentSlot ? GEAR_SELECTION[currentSlot] : 0;
+    if (currentEquippedId && typeof currentEquippedId === 'object' && currentEquippedId.id) currentEquippedId = currentEquippedId.id;
+    var equippedHitContribution = 0;
+    if (currentEquippedId && currentEquippedId !== 0) {
+        equippedHitContribution = getHitContribution(ITEM_ID_MAP[currentEquippedId]);
+    }
+    var baseHitWithoutSlot = currentTotalHit - equippedHitContribution;
+    var newItemTotalHit = getHitContribution(item);
+    var effectiveHit = Math.min(16, baseHitWithoutSlot + newItemTotalHit) - Math.min(16, baseHitWithoutSlot);
+    // ---------------------------------
+
     // 1. BASE STATS
     // SP + AP/2 + NP/2
     var sp = (e.spellPower || 0);
     var ap = (e.arcaneSpellPower || 0);
     var np = (e.natureSpellPower || 0);
     score += (sp + ap / 2 + np / 2) * wSP;
-
-    // Hit * HW
-    score += (e.spellHit || 0) * wHit;
 
     // Crit * CW
     score += (e.spellCrit || 0) * wCrit;
@@ -64,7 +104,7 @@ function calculateItemScore(item, slotNameOverride) {
 
     // Procs
     if (item.name === "Bindings of Contained Magic" || item.id === 23201) {
-        avgBonusSP += 10;
+        avgBonusSP += 10; // 10% uptime of 100 SP proc, grobe Schätzung basierend auf Simulationsdaten
     }
     if (item.name === "Scythe of Elune") {
         avgBonusSP += 30; // ~30 SP Äquivalent für 5% Proc (500-650 Dmg)
@@ -92,6 +132,10 @@ function calculateItemScore(item, slotNameOverride) {
 
     if (item.name === "Pristine Enchanted South Seas Kelp") {
         score += (2.0 * wCrit) * 0.66; // 2% Crit für 2 von 3 Spells (Wrath/Starfire)
+    }
+    if (item.name === "Droplet of Nordrassil") {
+        score += (80 * 0.50) * wSP; // ca. 50% Uptime von 80 SP
+        //score += (3.0 * 0.50) * wHit; // ca. 50% Uptime von 3% Hit
     }
 
     score += avgBonusSP * wSP;
@@ -135,7 +179,7 @@ function calculateItemScore(item, slotNameOverride) {
                     bScore += (b.arcaneSpellPower / 2 || 0) * wSP;
                     bScore += (b.natureSpellPower / 2 || 0) * wSP;
                     bScore += (b.spellCrit || 0) * wCrit;
-                    bScore += (b.spellHit || 0) * wHit;
+                    //bScore += (b.spellHit || 0) * wHit;
                     bScore += (b.spellHaste || 0) * wHaste;
                     bScore += ((b.intellect || 0) / 60) * wCrit;
 
@@ -145,6 +189,7 @@ function calculateItemScore(item, slotNameOverride) {
         }
     }
 
+    score += effectiveHit * wHit;
     return score;
 }
 
@@ -167,8 +212,20 @@ function calculateEnchantScore(ench) {
     var np = (stats.natureSpellPower || 0);
     score += (sp + ap / 2 + np / 2) * wSP;
 
-    // Hit * HW
-    score += (stats.spellHit || 0) * wHit;
+    // --- EFFECTIVE HIT CALCULATION ---
+    var currentTotalHit = parseFloat(document.getElementById("statHit") ? document.getElementById("statHit").value : 0);
+    var currentEnchantId = CURRENT_SELECTING_SLOT ? ENCHANT_SELECTION[CURRENT_SELECTING_SLOT] : 0;
+    var equippedEnchHit = 0;
+    if (currentEnchantId && currentEnchantId !== 0) {
+        var cEnch = ENCHANT_DB.find(function(e) { return e.id == currentEnchantId; });
+        if (cEnch && cEnch.effects) equippedEnchHit = (cEnch.effects.spellHit || 0);
+    }
+    var baseHitWithoutEnchant = currentTotalHit - equippedEnchHit;
+    var newEnchantHit = (stats.spellHit || 0);
+    var effectiveHit = Math.min(16, baseHitWithoutEnchant + newEnchantHit) - Math.min(16, baseHitWithoutEnchant);
+    
+    score += effectiveHit * wHit;
+    // ---------------------------------
 
     // Crit * CW
     score += (stats.spellCrit || 0) * wCrit;
@@ -232,6 +289,7 @@ function calculateGearStats() {
     var hasKelp = false;
     var hasSphere = false;
     var hasDecay = false;
+    var hasDroplet = false;
 
     var hasIdolEoF = false;
     var hasIdolMoon = false;
@@ -309,6 +367,7 @@ function calculateGearStats() {
                 if (item.name === "Pristine Enchanted South Seas Kelp") hasKelp = true;
                 if (item.name === "Sphere of the Endless Gulch") hasSphere = true;
                 if (item.name === "Heart of Decay") hasDecay = true;
+                if (item.name === "Droplet of Nordrassil") hasDroplet = true;
 
                 if (item.name === "Idol of Ebb and Flow" || item.id === 55497) hasIdolEoF = true;
                 if (item.name === "Idol of the Moon" || item.id === 23197) hasIdolMoon = true;
@@ -342,6 +401,8 @@ function calculateGearStats() {
     var elSphere = document.getElementById('item_sphere'); if (elSphere) elSphere.checked = hasSphere;
     var elDecay = document.getElementById('item_decay'); if (elDecay) elDecay.checked = hasDecay;
     var elReos = document.getElementById('item_reos'); if (elReos) elReos.checked = hasReos;
+    var elDroplet = document.getElementById('item_droplet'); if (elDroplet) elDroplet.checked = hasDroplet;
+
     var elToep = document.getElementById('item_toep'); if (elToep) elToep.checked = hasToep;
     var elRoop = document.getElementById('item_roop'); if (elRoop) elRoop.checked = hasRoop;
     var elZhc = document.getElementById('item_zhc'); if (elZhc) elZhc.checked = hasZhc;
@@ -525,6 +586,10 @@ function calculateGearStats() {
     if (hasSphere) gearOnlyStats.haste += 1.0;
     if (hasSigil) gearOnlyStats.sp += 30;
     if (hasChromie) gearOnlyStats.haste -= 6.0;
+    if (hasDroplet) {
+        gearOnlyStats.sp += (80 * 0.42);
+        gearOnlyStats.hit += (3.0 * 0.42);
+    }
 
     // CALCULATE TOTAL GEAR SCORE FOR DISPLAY (Purely from Items+Sets)
     var wHit = parseFloat(document.getElementById("weight_hit") ? document.getElementById("weight_hit").value : 16);
@@ -532,10 +597,14 @@ function calculateGearStats() {
     var wHaste = parseFloat(document.getElementById("weight_haste") ? document.getElementById("weight_haste").value : 11);
     var wSP = parseFloat(document.getElementById("weight_sp") ? document.getElementById("weight_sp").value : 1.0);
 
-    // Score Formula: SP + Crit(raw)*CW + Hit*HW + Haste*HW + (Int/60)*CW
+    // Hit Cap Logic for Global Gear Score
+    var baseAndBuffHit = charStats.hit - gearOnlyStats.hit;
+    var usableGearHit = Math.max(0, Math.min(16, charStats.hit) - baseAndBuffHit);
+
+    // Score Formula: SP + Crit(raw)*CW + Hit(usable)*HW + Haste*HW + (Int/60)*CW
     var finalGS = (gearOnlyStats.sp * wSP) +
         (gearOnlyStats.crit * wCrit) +
-        (gearOnlyStats.hit * wHit) +
+        (usableGearHit * wHit) +
         (gearOnlyStats.haste * wHaste) +
         (gearCritFromInt * wCrit);
 

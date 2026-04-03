@@ -97,7 +97,16 @@ function switchView(type) {
         addRow("Insect Swarm", data.stats.dmgIS, data.stats.totalDmg);
 
         // --- SECTION 2: PROCS & BONUSES (Only if active) ---
-        var hasProcs = (data.stats.dmgT36p > 0 || data.stats.dmgIdol > 0 || data.stats.dmgT34p > 0 || data.stats.dmgScythe > 0 || data.stats.dmgSigil > 0);
+        var dropletPct = data.stats.uptimeDroplet ? (data.stats.uptimeDroplet / maxT) * 100 : 0;
+        var scythePct = data.stats.uptimeScythe ? (data.stats.uptimeScythe / maxT) * 100 : 0;
+        var sulfurasPct = data.stats.uptimeSulfuras ? (data.stats.uptimeSulfuras / maxT) * 100 : 0;
+        var spherePct = data.stats.uptimeSphere ? (data.stats.uptimeSphere / maxT) * 100 : 0;
+        var chromiePct = data.stats.uptimeChromie ? (data.stats.uptimeChromie / maxT) * 100 : 0;
+        var nobilityPct = data.stats.uptimeNobility ? (data.stats.uptimeNobility / maxT) * 100 : 0;
+        var bindingPct = data.stats.uptimeBinding ? (data.stats.uptimeBinding / maxT) * 100 : 0;
+        var acidityPct = data.stats.uptimeAcidity ? (data.stats.uptimeAcidity / maxT) * 100 : 0;
+
+        var hasProcs = (data.stats.dmgT36p > 0 || data.stats.dmgIdol > 0 || data.stats.dmgT34p > 0 || data.stats.dmgScythe > 0 || data.stats.dmgSigil > 0 || dropletPct > 0 || scythePct > 0 || sulfurasPct > 0 || spherePct > 0 || chromiePct > 0 || nobilityPct > 0 || bindingPct > 0 || acidityPct > 0);
         if (hasProcs) {
             addStatRow("Procs & Bonuses", "", "", true);
             if (data.stats.dmgT36p > 0) addRow("Proc: T3 6p", data.stats.dmgT36p, data.stats.totalDmg);
@@ -105,6 +114,15 @@ function switchView(type) {
             if (data.stats.dmgT34p > 0) addRow("Bonus: T3 4p", data.stats.dmgT34p, data.stats.totalDmg);
             if (data.stats.dmgScythe > 0) addRow("Proc: Scythe", data.stats.dmgScythe, data.stats.totalDmg);
             if (data.stats.dmgSigil > 0) addRow("Proc: Sigil of Accord", data.stats.dmgSigil, data.stats.totalDmg);
+            
+            if (dropletPct > 0) addStatRow("Buff: Nordrassil's Reprieve", dropletPct.toFixed(1) + "%", "Uptime");
+            if (scythePct > 0) addStatRow("Buff: Scythe of Elune", scythePct.toFixed(1) + "%", "Uptime");
+            if (sulfurasPct > 0) addStatRow("Buff: Band of Sulfuras", sulfurasPct.toFixed(1) + "%", "Uptime");
+            if (spherePct > 0) addStatRow("Buff: Endless Gulch", spherePct.toFixed(1) + "%", "Uptime");
+            if (chromiePct > 0) addStatRow("Debuff: Pocket Watch", chromiePct.toFixed(1) + "%", "Uptime");
+            if (nobilityPct > 0) addStatRow("Buff: Highborne Insight", nobilityPct.toFixed(1) + "%", "Uptime");
+            if (bindingPct > 0) addStatRow("Buff: Contained Magic", bindingPct.toFixed(1) + "%", "Uptime");
+            if (acidityPct > 0) addStatRow("Debuff: Acidity", acidityPct.toFixed(1) + "%", "Uptime");
         }
 
         // --- NEW SECTION: SPELL SCHOOL ---

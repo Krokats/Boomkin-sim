@@ -52,7 +52,7 @@ function runCoreSimulation(cfg) {
         scytheEnd: 0.0, scytheCD: 0.0,
         nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
         makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, decayCD: 0.0,
-        ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0
+        ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0, dropletEnd: 0.0, dropletCD: 0.0
     };
 
     var RunStats = { 
@@ -60,7 +60,9 @@ function runCoreSimulation(cfg) {
         dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
         dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0, dmgDecay: 0,
         casts: 0, misses: 0, hits: 0, dmgCrit: 0,
-        uptimeAE: 0, uptimeNE: 0, 
+        uptimeAE: 0, uptimeNE: 0, uptimeDroplet: 0,
+        uptimeScythe: 0, uptimeSulfuras: 0, uptimeSphere: 0, 
+        uptimeChromie: 0, uptimeNobility: 0, uptimeBinding: 0, uptimeAcidity: 0,
         spellStats: {
                 "Starfire": { count: 0, timeSum: 0, hits: 0, crits: 0 },
                 "Wrath": { count: 0, timeSum: 0, hits: 0, crits: 0 },
@@ -94,6 +96,7 @@ function runCoreSimulation(cfg) {
         if (State.t < State.toepEnd) val += 175;
         if (State.t < State.roopEnd) val += 55; 
         if (State.t < State.zhcEnd && State.zhcVal > 0) val += State.zhcVal;
+        if (State.t < State.dropletEnd) val += 80;
         return val;
     };
 
@@ -387,11 +390,23 @@ function runCoreSimulation(cfg) {
             if (State.zhcVal < 0) State.zhcVal = 0;
         }
 
+        var currentHitChance = cfg.stats.hit;
+        if (State.t < State.dropletEnd) {
+            currentHitChance = Math.min(0.99, currentHitChance + 0.03); // +3% Hit max 99%
+        }
+
         if (!RNG.checkHit(cfg.stats.hit)) { 
             if (State.thaneActive) State.thaneActive = false;
             RunStats.misses++; 
             log(State.t, "MISS", spell.name, "Miss", null, null, "-"); 
-            return; 
+            
+            // Droplet Proc on Full Resist
+            if (cfg.gear.droplet && State.t >= State.dropletCD) {
+                State.dropletEnd = State.t + 10.0;
+                State.dropletCD = State.t + 10.0;
+                log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Full Resist)");
+            }
+            return;
         }
         
         RunStats.hits++; 
@@ -466,6 +481,13 @@ function runCoreSimulation(cfg) {
         else resData = getResist(spell.type); 
         
         var d = calculateDamageFull(spell, false, snap, crit, resData); 
+
+        // Droplet Proc on Partial Resist
+        if (cfg.gear.droplet && resData.val < 1.0 && State.t >= State.dropletCD) {
+            State.dropletEnd = State.t + 10.0;
+            State.dropletCD = State.t + 10.0;
+            log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Partial Resist)");
+        }
 
         if (State.thaneActive) {
             State.thaneActive = false;
@@ -778,7 +800,18 @@ function runCoreSimulation(cfg) {
             var jump = Math.min(nextEvt, nextAct);
             if (jump > cfg.maxTime) jump = cfg.maxTime; if (jump >= 99990) break;
             var dt = jump - State.t;
-            if (dt > 0) { if (isNE()) RunStats.uptimeNE += Math.min(dt, State.neEnd - State.t); if (isAE()) RunStats.uptimeAE += Math.min(dt, State.aeEnd - State.t); }
+            if (dt > 0) { 
+                if (isNE()) RunStats.uptimeNE += Math.min(dt, State.neEnd - State.t); 
+                if (isAE()) RunStats.uptimeAE += Math.min(dt, State.aeEnd - State.t); 
+                if (State.t < State.dropletEnd) RunStats.uptimeDroplet += Math.min(dt, State.dropletEnd - State.t); 
+                if (State.t < State.scytheEnd) RunStats.uptimeScythe += Math.min(dt, State.scytheEnd - State.t);
+                if (State.t < State.sulfurasEnd) RunStats.uptimeSulfuras += Math.min(dt, State.sulfurasEnd - State.t);
+                if (State.t < State.enlightenedEnd) RunStats.uptimeSphere += Math.min(dt, State.enlightenedEnd - State.t);
+                if (State.t < State.chromieEnd) RunStats.uptimeChromie += Math.min(dt, State.chromieEnd - State.t);
+                if (State.t < State.nobilityEnd) RunStats.uptimeNobility += Math.min(dt, State.nobilityEnd - State.t);
+                if (State.t < State.bindingEnd) RunStats.uptimeBinding += Math.min(dt, State.bindingEnd - State.t);
+                if (State.t < State.acidityEnd) RunStats.uptimeAcidity += Math.min(dt, State.acidityEnd - State.t);
+            }
             if (jump <= State.t + 0.0001) {
                 if (nextEvt <= State.t + 0.001) { jump = State.t; } else {
                     var future = State.pendingImpacts.find(function (e) { return e.t > State.t + 0.001; });

@@ -318,6 +318,20 @@ function renderItemList(filterText) {
         relevantItems = relevantItems.filter(function (i) { return i.name.toLowerCase().includes(ft); });
     }
 
+    // --- MARGINAL SCORE LOGIC ---
+    // 1. Score des aktuell ausgerüsteten Items in diesem Slot ermitteln
+    var currentEquippedId = GEAR_SELECTION[CURRENT_SELECTING_SLOT];
+    // Legacy Safety
+    if (currentEquippedId && typeof currentEquippedId === 'object' && currentEquippedId.id) currentEquippedId = currentEquippedId.id;
+    
+    var currentEquippedScore = 0;
+    if (currentEquippedId && currentEquippedId !== 0) {
+        var currentItem = ITEM_ID_MAP[currentEquippedId];
+        if (currentItem) {
+            currentEquippedScore = calculateItemScore(currentItem, CURRENT_SELECTING_SLOT);
+        }
+    }
+
     relevantItems.slice(0, 100).forEach(function (item) {
         var iconUrl = getIconUrl(item.icon);
         var row = document.createElement("div");
@@ -327,9 +341,23 @@ function renderItemList(filterText) {
         row.onmousemove = function (e) { moveTooltip(e); };
         row.onmouseleave = function () { hideTooltip(); };
         var levelText = item.requiredLevel ? 'Req: ' + item.requiredLevel : '';
+
+        // 2. Delta (Differenz) berechnen und HTML formatieren
+        var delta = item.simScore - currentEquippedScore;
+        var deltaHtml = "";
+        
+        // Kleine Rundungsfehler ignorieren
+        if (delta > 0.05) {
+            deltaHtml = ' <span style="color:#1eff00; font-size:0.85em; margin-left: 5px;">(+' + delta.toFixed(1) + ')</span>';
+        } else if (delta < -0.05) {
+            deltaHtml = ' <span style="color:#f44336; font-size:0.85em; margin-left: 5px;">(' + delta.toFixed(1) + ')</span>';
+        } else {
+            deltaHtml = ' <span style="color:#888; font-size:0.85em; margin-left: 5px;">(0.0)</span>';
+        }
+
         var html = '<div class="item-row-icon"><img src="' + iconUrl + '" style="width:100%; height:100%; border-radius:3px;"></div>' +
             '<div class="item-row-details"><div class="item-row-name" style="color: ' + getItemColor(item.quality) + '">' + item.name + '</div><div class="item-row-sub">' + levelText + '</div></div>' +
-            '<div class="item-score-badge"><span class="score-label">SCORE</span>' + item.simScore.toFixed(1) + '</div>';
+            '<div class="item-score-badge" style="display:flex; align-items:center;"><span class="score-label" style="margin-right: 4px;">SCORE</span>' + item.simScore.toFixed(1) + deltaHtml + '</div>';
 
         row.innerHTML = html;
         list.appendChild(row);

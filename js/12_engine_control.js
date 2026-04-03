@@ -47,7 +47,7 @@ function getInputs() {
             idolAcidity: getVal("idolAcidity"),idolEquilibrium: getVal("idolEquilibrium"),idolEquilibriumV2: getVal("idolEquilibriumV2"),idolEquilibriumV3: getVal("idolEquilibriumV3"),
             binding: getVal("item_binding"), scythe: getVal("item_scythe"), nobility: getVal("item_nobility"), thane: getVal("item_thane"), 
             sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"), sphere: getVal("item_sphere"),
-            reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), decay: getVal("item_decay") },
+            reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), decay: getVal("item_decay"),droplet: getVal("item_droplet") },
         talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }
     };
 }
