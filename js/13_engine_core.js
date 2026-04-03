@@ -4,33 +4,38 @@
 
 function runCoreSimulation(cfg) {
     /**
-     * ============================================================================
-     * WOW CLASSIC / TURTLE WOW RESISTANCE MECHANICS (NON-BINARY SPELLS)
-     * ============================================================================
-     * * 1. Hit vs. Resist (Two-Phase System):
-     * - Hit chance and resistance are two completely separate rolls.
-     * - Phase 1: Roll for Hit/Miss (Spell Hit Cap: 16% against +3 levels).
-     * - Phase 2: Only if the spell hits, a roll for partial resistance occurs.
-     * * 2. Types of Resistance (Spell Pen Mechanic):
-     * - Base Resistance: The boss's natural resistances. Only these can be 
-     * reduced by "Spell Penetration" (minimum 0).
-     * - Level Resistance: 5 resistance per level above the player (e.g., +15 Res 
-     * for a Level 63 Boss vs. a Level 60 player). This resistance is fixed 
-     * and CANNOT be reduced by Spell Penetration!
-     * * 3. Average Mitigation (avgMit):
-     * - Up to 2/3 of the Resist Cap (e.g., 210 Res at a 315 Cap for Level 63):
-     * Linear increase up to exactly 50% average damage mitigation.
-     * - Above 2/3 of the Resist Cap (Diminishing Returns):
-     * Efficiency decreases from here. The absolute maximum average 
-     * mitigation is 69%, not 75%.
-     * * 4. Partial Resistances (Buckets / Triangle Distribution):
-     * - Damage is not reduced exactly by the avgMit. Instead, the game 
-     * rolls to resist 0%, 25%, 50%, or 75% of the damage.
-     * - Probability P for a bucket x: P(x) = 50% - 250% * |x - avgMit|
-     * - Result: Magic damage in Classic is highly unpredictable ("bursty").
-     * https://royalgiraffe.github.io/legacy-sim/#/resistances
-     * ============================================================================
-     */
+ * ============================================================================
+ * WOW CLASSIC / TURTLE WOW RESISTANCE MECHANICS (NON-BINARY SPELLS)
+ * ============================================================================
+ * * 1. Hit vs. Resist (Two-Phase System):
+ * - Hit chance and resistance are two completely separate rolls.
+ * - Phase 1: Roll for Hit/Miss (Spell Hit Cap: 16% against +3 levels).
+ * - Phase 2: Only if the spell hits, a roll for partial resistance occurs.
+ * * * 2. Types of Resistance (Spell Pen Mechanic):
+ * - Base Resistance: The boss's natural resistances. Only these can be 
+ * reduced by "Spell Penetration" (minimum 0).
+ * - Level Resistance: 5 resistance per level above the player (e.g., +15 Res 
+ * for a Level 63 Boss vs. a Level 60 player). This resistance is fixed 
+ * and CANNOT be reduced by Spell Penetration!
+ * * * 3. Average Mitigation (avgMit):
+ * - Up to 2/3 of the Resist Cap (e.g., 210 Res at a 315 Cap for Level 63):
+ * Linear increase up to exactly 50% average damage mitigation.
+ * - Above 2/3 of the Resist Cap (Diminishing Returns):
+ * Efficiency decreases from here. The absolute maximum average 
+ * mitigation is 69%, not 75%.
+ * * * 4. Partial Resistances (2-Bucket Interpolation):
+ * - Damage is not reduced exactly by the avgMit. Instead, the game 
+ * rolls to resist in 25% increments (0%, 25%, 50%, or 75%).
+ * - The system distributes the probability between the two nearest 25% 
+ * buckets based on the calculated avgMit. 
+ * - Example: At ~3.5% avgMit (caused by the +3 boss level difference), 
+ * the game rolls roughly an 85.7% chance for a 0% resist and a 14.3% 
+ * chance for a 25% resist.
+ *  https://royalgiraffe.github.io/legacy-sim/#/resistances
+ * ============================================================================
+ */
+
+    
 
     // 1. RNG Setup
     var rngHandler = new RNGHandler(cfg.seed);
