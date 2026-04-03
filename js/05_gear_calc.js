@@ -134,8 +134,16 @@ function calculateItemScore(item, slotNameOverride) {
         score += (2.0 * wCrit) * 0.66; // 2% Crit für 2 von 3 Spells (Wrath/Starfire)
     }
     if (item.name === "Droplet of Nordrassil") {
-        score += (80 * 0.50) * wSP; // ca. 50% Uptime von 80 SP
-        //score += (3.0 * 0.50) * wHit; // ca. 50% Uptime von 3% Hit
+        score += (80 * 0.42) * wSP; // ca. 50% Uptime von 80 SP
+        //score += (3.0 * 0.42) * wHit; // ca. 50% Uptime von 3% Hit
+    }
+    if (item.name === "Mar'kali, the Midnight Star") {
+        var currentIntStr = document.getElementById("gp_int") ? document.getElementById("gp_int").innerText : "150";
+        var currentInt = parseFloat(currentIntStr) || 150;
+        var maxMana = 964 + (15 * currentInt);
+        var procDmg = maxMana * 0.03; // 3% of Max Mana
+        var dpsContribution = (procDmg * 0.10) / 2.0; // 10% Chance, alle 2 Sekunden gecastet
+        score += (dpsContribution / 0.42) * wSP; // Umrechnung von DPS in SP-Wertung (1 SP ≈ 0.42 DPS)
     }
 
     score += avgBonusSP * wSP;
@@ -290,6 +298,7 @@ function calculateGearStats() {
     var hasSphere = false;
     var hasDecay = false;
     var hasDroplet = false;
+    var hasMarkali = false;
 
     var hasIdolEoF = false;
     var hasIdolMoon = false;
@@ -368,6 +377,7 @@ function calculateGearStats() {
                 if (item.name === "Sphere of the Endless Gulch") hasSphere = true;
                 if (item.name === "Heart of Decay") hasDecay = true;
                 if (item.name === "Droplet of Nordrassil") hasDroplet = true;
+                if (item.name === "Mar'kali, the Midnight Star") hasMarkali = true;
 
                 if (item.name === "Idol of Ebb and Flow" || item.id === 55497) hasIdolEoF = true;
                 if (item.name === "Idol of the Moon" || item.id === 23197) hasIdolMoon = true;
@@ -401,6 +411,7 @@ function calculateGearStats() {
     var elSphere = document.getElementById('item_sphere'); if (elSphere) elSphere.checked = hasSphere;
     var elDecay = document.getElementById('item_decay'); if (elDecay) elDecay.checked = hasDecay;
     var elReos = document.getElementById('item_reos'); if (elReos) elReos.checked = hasReos;
+    var elMarkali = document.getElementById('item_markali'); if (elMarkali) elMarkali.checked = hasMarkali;
     var elDroplet = document.getElementById('item_droplet'); if (elDroplet) elDroplet.checked = hasDroplet;
 
     var elToep = document.getElementById('item_toep'); if (elToep) elToep.checked = hasToep;

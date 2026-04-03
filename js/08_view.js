@@ -114,6 +114,7 @@ function switchView(type) {
             if (data.stats.dmgT34p > 0) addRow("Bonus: T3 4p", data.stats.dmgT34p, data.stats.totalDmg);
             if (data.stats.dmgScythe > 0) addRow("Proc: Scythe", data.stats.dmgScythe, data.stats.totalDmg);
             if (data.stats.dmgSigil > 0) addRow("Proc: Sigil of Accord", data.stats.dmgSigil, data.stats.totalDmg);
+            if (data.stats.dmgMarkali > 0) addRow("Proc: Mar'kali", data.stats.dmgMarkali, data.stats.totalDmg);
             
             if (dropletPct > 0) addStatRow("Buff: Nordrassil's Reprieve", dropletPct.toFixed(1) + "%", "Uptime");
             if (scythePct > 0) addStatRow("Buff: Scythe of Elune", scythePct.toFixed(1) + "%", "Uptime");

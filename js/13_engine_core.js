@@ -39,6 +39,9 @@ function runCoreSimulation(cfg) {
         InsectSwarm: { name: "Insect Swarm", id: "InsectSwarm", type: "Nature", baseCast: 0, base: 0, coeff: 0, tickBase: is_base, tickCoeff: is_coeff, dur: durIS, tick: 2.0, flight: 0.0, isDot: true, cost: 128 }
     };
 
+    // NEU: Max Mana für diese Iteration berechnen
+    var maxMana = 964 + (15 * (cfg.stats.int || 150));
+
     // 3. Kampf-Status & Stats (Nur für diesen EINEN Run)
     var State = { 
         t: 0.0, gcdEnd: 0.0, castEnd: 0.0, castStart: 0.0, casting: false, spellId: null, currentSpellId: null, lastCastId: "",
@@ -51,14 +54,14 @@ function runCoreSimulation(cfg) {
         zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0, 
         scytheEnd: 0.0, scytheCD: 0.0,
         nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
-        makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, decayCD: 0.0,
-        ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0, dropletEnd: 0.0, dropletCD: 0.0
+        makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, decayCD: 0.0, dropletCD:0.0, markaliCD: 0.0,
+        ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0
     };
 
     var RunStats = { 
         totalDmg: 0, totalMana: 0, stepCounts: {},
         dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
-        dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0, dmgDecay: 0,
+        dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0, dmgDecay: 0, dmgMarkali: 0,
         casts: 0, misses: 0, hits: 0, dmgCrit: 0,
         uptimeAE: 0, uptimeNE: 0, uptimeDroplet: 0,
         uptimeScythe: 0, uptimeSulfuras: 0, uptimeSphere: 0, 
@@ -512,6 +515,16 @@ function runCoreSimulation(cfg) {
         if (spell.id === "Moonfire" && cfg.talents.boon && RNG.check(30, "boon")) { if (State.boon < 3) State.boon++; } 
         if (spell.id === "Moonfire" && cfg.gear.idolMoonfang) { RunStats.totalMana -= 50; log(State.t, "PROC", "Moonfang", "", null, null, "Restore 50", "-50"); } 
         
+        // Mar'kali Proc
+        if (cfg.gear.markali && State.t >= State.markaliCD && RNG.check(10 * fortuneMult, "procMarkali")) {
+            State.markaliCD = State.t + 1.0;
+            // 3% Max Mana, mitigiert durch Arcane Resist des Ziels (kein Crit, profitiert nicht von CoS)
+            var markaliDmg = (maxMana * 0.03) * avgMitArc; 
+            RunStats.totalDmg += markaliDmg;
+            RunStats.dmgMarkali += markaliDmg;
+            log(State.t, "PROC DMG", "Mar'kali", "Hit", { norm: markaliDmg, ecl: 0, crit: 0, total: markaliDmg }, null, "Arcane Dmg (3% Mana)");
+        }
+
         if (cfg.gear.binding && State.t >= State.bindingCD && RNG.check(5 * fortuneMult, "binding")) { 
             State.bindingEnd = State.t + 5.0; 
             State.bindingCD = State.t + 15.0; 
