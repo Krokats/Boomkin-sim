@@ -519,7 +519,7 @@ function runCoreSimulation(cfg) {
         if (cfg.gear.markali && State.t >= State.markaliCD && RNG.check(10 * fortuneMult, "procMarkali")) {
             State.markaliCD = State.t + 1.0;
             // 3% Max Mana, mitigiert durch Arcane Resist des Ziels (kein Crit, profitiert nicht von CoS)
-            var markaliDmg = (maxMana * 0.03) * avgMitArc; 
+            var markaliDmg = (maxMana * 0.03); //* avgMitArc; 
             RunStats.totalDmg += markaliDmg;
             RunStats.dmgMarkali += markaliDmg;
             log(State.t, "PROC DMG", "Mar'kali", "Hit", { norm: markaliDmg, ecl: 0, crit: 0, total: markaliDmg }, null, "Arcane Dmg (3% Mana)");

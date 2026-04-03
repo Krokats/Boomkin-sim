@@ -206,7 +206,7 @@
                                         style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; width: 100%;">
                                         <div class="gp-stat-box"
                                             style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; text-align: center;">
-                                            <div style="font-size:0.75rem; color:#aaa;">Int</div>
+                                            <div style="font-size:0.75rem; color:#aaa;">Int / Mana</div>
                                             <div id="gp_int" style="font-size:1.1rem; color:#fff; font-weight:600;">0
                                             </div>
                                         </div>
@@ -428,9 +428,17 @@
                                                                 type="number" id="sp_arcane" value="0" disabled></div>
                                                     </div>
                                                 </div>
-                                                <div class="input-group" style="margin-top:15px; margin-bottom:0;">
-                                                    <label>Spell
-                                                        Penetration</label><input type="number" id="sp_pen" value="0">
+                                                <div class="spell-row" style="margin-top:15px; margin-bottom:0;">
+                                                    <div class="multi-input">
+                                                        <div class="input-wrapper">
+                                                            <label>Spell Penetration</label>
+                                                            <input type="number" id="sp_pen" value="0">
+                                                        </div>
+                                                        <div class="input-wrapper">
+                                                            <label>Total Mana</label>
+                                                            <input type="number" id="statMana" value="0" disabled>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <hr class="separator">
                                                 <div class="toggle-wrapper" style="margin-bottom: 15px;">

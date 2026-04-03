@@ -143,7 +143,7 @@ function calculateItemScore(item, slotNameOverride) {
         var maxMana = 964 + (15 * currentInt);
         var procDmg = maxMana * 0.03; // 3% of Max Mana
         var dpsContribution = (procDmg * 0.10) / 2.0; // 10% Chance, alle 2 Sekunden gecastet
-        score += (dpsContribution / 0.42) * wSP; // Umrechnung von DPS in SP-Wertung (1 SP ≈ 0.42 DPS)
+        score += (dpsContribution / 0.7) * wSP; // Umrechnung von DPS in SP-Wertung (1 SP ≈ 0.7 DPS)
     }
 
     score += avgBonusSP * wSP;
@@ -630,9 +630,18 @@ function calculateGearStats() {
     var elHit = document.getElementById("gp_hit"); if (elHit) elHit.innerText = charStats.hit;
     var elHaste = document.getElementById("gp_haste"); if (elHaste) elHaste.innerText = charStats.haste.toFixed(2) + "%";
     var elFortune = document.getElementById("gp_fortune"); if (elFortune) elFortune.innerText = charStats.fortune.toFixed(2) + "%";
-    var elInt = document.getElementById("gp_int"); if (elInt) elInt.innerText = charStats.int;
+    
+    // NEU: Max Mana berechnen und UI anpassen
+    var maxMana = 964 + (15 * charStats.int);
+    var elInt = document.getElementById("gp_int"); 
+    if (elInt) {
+        elInt.innerText = charStats.int + " / " + maxMana;
+        elInt.style.fontSize = "0.85rem"; // Schriftgröße etwas reduzieren, damit der Text in die Box passt
+    }
 
     // Update Main Simulation Inputs (TOTAL STATS - SPLIT)
+    var inMana = document.getElementById("statMana"); if (inMana) { inMana.value = maxMana; inMana.dispatchEvent(new Event('change')); }
+    
     var inSP = document.getElementById("sp_gen"); if (inSP) { inSP.value = charStats.sp; inSP.dispatchEvent(new Event('change')); }
     var inSPNat = document.getElementById("sp_nature"); if (inSPNat) { inSPNat.value = charStats.spNat; inSPNat.dispatchEvent(new Event('change')); }
     var inSPArc = document.getElementById("sp_arcane"); if (inSPArc) { inSPArc.value = charStats.spArc; inSPArc.dispatchEvent(new Event('change')); }
