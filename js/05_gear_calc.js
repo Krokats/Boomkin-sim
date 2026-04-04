@@ -106,7 +106,7 @@ function calculateItemScore(item, slotNameOverride) {
     if (item.name === "Bindings of Contained Magic" || item.id === 23201) {
         avgBonusSP += 10; // 10% uptime of 100 SP proc, grobe Schätzung basierend auf Simulationsdaten
     }
-    if (item.name === "Scythe of Elune") {
+    if (item.name === "The Scythe of Elune") {
         avgBonusSP += 30; // ~30 SP Äquivalent für 5% Proc (500-650 Dmg)
         avgBonusHaste += getOnUseAvg(10, 8, 600); // 10% Haste für 8s, 10 Min (600s) CD
     }
@@ -363,7 +363,7 @@ function calculateGearStats() {
                 // Specific Items (Names Corrected)
                 // Specific Items (Names Corrected)
                 if (item.name === "Bindings of Contained Magic" || item.id === 23201) hasBinding = true;
-                if (item.name === "Scythe of Elune") hasScythe = true;
+                if (item.name === "The Scythe of Elune") hasScythe = true;
                 if (item.name === "Spellwoven Nobility Drape") hasNobility = true;
                 if (item.name === "Harness of the High Thane") hasThane = true;
                 if (item.name === "True Band of Sulfuras") hasSulfuras = true;
