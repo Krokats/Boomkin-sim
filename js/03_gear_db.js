@@ -12,7 +12,7 @@ async function loadDatabase() {
         // Load Items (JSONL) and Enchants (JSON)
         const [rItems, rEnchants] = await Promise.all([
             fetch('data/items.jsonl'), // Pfad zur .jsonl-Datei geändert
-            fetch('data/enchants.json')
+            fetch('data/enchants.jsonl')
         ]);
 
         if (!rItems.ok) throw new Error("Items DB Error " + rItems.status);
@@ -25,8 +25,14 @@ async function loadDatabase() {
             .filter(line => line.trim() !== '') // Leere Zeilen (z.B. am Ende der Datei) ignorieren
             .map(line => JSON.parse(line)); // Jede einzelne Zeile als JSON parsen
 
+        const enchantsText = await rEnchants.text();
+        const enchants = enchantsText
+            .split(/\r?\n/) // Berücksichtigt Windows (\r\n) und Linux (\n) Zeilenumbrüche
+            .filter(line => line.trim() !== '') // Leere Zeilen (z.B. am Ende der Datei) ignorieren
+            .map(line => JSON.parse(line)); // Jede einzelne Zeile als JSON parsen    
+
         // 2. Enchants weiterhin als reguläres JSON einlesen
-        const enchants = await rEnchants.json();
+        //const enchants = await rEnchants.json();
         
         updateProgress(60);
 

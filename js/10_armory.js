@@ -187,7 +187,8 @@ function applyImportData(importedItems, race, charName) {
 
             // NEU: Enchantment zuweisen, falls eine effectId gefunden wurde
             if (entry.effectId && entry.effectId !== 0) {
-                var enchant = ENCHANT_DB.find(function (e) { return e.effectId === entry.effectId; });
+                // prüfe, ob slotToAssign beinhaltet e.slot Wert (z.B. slotToAssign "Finger 1" und e.slot "Finger")
+                var enchant = ENCHANT_DB.find(function (e) { return e.effectId === entry.effectId && slotToAssign.includes(e.slot); });
                 if (enchant) {
                     ENCHANT_SELECTION[slotToAssign] = enchant.id;
                 }
