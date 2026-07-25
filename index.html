@@ -189,16 +189,29 @@
                                         <button class="btn-mini" style="color:#ffb74d; border-color:#ffb74d; padding: 4px 10px; margin: 0;" onclick="importGearPreset()">📥 Import</button>
                                     </div>
                                 </div>
-                                <h2 style="margin-bottom:10px; font-size:1rem;">Stat Weights</h2>
-                                <div class="gp-stats-config">
-                                    <div class="gp-input-group"><label>Hit</label><input type="number" id="weight_hit"
-                                            value="16" onchange="recalcItemScores()"></div>
-                                    <div class="gp-input-group"><label>Crit</label><input type="number" id="weight_crit"
-                                            value="15" onchange="recalcItemScores()"></div>
-                                    <div class="gp-input-group"><label>Haste</label><input type="number"
-                                            id="weight_haste" value="11" onchange="recalcItemScores()"></div>
-                                    <div class="gp-input-group"><label>SP</label><input type="number" id="weight_sp"
-                                            value="1.0" onchange="recalcItemScores()"></div>
+                                <h2 style="margin-bottom:10px; font-size:1rem; text-align: center;">Stat Weights</h2>
+                                <div class="gp-stats-config" style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                    
+                                    <div class="gp-input-group" style="display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0;">
+                                        <label style="margin: 0; white-space: nowrap; font-size: 0.85rem;">Hit</label>
+                                        <input type="number" id="weight_hit" value="16" onchange="recalcItemScores()" style="width: 60px; margin: 0; padding: 4px; text-align: center;">
+                                    </div>
+                                    
+                                    <div class="gp-input-group" style="display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0;">
+                                        <label style="margin: 0; white-space: nowrap; font-size: 0.85rem;">Crit</label>
+                                        <input type="number" id="weight_crit" value="15" onchange="recalcItemScores()" style="width: 60px; margin: 0; padding: 4px; text-align: center;">
+                                    </div>
+                                    
+                                    <div class="gp-input-group" style="display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0;">
+                                        <label style="margin: 0; white-space: nowrap; font-size: 0.85rem;">Haste</label>
+                                        <input type="number" id="weight_haste" value="11" onchange="recalcItemScores()" style="width: 60px; margin: 0; padding: 4px; text-align: center;">
+                                    </div>
+                                    
+                                    <div class="gp-input-group" style="display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0;">
+                                        <label style="margin: 0; white-space: nowrap; font-size: 0.85rem;">SP</label>
+                                        <input type="number" id="weight_sp" value="1.0" onchange="recalcItemScores()" style="width: 60px; margin: 0; padding: 4px; text-align: center;">
+                                    </div>
+                                    
                                 </div>
 
                                 <h2 style="margin:20px 0 10px 0; font-size:1rem;">Current Gear Stats</h2>
