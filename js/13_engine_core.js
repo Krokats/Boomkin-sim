@@ -457,15 +457,21 @@ function runCoreSimulation(cfg) {
         }
 
         if (!RNG.checkHit(cfg.stats.hit)) { 
-            if (State.thaneActive) State.thaneActive = false;
-            RunStats.misses++; 
-            log(State.t, "MISS", spell.name, "Miss", null, null, "-"); 
-            
-            // Droplet Proc on Full Resist
-            if (cfg.gear.droplet && State.t >= State.dropletCD) {
-                State.dropletEnd = State.t + 10.0;
-                State.dropletCD = State.t + 4.0;
-                log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Full Resist)");
+            // NEU: Unterscheidung zwischen Sofort-Miss und Projektil-Miss
+            if (spell.isDot || spell.flight === 0) {
+                if (State.thaneActive) State.thaneActive = false;
+                RunStats.misses++; 
+                log(State.t, "MISS", spell.name, "Miss", null, null, "-"); 
+                
+                // Droplet Proc on Full Resist (Instant)
+                if (cfg.gear.droplet && State.t >= State.dropletCD) {
+                    State.dropletEnd = State.t + 10.0;
+                    State.dropletCD = State.t + 4.0;
+                    log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Full Resist)");
+                }
+            } else {
+                // Zauber hat eine Flugzeit -> Miss in die Zukunft verschieben
+                addEvt(State.t + spell.flight, "IMPACT_MISS", { spell: spell });
             }
             return;
         }
@@ -842,13 +848,26 @@ function runCoreSimulation(cfg) {
 
     // The Time Loop
     var loopGuard = 0;
-    while (State.t < cfg.maxTime && loopGuard < 50000) {
-        loopGuard++;
-        while (State.pendingImpacts.length > 0 && State.pendingImpacts[0].t <= State.t + 0.001) {
+    while (State.pendingImpacts.length > 0 && State.pendingImpacts[0].t <= State.t + 0.001) {
             var evt = State.pendingImpacts.shift();
             //if (evt.type === "CAST_FINISH") handleCastFinish(evt.data.spell);
             if (evt.type === "CAST_FINISH") handleCastFinish(evt.data);
             else if (evt.type === "IMPACT") handleImpact(evt.data.spell, evt.data.crit, evt.data.snap);
+            
+            // NEU: Hier wird der aufgeschobene Miss abgehandelt
+            else if (evt.type === "IMPACT_MISS") {
+                if (State.thaneActive) State.thaneActive = false;
+                RunStats.misses++;
+                log(State.t, "MISS", evt.data.spell.name, "Miss", null, null, "-");
+
+                // Droplet Proc on Full Resist (Delayed)
+                if (cfg.gear.droplet && State.t >= State.dropletCD) {
+                    State.dropletEnd = State.t + 10.0;
+                    State.dropletCD = State.t + 4.0;
+                    log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Full Resist)");
+                }
+            }
+            
             else if (evt.type === "DOT_TICK") handleTick(evt.data);
             else if (evt.type === "ACIDITY_TICK") {
                 var tickDmg = evt.data.dmg;
