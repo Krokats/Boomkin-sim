@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krokat's Boomkinsim 1.18.1</title>
+    <title>Krokat's Boomkin Sim 1.18.1</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap"
         rel="stylesheet">
@@ -52,6 +52,19 @@
                     <div class="header-actions">
                         <!--<button onclick="openArmoryModal()" class="share-btn" style="margin-right: 5px;">🌍 Import
                             Armory</button>-->
+
+                    
+                        <!-- Link zu anderen Simulationen -->
+                        <div class="sim-selector-dropdown">
+                            <button class="share-btn sim-selector-btn">Other Simulations ▼</button>
+                            <div class="sim-dropdown-content">
+                                <a href="https://krokats.github.io/boomkin-sim" class="active-sim"> 🦉 Moonkin Sim</a>
+                                <a href="https://krokats.github.io/feral-sim">🐾 Feral Sim</a>
+                                <!--<a href="bear-index.html" class="disabled-sim">🐻 Bear Sim (Soon)</a> -->
+                                <!--<a href="resto-index.html" class="disabled-sim">🌿 Resto Sim (Soon)</a> -->
+                            </div>
+                        </div>
+
                         <button onclick="importFromClipboard()" class="share-btn" style="margin-right: 5px;">📥 Import
                             Config</button>
                         <button onclick="exportSettings()" class="share-btn">🔗 Save Config</button>
