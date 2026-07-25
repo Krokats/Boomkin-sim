@@ -848,7 +848,9 @@ function runCoreSimulation(cfg) {
 
     // The Time Loop
     var loopGuard = 0;
-    while (State.pendingImpacts.length > 0 && State.pendingImpacts[0].t <= State.t + 0.001) {
+    while (State.t < cfg.maxTime && loopGuard < 50000) {
+        loopGuard++;
+        while (State.pendingImpacts.length > 0 && State.pendingImpacts[0].t <= State.t + 0.001) {
             var evt = State.pendingImpacts.shift();
             //if (evt.type === "CAST_FINISH") handleCastFinish(evt.data.spell);
             if (evt.type === "CAST_FINISH") handleCastFinish(evt.data);
