@@ -459,7 +459,7 @@ function runCoreSimulation(cfg) {
         if (!RNG.checkHit(cfg.stats.hit)) { 
             // NEU: Unterscheidung zwischen Sofort-Miss und Projektil-Miss
             if (spell.isDot || spell.flight === 0) {
-                if (State.thaneActive) State.thaneActive = false;
+                //if (State.thaneActive) State.thaneActive = false;
                 RunStats.misses++; 
                 log(State.t, "MISS", spell.name, "Miss", null, null, "-"); 
                 
@@ -569,6 +569,7 @@ function runCoreSimulation(cfg) {
         if (RunStats.spellStats[spell.id]) {
             RunStats.spellStats[spell.id].hits++;
             if (crit) RunStats.spellStats[spell.id].crits++;
+            log(State.t, "PROC DMG", "High Thane", "Hit", { norm: 48, ecl: 0, crit: 0, total: 48 }, null, "Flat +48 Dmg");
         }
 
         RunStats.totalDmg += d.total;
@@ -714,8 +715,11 @@ function runCoreSimulation(cfg) {
         
         if (crit) {
             State.ng = true; 
-            if (cfg.gear.thane) State.thaneActive = true;
             log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG"); 
+            if (cfg.gear.thane) {
+                State.thaneActive = true;
+                log(State.t, "PROC", "High Thane", "", null, null, "Crit -> +48 Dmg on next Spell"); 
+            }
         }
         
         var triggeredEclipse = false; 
@@ -858,7 +862,7 @@ function runCoreSimulation(cfg) {
             
             // NEU: Hier wird der aufgeschobene Miss abgehandelt
             else if (evt.type === "IMPACT_MISS") {
-                if (State.thaneActive) State.thaneActive = false;
+                //if (State.thaneActive) State.thaneActive = false;
                 RunStats.misses++;
                 log(State.t, "MISS", evt.data.spell.name, "Miss", null, null, "-");
 
