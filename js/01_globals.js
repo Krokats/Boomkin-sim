@@ -411,7 +411,7 @@ var PRESET_ROTATIONS = {
                 { type: "time_remaining",  op: ">=", val: "1.5"}
             ], disabled: false },
             { id: 11, skill: "Wrath", conditions: [
-                { type: "last_cast",  val: "Starfire"},
+                { type: "last_cast", target: "Starfire"},
                 { type: "time_remaining",  op: ">=", val: "1.5"},
             ], disabled: false },
             { id: 12, skill: "Starfire", conditions: [
@@ -469,7 +469,7 @@ var PRESET_ROTATIONS = {
             ], disabled: false },
             { id: 11, skill: "Starfire", conditions: [
                 { type: "time_remaining",  op: ">=", val: "2.5"},
-                { type: "last_cast",  val: "Wrath"},
+                { type: "last_cast", target: "Wrath"}
             ], disabled: false },
             { id: 12, skill: "Wrath", conditions: [
                 { type: "time_remaining",  op: ">=", val: "1.5"}], disabled: false },
