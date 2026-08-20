@@ -280,6 +280,7 @@ var PRESET_ROTATIONS = {
             { id: 5, skill: "Moonfire", conditions: [
                 { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
                 { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"},
                 { type: "time_remaining",  op: ">=", val: "15"}
             ], disabled: false },
             { id: 6, skill: "Moonfire", conditions: [
@@ -333,6 +334,7 @@ var PRESET_ROTATIONS = {
             { id: 5, skill: "Moonfire", conditions: [
                 { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
                 { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"},
                 { type: "time_remaining",  op: ">=", val: "15"}
             ], disabled: false },
             { id: 6, skill: "Moonfire", conditions: [
@@ -386,6 +388,7 @@ var PRESET_ROTATIONS = {
             { id: 5, skill: "Moonfire", conditions: [
                 { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
                 { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"},
                 { type: "time_remaining",  op: ">=", val: "15"}
             ], disabled: false },
             { id: 6, skill: "Moonfire", conditions: [
@@ -443,6 +446,7 @@ var PRESET_ROTATIONS = {
             { id: 5, skill: "Moonfire", conditions: [
                 { type: "debuff_rem", target: "Moonfire", op: "<=", val: "0" }, 
                 { type: "buff_rem", target: "Nature Eclipse", op: "<=", val: "0"},
+                { type: "buff_rem", target: "Arcane Eclipse", op: "<=", val: "0"},
                 { type: "time_remaining",  op: ">=", val: "15"}
             ], disabled: false },
             { id: 6, skill: "Moonfire", conditions: [
