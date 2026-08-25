@@ -231,8 +231,30 @@ function unpackConfig(packed) {
 }
 
 function importFromClipboard() {
-    var input = prompt("Paste the config string (or full URL) here:");
-    if (!input) return;
+    var modal = document.getElementById('importConfigModal');
+    var textarea = document.getElementById('importConfigInput');
+    if (modal && textarea) {
+        textarea.value = ""; // Textarea leeren
+        modal.classList.remove('hidden');
+        textarea.focus();
+    }
+}
+
+function closeImportConfigModal() {
+    var modal = document.getElementById('importConfigModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// 2. Führt den eigentlichen Import aus, wenn der User im Modal auf "Import" klickt
+function confirmImportConfig() {
+    var textarea = document.getElementById('importConfigInput');
+    if (!textarea) return;
+    var input = textarea.value.trim();
+    
+    if (!input) {
+        showToast("Please paste a valid config string.");
+        return;
+    }
 
     if (ITEM_DB.length === 0) {
         alert("Database not loaded yet. Please wait a moment.");
@@ -256,30 +278,14 @@ function importFromClipboard() {
         var data = JSON.parse(json);
         if (!Array.isArray(data)) data = [data];
 
-        /*
         data.forEach(function (s) {
             var newId = Date.now() + Math.floor(Math.random() * 1000);
-            var newSim = new SimObject(newId, s.n + " (Imp)");
-
-            if (s.d) newSim.config = unpackConfig(s.d);
-            else if (s.config) newSim.config = s.config;
-            else newSim.config = unpackConfig(s);
-
-            SIM_LIST.push(newSim);
-        });*/
-
-        data.forEach(function (s) {
-            var newId = Date.now() + Math.floor(Math.random() * 1000);
-            
-            // Abwärtskompatibilität: Check, ob Array (neu) oder Objekt (alt)
             var simName = (Array.isArray(s) ? s[0] : (s.n || s.name || "Simulation")) + " (Imp)";
             var newSim = new SimObject(newId, simName);
 
             if (Array.isArray(s) && s.length === 2 && Array.isArray(s[1])) {
-                // Neues Format
                 newSim.config = unpackConfig(s[1]);
             } else if (s.d) {
-                // Altes Format
                 newSim.config = unpackConfig(s.d);
             } else if (s.config) {
                 newSim.config = s.config;
@@ -290,6 +296,7 @@ function importFromClipboard() {
             SIM_LIST.push(newSim);
         });
 
+        closeImportConfigModal();
         renderSidebar();
         switchSim(SIM_LIST.length - 1);
         showToast("Imported successfully!");

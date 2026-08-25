@@ -39,44 +39,7 @@ function populateBiSDropdown() {
     }
 }
 
-function loadBiSPreset() {
-    var sel = document.getElementById("bis_preset_select");
-    if (!sel) return;
-    var val = sel.value;
-    if (!val) { alert("Please select a preset from the dropdown first."); return; }
-    
-    if (!confirm("Load preset? This will overwrite your currently equipped gear and enchants.")) return;
 
-    var preset = null;
-    if (val.startsWith("def_")) {
-        var k = val.substring(4);
-        preset = GEAR_PRESETS[k];
-    } else if (val.startsWith("cus_")) {
-        var k = val.substring(4);
-        var custom = JSON.parse(localStorage.getItem("boomkin_sim_custom_gear") || "{}");
-        preset = custom[k];
-    }
-
-    if (!preset) return;
-
-    GEAR_SELECTION = {};
-    ENCHANT_SELECTION = {};
-
-    if (preset.gear) {
-        for (var slot in preset.gear) {
-            if (preset.gear[slot] !== 0) GEAR_SELECTION[slot] = preset.gear[slot];
-        }
-    }
-    if (preset.enchants) {
-        for (var slot in preset.enchants) {
-            if (preset.enchants[slot] !== 0) ENCHANT_SELECTION[slot] = preset.enchants[slot];
-        }
-    }
-
-    initGearPlannerUI();
-    saveCurrentState();
-    showToast("Gear Preset loaded!");
-}
 
 function saveCustomGearPreset() {
     if (Object.keys(GEAR_SELECTION).length === 0) { alert("No gear equipped to save."); return; }
