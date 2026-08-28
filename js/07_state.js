@@ -180,6 +180,7 @@ function getCurrentConfigFromUI() {
 
     // NEU: Rotation in die Konfiguration packen
     cfg.custom_rotation = JSON.parse(JSON.stringify(CUSTOM_ROTATION));
+    cfg.talents = typeof TALENT_CONFIG !== 'undefined' ? structuredClone(TALENT_CONFIG) : {};
 
     return cfg;
 }
@@ -188,7 +189,7 @@ function applyConfigToUI(cfg) {
     if (!cfg) return;
 
     for (var id in cfg) {
-        if (id === 'gearSelection' || id === 'enchantSelection') continue;
+        if (id === 'gearSelection' || id === 'enchantSelection' || id === 'talents') continue;
         var el = document.getElementById(id);
         if (el) {
             if (el.type === 'checkbox') el.checked = (cfg[id] == 1);
@@ -232,6 +233,18 @@ function applyConfigToUI(cfg) {
         }
 
     }
+
+    // NEU: Talente laden und den Baum visuell aktualisieren
+    if (cfg.talents) {
+        TALENT_CONFIG = structuredClone(cfg.talents);
+    } else {
+        // Fallback für alte Speicherstände ohne Talente: Alles auf 0 setzen
+        if (typeof TALENT_CONFIG !== 'undefined') {
+            for (var key in TALENT_CONFIG) { TALENT_CONFIG[key] = 0; }
+        }
+    }
+    if (typeof renderTalentTree === 'function') renderTalentTree();
+
 
     // Update Interrupt Threshold Display
     var elThresh = document.getElementById("rota_interrupt_thresh");
@@ -277,6 +290,28 @@ function saveCurrentState() {
         }
     }
 }
+
+// ============================================================================
+// INITIALIZATION ON PAGE LOAD
+// ============================================================================
+window.addEventListener('DOMContentLoaded', function () {
+    renderTalentPresetDropdown();
+
+    // Prüfen, ob der Baum noch komplett leer ist (Verhindert, dass ein 
+    // potenzieller URL-Import überschrieben wird)
+    if (getTotalPoints() === 0) {
+        let presetKeys = Object.keys(TALENT_PRESETS);
+        if (presetKeys.length > 0) {
+            let firstPreset = presetKeys[0];
+            let select = document.getElementById("talent_preset_select");
+            if (select) select.value = firstPreset;
+
+            // Config im Hintergrund laden (ohne störenden Popup/Toast)
+            TALENT_CONFIG = structuredClone(TALENT_PRESETS[firstPreset]);
+            renderTalentTree();
+        }
+    }
+});
 
 function addSim(isFirst) {
     if (!isFirst) saveCurrentState();

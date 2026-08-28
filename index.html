@@ -330,9 +330,69 @@
 
                         </div>
                         <div class="grid-container">
+                            
+                            <div class="card full-width collapsed">
+                                <div class="card-header">
+                                    <h2>🌳 Talents <span id="talentCounterText"
+                                            style="font-size:0.85em; color:var(--druid-orange); margin-left:10px;">Points
+                                            Spent: 0 / 51</span></h2>
+                                </div>
+                                <div class="card-body">
+
+                                    <!-- NEU: Talent Preset Steuerung -->
+                                    <div
+                                        style="display:flex; gap:10px; align-items:flex-end; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; flex-wrap: wrap;">
+                                        <label>Talent Presets</label>
+                                        <div class="input-group" style="margin:0; width:250px;">
+                                            <div class="select-wrapper">
+                                                <select id="talent_preset_select">
+                                                    <option value="">-- Select Preset --</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <button class="btn-mini" onclick="loadTalentPreset()">Load</button>
+                                        <button class="btn-mini" onclick="saveTalentPreset()"
+                                            style="color:#4caf50; border-color:#4caf50;">💾 Save</button>
+                                        <button class="btn-mini" onclick="deleteTalentPreset()"
+                                            style="color:#f44336; border-color:#f44336;">🗑️ Delete</button>
+                                        <button class="btn-mini" onclick="clearTalents()">Reset All</button>
+                                    </div>
+
+                                    <div class="talent-trees-container"
+                                        style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+
+                                        <div class="talent-tree-wrapper">
+                                            <h3 id="treeTitleBalance"
+                                                style="text-align:center; color:#ccc; margin-bottom:10px;">Balance (0)
+                                            </h3>
+                                            <div id="talentGridBalance" class="talent-grid"
+                                                style="display: grid; grid-template-columns: repeat(4, 46px); grid-template-rows: repeat(7, 46px); gap: 14px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #333;">
+                                            </div>
+                                        </div>
+
+                                        <div class="talent-tree-wrapper">
+                                            <h3 id="treeTitleFeral"
+                                                style="text-align:center; color:#ccc; margin-bottom:10px;">Feral (0)
+                                            </h3>
+                                            <div id="talentGridFeral" class="talent-grid"
+                                                style="display: grid; grid-template-columns: repeat(4, 46px); grid-template-rows: repeat(7, 46px); gap: 14px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #333;">
+                                            </div>
+                                        </div>
+
+                                        <div class="talent-tree-wrapper">
+                                            <h3 id="treeTitleResto"
+                                                style="text-align:center; color:#ccc; margin-bottom:10px;">Restoration
+                                                (0)</h3>
+                                            <div id="talentGridResto" class="talent-grid"
+                                                style="display: grid; grid-template-columns: repeat(4, 46px); grid-template-rows: repeat(7, 46px); gap: 14px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #333;">
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
 
                             <div class="card full-width collapsed">
-
                                 <div class="card-header">
                                     <h2>✨ Buffs & Consumables</h2>
                                 </div>
@@ -954,6 +1014,7 @@
         </main>
     </div>
 
+    <script src="js/talent_tree.js"></script>
     <script src="js/pixelart.js"></script>
     <script src="js/01_globals.js"></script>
     <script src="js/02_utils.js"></script>

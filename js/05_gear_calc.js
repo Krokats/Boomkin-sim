@@ -258,7 +258,7 @@ function calculateGearStats() {
     var charStats = {
         sp: 0, spArc: 0, spNat: 0, // NEW: Split SP
         crit: baseStats.crit,
-        hit: baseStats.hit,
+        hit: baseStats.hit + (TALENT_CONFIG.naturalWeapons || 0),
         int: baseStats.int,
         haste: baseStats.haste, // Additiv für UI
         hasteMult: 1.0 + (baseStats.haste / 100), // Multiplikativ für Engine
@@ -513,7 +513,9 @@ function calculateGearStats() {
 
     // Buffs
     if (getVal("buff_arcane_brilliance")) buffInt += 31;
-    if (getVal("buff_gotw")) buffInt += 16;
+    if (getVal("buff_gotw")) {
+        buffInt += Math.floor(12 * (1 + ((TALENT_CONFIG.impMarkOfTheWild || 0) * 0.07)));
+    }
 
     // Food
     if (getVal("buff_food_sp")) buffSP += 22;
@@ -549,7 +551,7 @@ function calculateGearStats() {
     charStats.crit += charCritFromInt;
 
     // 4. ADD PERCENTAGE BUFFS
-    if (getVal("buff_moonkin")) buffCrit += 3;
+    if (getVal("buff_moonkin") || (TALENT_CONFIG.moonkinForm || 0) > 0) buffCrit += 3;
     if (getVal("buff_atiesh_druid")) {
         charStats.haste += 2; // Variante A: UI Additiv
         charStats.hasteMult *= 1.02; // Engine Multiplikativ

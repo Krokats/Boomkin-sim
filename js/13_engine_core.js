@@ -1,6 +1,73 @@
 // ============================================================================
 // MATH CORE (SINGLE RUN)
 // ============================================================================
+function getDynamicSpellStats(spellId, cfg, state) {
+    var baseSpell = SPELL_DB[spellId];
+    if (!baseSpell) return null;
+    var spell = JSON.parse(JSON.stringify(baseSpell)); // Tiefe Kopie
+
+    // 1. Casttime Talente
+    if (spell.id === "Wrath") spell.baseCast -= ((TALENT_CONFIG.impWrath || 0) * 0.1);
+    if (spell.id === "Starfire") {
+        let isf = TALENT_CONFIG.impStarfire || 0;
+        if (isf === 1) spell.baseCast -= 0.2;
+        else if (isf === 2) spell.baseCast -= 0.3;
+        else if (isf === 3) spell.baseCast -= 0.5;
+    }
+
+    // 2. Manacost Talente
+    if ((TALENT_CONFIG.moonglow || 0) > 0 && (spell.id === "Wrath" || spell.id === "Starfire" || spell.id === "Moonfire")) {
+        spell.cost = spell.cost * (1 - ((TALENT_CONFIG.moonglow || 0) * 0.03));
+    }
+
+    // 3. Duration Gear
+    if (spell.id === "Moonfire" && cfg.gear.t3_4p) spell.dur += 3.0;
+    if (spell.id === "InsectSwarm" && cfg.gear.t3_4p) spell.dur += 2.0;
+
+    // 4. Damage Modifiers & Crit
+    var baseMoonfury = (TALENT_CONFIG.moonfury || 0) * 0.04;
+    var impMoonfire = (TALENT_CONFIG.impMoonfire || 0) * 0.05;
+    var genesisMod = (TALENT_CONFIG.genesis || 0) * 0.05;
+    var diff = 0.02;
+
+    spell.dmgMod = baseMoonfury;
+    spell.tickMod = baseMoonfury;
+    spell.bonusCrit = 0; 
+
+    if (spell.id === "InsectSwarm") {
+        spell.dmgMod = 0.10 + genesisMod + diff; 
+        spell.tickMod = 0.10 + genesisMod + diff;
+    }
+    if (spell.id === "Moonfire") {
+        spell.dmgMod = baseMoonfury + impMoonfire + diff; 
+        spell.tickMod = baseMoonfury + impMoonfire + genesisMod + diff; 
+        spell.bonusCrit = (TALENT_CONFIG.impMoonfire || 0) * 5.0;
+    }
+    
+    // 5. Haste & Buffs anwenden
+    var currentHaste = cfg.stats.hasteFactor || 1.0;
+    if (state) {
+        if (cfg.gear.t3_8p && state.t < state.t38End) currentHaste *= 1.10;
+        if (cfg.gear.scythe && state.t < state.scytheEnd) currentHaste *= 1.10;
+        if (cfg.gear.sulfuras && state.t < state.sulfurasEnd) currentHaste *= 1.05;
+        if (cfg.gear.chromie && state.t < state.chromieEnd) currentHaste *= 0.90;
+        if (cfg.gear.sphere && state.t < state.enlightenedEnd) currentHaste *= 1.20;
+    }
+
+    var finalCast = spell.baseCast;
+    if (spell.id === "Starfire" && cfg.gear.idolEoF) finalCast -= 0.2;
+    if (state && state.ng && (spell.id === "Wrath" || spell.id === "Starfire")) {
+        finalCast -= ((TALENT_CONFIG.naturesGrace || 0) > 0 ? 0.5 : 0);
+    }
+    
+    spell.currentCastTime = Math.max(0, finalCast / currentHaste);
+
+    // 6. Flight Time
+    if (spell.id === "Wrath") spell.flight = cfg.rota.wrathFlight;
+    else spell.flight = 0.0;
+
+    return spell;
+}
 
 function getInputs() {
     if (!document.getElementById("calcMethod")) return { mode: "S", stats: {}, power: {}, enemy: {}, gear: {}, talents: {}, rota: {} };
@@ -25,8 +92,9 @@ function getInputs() {
     // Eclipse Override Logic
     var patchVer = "1.18.1c";
     var useOver = getVal("stat_override_eclipse");
-    var valNE = useOver ? getVal("stat_proc_nature") : 60;
-    var valAE = useOver ? getVal("stat_proc_arcane") : 40;
+    // Ersetze die valNE und valAE Zeilen hiermit:
+    var valNE = useOver ? getVal("stat_proc_nature") : ((TALENT_CONFIG.eclipse|| 0) * 60); // Max 60%
+    var valAE = useOver ? getVal("stat_proc_arcane") : ((TALENT_CONFIG.eclipse|| 0) * 40); // Max 40%
 
     return {
         sim_patch: patchVer,
@@ -60,77 +128,64 @@ function updateSpellStats() {
     var tbody = document.getElementById("spellCalcBody");
     if (!tbody) return;
     tbody.innerHTML = "";
-    function calcRow(name, base, coeff, sp, baseMod, eclMod, castTime, type) {
+
+    var eclFactor = (10 + 60 * (cfg.stats.crit / 100)) / 100;
+    
+    function addRow(spellId, isTick, nameOverride) {
+        var spell = getDynamicSpellStats(spellId, cfg, null);
+        if (!spell) return;
+        var sp = (spell.type === "Nature") ? (cfg.power.sp + cfg.power.nat) : (cfg.power.sp + cfg.power.arc);
+        var cosMult = (spell.type === "Arcane") ? (1 + 0.1 * cfg.enemy.cos) : 1.0;
+        
+        var base = isTick ? spell.tickBase : spell.base;
+        var coeff = isTick ? spell.tickCoeff : spell.coeff;
         var raw = base + (coeff * sp);
-        var cosMult = 1.0;
-        if (type === "Arcane") cosMult = 1 + 0.1 * cfg.enemy.cos;
-        var scaledNoEcl = raw * (1 + baseMod) * cosMult;
-        var scaledEcl = raw * (1 + baseMod + eclMod) * cosMult;
-        var cTimeBase = castTime;
-        if (name === "Starfire" && cfg.gear.idolEoF) cTimeBase -= 0.2;
-        // Nutzt den neuen hasteFactor. Fallback auf 1.0, falls noch nicht geladen.
-        var ct = Math.max(0, cTimeBase / (cfg.stats.hasteFactor || 1.0));
-        return '<tr><td>' + name + '</td><td>' + base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(scaledNoEcl) + '</td><td>+' + (eclMod * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(scaledEcl) + '</td><td>' + ct.toFixed(2) + 's</td></tr>';
+        
+        var baseMod = isTick ? spell.tickMod : spell.dmgMod;
+        var idolMod = 0;
+        if (spell.id === "Moonfire" && cfg.gear.idolMoon) idolMod = 0.17;
+        
+        var scaledNoEcl = raw * (1 + baseMod + idolMod) * cosMult;
+        var scaledEcl = raw * (1 + baseMod + idolMod + eclFactor) * cosMult;
+        
+        var name = nameOverride || spell.name;
+        var ct = isTick ? "0.00s" : spell.currentCastTime.toFixed(2) + "s";
+        
+        tbody.innerHTML += '<tr><td>' + name + '</td><td>' + base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(scaledEcl) + '</td><td>' + ct + '</td></tr>';
     }
-    var eclFactor = (10 + 60 * (cfg.stats.crit / 100)) / 100; // Int correction applied via input logic, here it takes the final stat
-    var w_coeff = 0.62; //(2.0 / 3.5) * 1.05;
-    tbody.innerHTML += calcRow("Wrath", 310, w_coeff, (cfg.power.sp + cfg.power.nat), 0.10, eclFactor, 1.5, "Nature");
-    tbody.innerHTML += calcRow("Starfire", 540, 1.0, (cfg.power.sp + cfg.power.arc), 0.10, eclFactor, 3.0, "Arcane");
-    var mf_coeff = 0.14; var mf_hit_mod = 0.20;
-    if (cfg.gear.idolMoon) mf_hit_mod += 0.17;
-    tbody.innerHTML += calcRow("Moonfire (Hit)", 210, mf_coeff, (cfg.power.sp + cfg.power.arc), mf_hit_mod, eclFactor, 0, "Arcane");
-    var mf_t_coeff = 0.13; var mf_tick_mod = 0.35;
-    if (cfg.gear.idolMoon) mf_tick_mod += 0.17;
-    tbody.innerHTML += calcRow("Moonfire (Tick)", 95.6, mf_t_coeff, (cfg.power.sp + cfg.power.arc), mf_tick_mod, eclFactor, 0, "Arcane");
-    var is_coeff = ((18 / 15) * 0.95 * 1.25) / 9; var is_mod = 0.25;
-    if (cfg.gear.idolProp) is_mod += 0.17;
-    tbody.innerHTML += calcRow("Insect Swarm (Tick)", 53.35, is_coeff, (cfg.power.sp + cfg.power.nat), is_mod, eclFactor, 0, "Nature");
+
+    addRow("Wrath", false);
+    addRow("Starfire", false);
+    addRow("Moonfire", false, "Moonfire (Hit)");
+    addRow("Moonfire", true, "Moonfire (Tick)");
+    addRow("InsectSwarm", true, "Insect Swarm (Tick)");
 
     // --- Hurricane Berechnung ---
-    var hurr_base = 134;
-    var hurr_coeff = 0.096;
+    var hurr = getDynamicSpellStats("Hurricane", cfg, null);
     var hurr_sp = cfg.power.sp + cfg.power.nat;
-    var hurr_raw = hurr_base + (hurr_coeff * hurr_sp);
-    var hurr_moonfury = 0.12;
-    var hurr_genesis = 0.15;
-    var eclipseModification = 1 + eclFactor; // (1 + Eclipse-Bonus) analog zur bestehenden Engine-Mathematik
-
-    // Normaler Hurricane
+    var hurr_raw = hurr.base + (hurr.coeff * hurr_sp);
+    var eclipseModification = 1 + eclFactor; 
+    
+    var hurr_moonfury = (TALENT_CONFIG.moonfury || 0) * 0.04;
+    var hurr_genesis = (TALENT_CONFIG.genesis || 0) * 0.05;
     var hurr_scaledNoEcl = hurr_raw * (1 + hurr_moonfury + hurr_genesis);
     var hurr_scaledEcl = hurr_scaledNoEcl * eclipseModification;
 
-    // Heart of Decay (Trinket) Zusatz für Hurricane
-    var decay_raw = 0;
-    var decay_ecl = 0;
     if (cfg.gear.decay) {
-        // Schaden = 180 + 4,1% * (SP + NP)
-        decay_raw = 180 + (0.041 * hurr_sp);
-        decay_ecl = decay_raw * eclipseModification;
-
-        // 5 sec. ICD, d.h. max. 2 Procs pro Hurricane (10 sec. Dauer) mit 5% Proc-Chance pro Tick. Daher rechnen wir 0.05 * 2 = 0.10 (10% durchschnittlicher Proc-Schaden pro Hurricane) auf den Gesamtschaden auf.
-        // 5% Proc-Chance als durchschnittlichen Extra-Schaden pro Tick aufrechnen, 
+        var decay_raw = 180 + (0.041 * hurr_sp);
+        var decay_ecl = decay_raw * eclipseModification;
         hurr_scaledNoEcl += (decay_raw * 0.10);
         hurr_scaledEcl += (decay_ecl * 0.10);
-
-        // Extra Zeile für den Proc-Wert selbst anzeigen
         tbody.innerHTML += '<tr><td>Heart of Decay (Proc)</td><td>180</td><td class="val-calc">' + Math.floor(decay_raw) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(decay_ecl) + '</td><td>0.00s</td></tr>';
     }
 
-    tbody.innerHTML += '<tr><td>Hurricane (Tick)</td><td>' + hurr_base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_scaledEcl) + '</td><td>0.00s</td></tr>';
+    tbody.innerHTML += '<tr><td>Hurricane (Tick)</td><td>' + hurr.base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_scaledEcl) + '</td><td>0.00s</td></tr>';
 
-    // T3.5 Hurricane Zusatzschaden
     if (cfg.gear.t35_3p) {
         var hurr_t35_scaledNoEcl = hurr_raw / 2;
         var hurr_t35_scaledEcl = (hurr_raw * eclipseModification) / 2;
-
-        tbody.innerHTML += '<tr><td>Hurricane T3.5 (Tick)</td><td>' + (hurr_base / 2).toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_t35_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_t35_scaledEcl) + '</td><td>0.00s</td></tr>';
+        tbody.innerHTML += '<tr><td>Hurricane T3.5 (Tick)</td><td>' + (hurr.base / 2).toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_t35_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_t35_scaledEcl) + '</td><td>0.00s</td></tr>';
     }
-
-    // AoE Chart immer direkt neu zeichnen, wenn Stats/Boni sich ändern
-    /*if (typeof renderAoEChart === 'function') {
-        renderAoEChart();
-    }*/
-
 }
 
 function runCoreSimulation(cfg) {
@@ -166,8 +221,6 @@ function runCoreSimulation(cfg) {
  * ============================================================================
  */
 
-
-
     // 1. RNG Setup
     var rngHandler = new RNGHandler(cfg.seed);
 
@@ -202,24 +255,6 @@ function runCoreSimulation(cfg) {
     var eclipseMod = 10 + 60 * (cfg.stats.crit / 100);
     var eclFactor = eclipseMod / 100;
     var cosMod = 1 + 0.1 * cfg.enemy.cos;
-
-    // Spells
-    var w_min = 292, w_max = 328; // Wrath: 292-328 (Avg 310)
-    var sf_min = 496, sf_max = 584; // Starfire: 496-584 (Avg 540)
-    var w_coeff = 0.62; //(2.0 / 3.5) * 1.05;
-    var sf_coeff = 1.0;
-    var mf_d_base = 210; var mf_d_coeff = 0.14;
-    var mf_t_base = 95.6; var mf_t_coeff = 0.13;
-    var is_base = 53.35; var is_coeff = ((18 / 15) * 0.95 * 1.25) / 9;
-    var durMF = 18.0 + (cfg.gear.t3_4p ? 3.0 : 0);
-    var durIS = 18.0 + (cfg.gear.t3_4p ? 2.0 : 0);
-
-    var Spells = {
-        Wrath: { name: "Wrath", id: "Wrath", type: "Nature", baseCast: 1.5, min: w_min, max: w_max, base: 310, coeff: w_coeff, flight: cfg.rota.wrathFlight, isDot: false, cost: 149, dur: 0, tick: 0 },
-        Starfire: { name: "Starfire", id: "Starfire", type: "Arcane", baseCast: 3.0, min: sf_min, max: sf_max, base: 540, coeff: sf_coeff, flight: 0.0, isDot: false, cost: 241, dur: 0, tick: 0 },
-        Moonfire: { name: "Moonfire", id: "Moonfire", type: "Arcane", baseCast: 0, base: mf_d_base, coeff: mf_d_coeff, tickBase: mf_t_base, tickCoeff: mf_t_coeff, dur: durMF, tick: 3.0, flight: 0.0, isDot: true, cost: 266 },
-        InsectSwarm: { name: "Insect Swarm", id: "InsectSwarm", type: "Nature", baseCast: 0, base: 0, coeff: 0, tickBase: is_base, tickCoeff: is_coeff, dur: durIS, tick: 2.0, flight: 0.0, isDot: true, cost: 128 }
-    };
 
     // NEU: Max Mana für diese Iteration berechnen
     var maxMana = 964 + (15 * (cfg.stats.int || 150));
@@ -423,11 +458,11 @@ function runCoreSimulation(cfg) {
                     isValid = evaluateOp(left, c.op, right);
                     break;
                 case 'ecl_vs_cast':
-                    if (!Spells[c.target]) { isValid = false; break; }
-                    var castT = getCastTime(c.target, Spells[c.target].baseCast);
+                    if (!SPELL_DB[c.target]) { isValid = false; break; }
+                    var dummySpell = getDynamicSpellStats(c.target, cfg, State);
+                    var castT = dummySpell.currentCastTime;
                     var eclRem = (c.target === 'Starfire') ? Math.max(0, State.aeEnd - State.t) : Math.max(0, State.neEnd - State.t);
                     var isGreater = eclRem > castT;
-                    // Prüft, ob das Ergebnis mit der Erwartung (True/False) aus der UI übereinstimmt
                     isValid = (c.bool === "false") ? !isGreater : isGreater;
                     break;
                 case 'last_cast':
@@ -441,64 +476,41 @@ function runCoreSimulation(cfg) {
         return true;
     };
 
-    var getCastTime = function (spellId, baseCast) {
-        var base = baseCast;
-        if (State.ng && (spellId === "Wrath" || spellId === "Starfire")) base -= 0.5;
-        if (spellId === "Starfire") {
-            if (cfg.gear.idolEoF) base -= 0.2;
-        }
-        if (base < 0) base = 0;
-        var hasteFactor = cfg.stats.hasteFactor; // Nutzt jetzt den echten multiplikativen Wert aus dem UI/Gear
-        if (cfg.gear.t3_8p && State.t < State.t38End) hasteFactor *= 1.10;
-        // NEU: Scythe of Elune Haste Buff
-        if (cfg.gear.scythe && State.t < State.scytheEnd) hasteFactor *= 1.10;
-        if (cfg.gear.sulfuras && State.t < State.sulfurasEnd) hasteFactor *= 1.05;
-        if (cfg.gear.chromie && State.t < State.chromieEnd) hasteFactor *= 0.90; // Chromie reduziert Haste um 10%
-        if (cfg.gear.sphere && State.t < State.enlightenedEnd) hasteFactor *= 1.20; // Sphere of the Endless Gulch (+20% Haste)
-        return Math.max(0, base / hasteFactor);
-    };
 
     // Calculate Damage
-    var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData) {
-        var useEcl = (forceSnap !== undefined) ? forceSnap : ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE()));
-        var currentSP = getCurrentSP(spell.type);
-
-        // Base Damage calculation with variability
+    var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData) { 
+        var useEcl = (forceSnap !== undefined) ? forceSnap : ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE())); 
+        var currentSP = getCurrentSP(spell.type); 
+        
         var baseDmg = spell.base;
         if (!isTick && spell.min !== undefined && spell.max !== undefined) {
-            // Stochastic mode: Roll between min and max
             baseDmg = spell.min + (rngHandler.rand() * (spell.max - spell.min));
         }
 
         var baseRaw = (isTick) ? (spell.tickBase + spell.tickCoeff * currentSP) : (baseDmg + spell.coeff * currentSP);
-
-        // --- MOONFURY 1.18.1c ---
-        var baseMoonfury = 0.12;
-        var diff = 0.02; // difference to 0.10 for calculations
-
-        var baseClassMod = baseMoonfury;
-        // Add diff to existing hardcoded overrides to maintain relation
-        if (spell.id === "InsectSwarm") baseClassMod = 0.25 + diff;
-        if (spell.id === "Moonfire" && !isTick) baseClassMod = 0.20 + diff;
-        if (spell.id === "Moonfire" && isTick) baseClassMod = 0.35 + diff;
-
-        var currentEclMod = useEcl ? eclFactor : 0;
-        var idolMod = 0;
-        if (spell.id === "Moonfire" && cfg.gear.idolMoon) idolMod = 0.17;
-        //if (spell.id === "InsectSwarm" && cfg.gear.idolProp) idolMod = 0.17; 
-
-        var t3Mod = 0;
-        var hasT3 = false;
-        if (cfg.gear.t3_6p && State.t < State.t3End) { t3Mod = 0.03; hasT3 = true; }
-
-        var classMult = 1.0 + baseClassMod + currentEclMod + idolMod + t3Mod;
-        var debuffMult = 1.0;
-        if (spell.type === "Arcane") debuffMult = 1.0 * cosMod;
-
+        
+        var baseClassMod = isTick ? spell.tickMod : spell.dmgMod; 
+        
+        var currentEclMod = useEcl ? eclFactor : 0; 
+        var idolMod = 0; 
+        if (spell.id === "Moonfire" && cfg.gear.idolMoon) idolMod = 0.17; 
+        
+        var t3Mod = 0; 
+        var hasT3 = false; 
+        if (cfg.gear.t3_6p && State.t < State.t3End) { t3Mod = 0.03; hasT3 = true; } 
+        
+        var classMult = 1.0 + baseClassMod + currentEclMod + idolMod + t3Mod; 
+        var debuffMult = 1.0; 
+        if (spell.type === "Arcane") debuffMult = 1.0 * cosMod; 
+        
         if (resistData) debuffMult *= resistData.val;
 
         var finalDmg = baseRaw * classMult * debuffMult;
-        var critBonus = isCrit ? finalDmg : 0;
+        //var critBonus = isCrit ? finalDmg : 0;
+
+        var critMultiplier = 0.5 + (0.10 * (TALENT_CONFIG.vengeance || 0)); // Neu
+        var critBonus = isCrit ? (finalDmg * critMultiplier) : 0;
+
         var total = finalDmg + critBonus;
 
         // Log Split (Normal vs Ecl vs Crit)
@@ -530,7 +542,7 @@ function runCoreSimulation(cfg) {
     };
 
     var performCast = function (spell) {
-        var ct = getCastTime(spell.id, spell.baseCast);
+        var ct = spell.currentCastTime; // NEU! Zieht den Wert direkt aus dem Objekt
         State.casting = true;
         State.castStart = State.t;
         State.castEnd = State.t + ct + cfg.avcd;
@@ -544,7 +556,7 @@ function runCoreSimulation(cfg) {
         // 1.18.1c BoaT: Wrath returns Mana if IS is up (Self or External)
         var isISActive = (State.activeIS && State.activeIS.exp > State.t) || cfg.enemy.extIS;
         if (spell.id === "Wrath" && isISActive) {
-            var boatManaFactor = 0.30; // 30% Base (3/3 Talents)
+            var boatManaFactor = (TALENT_CONFIG.balanceOfAllThings || 0) * 0.10; // Neu
             if (cfg.gear.t35_5p) boatManaFactor *= 1.5; // T3.5 Bonus -> 45%
             var returnAmt = cost * boatManaFactor;
             RunStats.totalMana -= returnAmt;
@@ -614,7 +626,7 @@ function runCoreSimulation(cfg) {
         // 1.18.1c BoaT: Starfire Crit if MF is up (Self or External)
         var isMFActive = (State.activeMF && State.activeMF.exp > State.t) || cfg.enemy.extMF;
         if (spell.id === "Starfire" && isMFActive) {
-            var boatCritBonus = 9.0;
+            var boatCritBonus = (TALENT_CONFIG.balanceOfAllThings || 0) * 3.0; // Neu
             if (cfg.gear.t35_5p) boatCritBonus *= 1.5; // T3.5 Bonus -> 13.5%
             finalCritChance += boatCritBonus;
         }
@@ -711,7 +723,7 @@ function runCoreSimulation(cfg) {
         if (spell.id === "Starfire") RunStats.dmgStarfire += d.total;
         if (spell.id === "Moonfire") RunStats.dmgMFDirect += d.total;
 
-        if (cfg.talents.ooc && RNG.check(5, "ooc")) { State.ooc = true; log(State.t, "PROC", "Omen of Clarity", "", null, null, "Clearcast"); }
+        if ((TALENT_CONFIG.omenOfClarity || 0) > 0 && RNG.check(5, "ooc")) { State.ooc = true; log(State.t, "PROC", "Omen of Clarity", "", null, null, "Clearcast"); }
         if (spell.id === "Moonfire" && cfg.talents.boon && RNG.check(30, "boon")) { if (State.boon < 3) State.boon++; }
         if (spell.id === "Moonfire" && cfg.gear.idolMoonfang) { RunStats.totalMana -= 50; log(State.t, "PROC", "Moonfang", "", null, null, "Restore 50", "-50"); }
 
@@ -844,7 +856,7 @@ function runCoreSimulation(cfg) {
             log(State.t, "PROC", "Idol of Equil. v3", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
 
-        if (crit) {
+        if (crit && (TALENT_CONFIG.naturesGrace || 0) > 0) {
             State.ng = true;
             log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG");
             if (cfg.gear.thane) {
@@ -970,12 +982,12 @@ function runCoreSimulation(cfg) {
             }
 
             // GCD / Spell Evaluierung
-            if (Spells[step.skill]) {
-                var spell = Spells[step.skill];
-                if (spell.isDot && !allowDots) continue; // Cutoff ignorieren? Dann suche den nächsten Schritt
-
-                spell.stepId = step.id; // Speichert die ID für den Counter
-                return spell; // Wir haben unseren Spell gefunden -> Abbruch der Prio-Liste
+            if (SPELL_DB[step.skill]) {
+                var spell = getDynamicSpellStats(step.skill, cfg, State);
+                if (spell.isDot && !allowDots) continue; 
+                
+                spell.stepId = step.id; 
+                return spell; 
             }
         }
         return null; // Fallback, falls die Prio-Liste leerläuft
