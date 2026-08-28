@@ -1,4 +1,8 @@
 var ITEM_ID_MAP = {}; // Performance cache for lookups
+var ITEM_DB = [];
+var ENCHANT_DB = [];
+var GEAR_SELECTION = {};
+var ENCHANT_SELECTION = {};
 
 // ============================================================================
 // GEAR PLANNER LOGIC

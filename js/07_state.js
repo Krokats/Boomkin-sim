@@ -140,7 +140,6 @@ function setupUIListeners() {
     });
 }
 
-
 function setupCollapsibleCards() {
     var headers = document.querySelectorAll('.card-header');
     headers.forEach(function (header) {
@@ -421,84 +420,6 @@ function updateEnemyInfo() {
     }
 }
 
-function updateSpellStats() {
-    if (!document.getElementById("statHit")) return;
-    var cfg = getInputs();
-    var tbody = document.getElementById("spellCalcBody");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-    function calcRow(name, base, coeff, sp, baseMod, eclMod, castTime, type) {
-        var raw = base + (coeff * sp);
-        var cosMult = 1.0;
-        if (type === "Arcane") cosMult = 1 + 0.1 * cfg.enemy.cos;
-        var scaledNoEcl = raw * (1 + baseMod) * cosMult;
-        var scaledEcl = raw * (1 + baseMod + eclMod) * cosMult;
-        var cTimeBase = castTime;
-        if (name === "Starfire" && cfg.gear.idolEoF) cTimeBase -= 0.2;
-        // Nutzt den neuen hasteFactor. Fallback auf 1.0, falls noch nicht geladen.
-        var ct = Math.max(0, cTimeBase / (cfg.stats.hasteFactor || 1.0));
-        return '<tr><td>' + name + '</td><td>' + base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(scaledNoEcl) + '</td><td>+' + (eclMod * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(scaledEcl) + '</td><td>' + ct.toFixed(2) + 's</td></tr>';
-    }
-    var eclFactor = (10 + 60 * (cfg.stats.crit / 100)) / 100; // Int correction applied via input logic, here it takes the final stat
-    var w_coeff = 0.62; //(2.0 / 3.5) * 1.05;
-    tbody.innerHTML += calcRow("Wrath", 310, w_coeff, (cfg.power.sp + cfg.power.nat), 0.10, eclFactor, 1.5, "Nature");
-    tbody.innerHTML += calcRow("Starfire", 540, 1.0, (cfg.power.sp + cfg.power.arc), 0.10, eclFactor, 3.0, "Arcane");
-    var mf_coeff = 0.14; var mf_hit_mod = 0.20;
-    if (cfg.gear.idolMoon) mf_hit_mod += 0.17;
-    tbody.innerHTML += calcRow("Moonfire (Hit)", 210, mf_coeff, (cfg.power.sp + cfg.power.arc), mf_hit_mod, eclFactor, 0, "Arcane");
-    var mf_t_coeff = 0.13; var mf_tick_mod = 0.35;
-    if (cfg.gear.idolMoon) mf_tick_mod += 0.17;
-    tbody.innerHTML += calcRow("Moonfire (Tick)", 95.6, mf_t_coeff, (cfg.power.sp + cfg.power.arc), mf_tick_mod, eclFactor, 0, "Arcane");
-    var is_coeff = ((18 / 15) * 0.95 * 1.25) / 9; var is_mod = 0.25;
-    if (cfg.gear.idolProp) is_mod += 0.17;
-    tbody.innerHTML += calcRow("Insect Swarm (Tick)", 53.35, is_coeff, (cfg.power.sp + cfg.power.nat), is_mod, eclFactor, 0, "Nature");
-
-    // --- Hurricane Berechnung ---
-    var hurr_base = 134;
-    var hurr_coeff = 0.096;
-    var hurr_sp = cfg.power.sp + cfg.power.nat;
-    var hurr_raw = hurr_base + (hurr_coeff * hurr_sp);
-    var hurr_moonfury = 0.12;
-    var hurr_genesis = 0.15;
-    var eclipseModification = 1 + eclFactor; // (1 + Eclipse-Bonus) analog zur bestehenden Engine-Mathematik
-
-    // Normaler Hurricane
-    var hurr_scaledNoEcl = hurr_raw * (1 + hurr_moonfury + hurr_genesis);
-    var hurr_scaledEcl = hurr_scaledNoEcl * eclipseModification;
-    
-    // Heart of Decay (Trinket) Zusatz für Hurricane
-    var decay_raw = 0;
-    var decay_ecl = 0;
-    if (cfg.gear.decay) {
-        // Schaden = 180 + 4,1% * (SP + NP)
-        decay_raw = 180 + (0.041 * hurr_sp);
-        decay_ecl = decay_raw * eclipseModification;
-        
-        // 5 sec. ICD, d.h. max. 2 Procs pro Hurricane (10 sec. Dauer) mit 5% Proc-Chance pro Tick. Daher rechnen wir 0.05 * 2 = 0.10 (10% durchschnittlicher Proc-Schaden pro Hurricane) auf den Gesamtschaden auf.
-        // 5% Proc-Chance als durchschnittlichen Extra-Schaden pro Tick aufrechnen, 
-        hurr_scaledNoEcl += (decay_raw * 0.10);
-        hurr_scaledEcl += (decay_ecl * 0.10);
-        
-        // Extra Zeile für den Proc-Wert selbst anzeigen
-        tbody.innerHTML += '<tr><td>Heart of Decay (Proc)</td><td>180</td><td class="val-calc">' + Math.floor(decay_raw) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(decay_ecl) + '</td><td>0.00s</td></tr>';
-    }
-
-    tbody.innerHTML += '<tr><td>Hurricane (Tick)</td><td>' + hurr_base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_scaledEcl) + '</td><td>0.00s</td></tr>';
-
-    // T3.5 Hurricane Zusatzschaden
-    if (cfg.gear.t35_3p) {
-        var hurr_t35_scaledNoEcl = hurr_raw / 2;
-        var hurr_t35_scaledEcl = (hurr_raw * eclipseModification) / 2;
-        
-        tbody.innerHTML += '<tr><td>Hurricane T3.5 (Tick)</td><td>' + (hurr_base / 2).toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_t35_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_t35_scaledEcl) + '</td><td>0.00s</td></tr>';
-    }
-
-    // AoE Chart immer direkt neu zeichnen, wenn Stats/Boni sich ändern
-    /*if (typeof renderAoEChart === 'function') {
-        renderAoEChart();
-    }*/
-    
-}
 
 function updatePatchUI() {
     // 1. Disable BoaT Stacks Input for 1.18.1c (Passiv)

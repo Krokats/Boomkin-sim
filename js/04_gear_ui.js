@@ -1,3 +1,8 @@
+var GEAR_SLOT_ORDER = [
+    "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet", 
+    "Finger 1", "Finger 2", "Trinket 1", "Trinket 2", "Main Hand", "Off Hand", "Relic"
+];
+
 function initGearPlannerUI() {
     if (!document.getElementById('charLeftCol')) return;
     renderSlotColumn("left", "charLeftCol");
@@ -258,7 +263,6 @@ function moveTooltip(e) {
     tt.style.left = x + "px";
     tt.style.top = y + "px";
 }
-
 
 function hideTooltip() { var tt = document.getElementById("wowTooltip"); if (tt) tt.style.display = "none"; }
 

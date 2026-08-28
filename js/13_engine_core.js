@@ -2,6 +2,137 @@
 // MATH CORE (SINGLE RUN)
 // ============================================================================
 
+function getInputs() {
+    if (!document.getElementById("calcMethod")) return { mode: "S", stats: {}, power: {}, enemy: {}, gear: {}, talents: {}, rota: {} };
+    var m = document.getElementById("calcMethod").value;
+    var rawSims = getVal("simCount");
+    var hitBonus = getVal("statHit");
+    var lvl = getVal("enemy_level");
+    var baseHit = 0.96;
+    if (lvl == 61) baseHit = 0.95;
+    if (lvl == 62) baseHit = 0.94;
+    if (lvl == 63) baseHit = 0.83;
+    var finalHitChance = Math.min(0.99, baseHit + (hitBonus / 100));
+
+    // NEU: Haste Multiplikator aus dem DOM abgreifen
+    var hasteInput = document.getElementById("statHaste");
+    var hasteMultVal = hasteInput && hasteInput.getAttribute("data-mult") ? parseFloat(hasteInput.getAttribute("data-mult")) : 1.0;
+
+    // NEU: Fortune aus dem DOM abgreifen
+    var fortuneInput = document.getElementById("statFortune");
+    var fortuneVal = fortuneInput ? parseFloat(fortuneInput.value) : 0.0;
+
+    // Eclipse Override Logic
+    var patchVer = "1.18.1c";
+    var useOver = getVal("stat_override_eclipse");
+    var valNE = useOver ? getVal("stat_proc_nature") : 60;
+    var valAE = useOver ? getVal("stat_proc_arcane") : 40;
+
+    return {
+        sim_patch: patchVer,
+        mode: "S", iterations: (rawSims > 0 ? rawSims : 1), maxTime: getVal("maxTime"), avcd: getVal("avcd") / 1000,
+        rng_seed: document.getElementById("rng_seed") ? document.getElementById("rng_seed").value : "",
+        rota: {
+            spellInterrupt: getVal("rota_interrupt"),
+            startBoat: getVal("start_boat"), wrathFlight: getVal("wrath_flight"),
+            dotCutoff: getVal("rota_dot_cutoff"),
+            interruptThresh: getVal("rota_interrupt_thresh")
+        },
+        custom_rotation: (typeof CUSTOM_ROTATION !== 'undefined') ? JSON.parse(JSON.stringify(CUSTOM_ROTATION)) : { steps: [] },
+        stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), hasteFactor: hasteMultVal, fortune: fortuneVal, baseHitProb: baseHit, int: parseFloat(document.getElementById("gp_int") ? document.getElementById("gp_int").innerText : "150") || 150 },
+        power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
+        enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
+        gear: {
+            t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_3p: getVal("t35_3p"), t35_5p: getVal("t35_5p"), stag_5p: getVal("stag_5p"),
+            idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"),
+            idolAcidity: getVal("idolAcidity"), idolEquilibrium: getVal("idolEquilibrium"), idolEquilibriumV2: getVal("idolEquilibriumV2"), idolEquilibriumV3: getVal("idolEquilibriumV3"),
+            binding: getVal("item_binding"), scythe: getVal("item_scythe"), nobility: getVal("item_nobility"), thane: getVal("item_thane"),
+            sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"), sphere: getVal("item_sphere"),
+            reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), decay: getVal("item_decay"), droplet: getVal("item_droplet"), markali: getVal("item_markali")
+        },
+        talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }
+    };
+}
+
+function updateSpellStats() {
+    if (!document.getElementById("statHit")) return;
+    var cfg = getInputs();
+    var tbody = document.getElementById("spellCalcBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    function calcRow(name, base, coeff, sp, baseMod, eclMod, castTime, type) {
+        var raw = base + (coeff * sp);
+        var cosMult = 1.0;
+        if (type === "Arcane") cosMult = 1 + 0.1 * cfg.enemy.cos;
+        var scaledNoEcl = raw * (1 + baseMod) * cosMult;
+        var scaledEcl = raw * (1 + baseMod + eclMod) * cosMult;
+        var cTimeBase = castTime;
+        if (name === "Starfire" && cfg.gear.idolEoF) cTimeBase -= 0.2;
+        // Nutzt den neuen hasteFactor. Fallback auf 1.0, falls noch nicht geladen.
+        var ct = Math.max(0, cTimeBase / (cfg.stats.hasteFactor || 1.0));
+        return '<tr><td>' + name + '</td><td>' + base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(scaledNoEcl) + '</td><td>+' + (eclMod * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(scaledEcl) + '</td><td>' + ct.toFixed(2) + 's</td></tr>';
+    }
+    var eclFactor = (10 + 60 * (cfg.stats.crit / 100)) / 100; // Int correction applied via input logic, here it takes the final stat
+    var w_coeff = 0.62; //(2.0 / 3.5) * 1.05;
+    tbody.innerHTML += calcRow("Wrath", 310, w_coeff, (cfg.power.sp + cfg.power.nat), 0.10, eclFactor, 1.5, "Nature");
+    tbody.innerHTML += calcRow("Starfire", 540, 1.0, (cfg.power.sp + cfg.power.arc), 0.10, eclFactor, 3.0, "Arcane");
+    var mf_coeff = 0.14; var mf_hit_mod = 0.20;
+    if (cfg.gear.idolMoon) mf_hit_mod += 0.17;
+    tbody.innerHTML += calcRow("Moonfire (Hit)", 210, mf_coeff, (cfg.power.sp + cfg.power.arc), mf_hit_mod, eclFactor, 0, "Arcane");
+    var mf_t_coeff = 0.13; var mf_tick_mod = 0.35;
+    if (cfg.gear.idolMoon) mf_tick_mod += 0.17;
+    tbody.innerHTML += calcRow("Moonfire (Tick)", 95.6, mf_t_coeff, (cfg.power.sp + cfg.power.arc), mf_tick_mod, eclFactor, 0, "Arcane");
+    var is_coeff = ((18 / 15) * 0.95 * 1.25) / 9; var is_mod = 0.25;
+    if (cfg.gear.idolProp) is_mod += 0.17;
+    tbody.innerHTML += calcRow("Insect Swarm (Tick)", 53.35, is_coeff, (cfg.power.sp + cfg.power.nat), is_mod, eclFactor, 0, "Nature");
+
+    // --- Hurricane Berechnung ---
+    var hurr_base = 134;
+    var hurr_coeff = 0.096;
+    var hurr_sp = cfg.power.sp + cfg.power.nat;
+    var hurr_raw = hurr_base + (hurr_coeff * hurr_sp);
+    var hurr_moonfury = 0.12;
+    var hurr_genesis = 0.15;
+    var eclipseModification = 1 + eclFactor; // (1 + Eclipse-Bonus) analog zur bestehenden Engine-Mathematik
+
+    // Normaler Hurricane
+    var hurr_scaledNoEcl = hurr_raw * (1 + hurr_moonfury + hurr_genesis);
+    var hurr_scaledEcl = hurr_scaledNoEcl * eclipseModification;
+
+    // Heart of Decay (Trinket) Zusatz für Hurricane
+    var decay_raw = 0;
+    var decay_ecl = 0;
+    if (cfg.gear.decay) {
+        // Schaden = 180 + 4,1% * (SP + NP)
+        decay_raw = 180 + (0.041 * hurr_sp);
+        decay_ecl = decay_raw * eclipseModification;
+
+        // 5 sec. ICD, d.h. max. 2 Procs pro Hurricane (10 sec. Dauer) mit 5% Proc-Chance pro Tick. Daher rechnen wir 0.05 * 2 = 0.10 (10% durchschnittlicher Proc-Schaden pro Hurricane) auf den Gesamtschaden auf.
+        // 5% Proc-Chance als durchschnittlichen Extra-Schaden pro Tick aufrechnen, 
+        hurr_scaledNoEcl += (decay_raw * 0.10);
+        hurr_scaledEcl += (decay_ecl * 0.10);
+
+        // Extra Zeile für den Proc-Wert selbst anzeigen
+        tbody.innerHTML += '<tr><td>Heart of Decay (Proc)</td><td>180</td><td class="val-calc">' + Math.floor(decay_raw) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(decay_ecl) + '</td><td>0.00s</td></tr>';
+    }
+
+    tbody.innerHTML += '<tr><td>Hurricane (Tick)</td><td>' + hurr_base.toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_scaledEcl) + '</td><td>0.00s</td></tr>';
+
+    // T3.5 Hurricane Zusatzschaden
+    if (cfg.gear.t35_3p) {
+        var hurr_t35_scaledNoEcl = hurr_raw / 2;
+        var hurr_t35_scaledEcl = (hurr_raw * eclipseModification) / 2;
+
+        tbody.innerHTML += '<tr><td>Hurricane T3.5 (Tick)</td><td>' + (hurr_base / 2).toFixed(0) + '</td><td class="val-calc">' + Math.floor(hurr_t35_scaledNoEcl) + '</td><td>+' + (eclFactor * 100).toFixed(0) + '%</td><td class="val-calc">' + Math.floor(hurr_t35_scaledEcl) + '</td><td>0.00s</td></tr>';
+    }
+
+    // AoE Chart immer direkt neu zeichnen, wenn Stats/Boni sich ändern
+    /*if (typeof renderAoEChart === 'function') {
+        renderAoEChart();
+    }*/
+
+}
+
 function runCoreSimulation(cfg) {
     /**
  * ============================================================================
@@ -35,7 +166,7 @@ function runCoreSimulation(cfg) {
  * ============================================================================
  */
 
-    
+
 
     // 1. RNG Setup
     var rngHandler = new RNGHandler(cfg.seed);
@@ -47,14 +178,14 @@ function runCoreSimulation(cfg) {
     var levelRes = Math.max(0, (cfg.enemy.level - 60) * 5);
     var baseResNat = Math.max(0, cfg.enemy.resNat - cfg.power.pen);
     var baseResArc = Math.max(0, cfg.enemy.resArc - cfg.power.pen);
-    
+
     var effResNat = levelRes + baseResNat;
     var effResArc = levelRes + baseResArc;
 
     // NEU: Hilfsfunktion für die korrekte Mitigation (Softcap bei 2/3 des Hardcaps, max 69%)
-    var calcMitigation = function(res, lvl) {
+    var calcMitigation = function (res, lvl) {
         var cap = lvl * 5;
-        var softCap = cap * (2/3);
+        var softCap = cap * (2 / 3);
         if (res <= 0) return 0;
         if (res <= softCap) return (res / softCap) * 0.50;
         return Math.min(0.69, 0.50 + ((res - softCap) / (cap - softCap)) * 0.19);
@@ -62,7 +193,7 @@ function runCoreSimulation(cfg) {
 
     var avgMitNat = calcMitigation(effResNat, cfg.enemy.level);
     var avgMitArc = calcMitigation(effResArc, cfg.enemy.level);
-    
+
     // Idol of Acidity Mitigation (Pre-Calculated)
     var baseResNatAcidity = Math.max(0, cfg.enemy.resNat - cfg.power.pen - 25);
     var effResNatAcidity = levelRes + baseResNatAcidity;
@@ -80,8 +211,8 @@ function runCoreSimulation(cfg) {
     var mf_d_base = 210; var mf_d_coeff = 0.14;
     var mf_t_base = 95.6; var mf_t_coeff = 0.13;
     var is_base = 53.35; var is_coeff = ((18 / 15) * 0.95 * 1.25) / 9;
-    var durMF = 18.0 + (cfg.gear.t3_4p ? 3.0 : 0); 
-    var durIS = 18.0 + (cfg.gear.t3_4p ? 2.0 : 0); 
+    var durMF = 18.0 + (cfg.gear.t3_4p ? 3.0 : 0);
+    var durIS = 18.0 + (cfg.gear.t3_4p ? 2.0 : 0);
 
     var Spells = {
         Wrath: { name: "Wrath", id: "Wrath", type: "Nature", baseCast: 1.5, min: w_min, max: w_max, base: 310, coeff: w_coeff, flight: cfg.rota.wrathFlight, isDot: false, cost: 149, dur: 0, tick: 0 },
@@ -94,37 +225,37 @@ function runCoreSimulation(cfg) {
     var maxMana = 964 + (15 * (cfg.stats.int || 150));
 
     // 3. Kampf-Status & Stats (Nur für diesen EINEN Run)
-    var State = { 
+    var State = {
         t: 0.0, gcdEnd: 0.0, castEnd: 0.0, castStart: 0.0, casting: false, spellId: null, currentSpellId: null, lastCastId: "",
-        neEnd: 0.0, aeEnd: 0.0, neCD: 0.0, aeCD: 0.0, 
-        ng: false, boat: cfg.rota.startBoat, t38End: 0.0, t3End: 0.0, 
-        fishingLastCast: "", activeMF: null, activeIS: null, 
-        pendingImpacts: [], dotCounter: 0, 
-        bindingEnd: 0.0, bindingCD: 0.0, reosEnd: 0.0, reosCD: 0.0, 
-        toepEnd: 0.0, toepCD: 0.0, roopEnd: 0.0, roopCD: 0.0, 
-        zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0, 
+        neEnd: 0.0, aeEnd: 0.0, neCD: 0.0, aeCD: 0.0,
+        ng: false, boat: cfg.rota.startBoat, t38End: 0.0, t3End: 0.0,
+        fishingLastCast: "", activeMF: null, activeIS: null,
+        pendingImpacts: [], dotCounter: 0,
+        bindingEnd: 0.0, bindingCD: 0.0, reosEnd: 0.0, reosCD: 0.0,
+        toepEnd: 0.0, toepCD: 0.0, roopEnd: 0.0, roopCD: 0.0,
+        zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0,
         scytheEnd: 0.0, scytheCD: 0.0,
         nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
-        makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, decayCD: 0.0, dropletCD:0.0, markaliCD: 0.0,
+        makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, decayCD: 0.0, dropletCD: 0.0, markaliCD: 0.0,
         ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0
     };
 
-    var RunStats = { 
+    var RunStats = {
         totalDmg: 0, totalMana: 0, stepCounts: {},
-        dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0, 
+        dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0,
         dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0, dmgDecay: 0, dmgMarkali: 0,
         casts: 0, misses: 0, hits: 0, dmgCrit: 0,
         uptimeAE: 0, uptimeNE: 0, uptimeDroplet: 0,
-        uptimeScythe: 0, uptimeSulfuras: 0, uptimeSphere: 0, 
+        uptimeScythe: 0, uptimeSulfuras: 0, uptimeSphere: 0,
         uptimeChromie: 0, uptimeNobility: 0, uptimeBinding: 0, uptimeAcidity: 0,
         spellStats: {
-                "Starfire": { count: 0, timeSum: 0, hits: 0, crits: 0 },
-                "Wrath": { count: 0, timeSum: 0, hits: 0, crits: 0 },
-                "Moonfire": { count: 0, timeSum: 0, hits: 0, crits: 0 }, // Initial hit
-                "InsectSwarm": { count: 0, timeSum: 0, hits: 0, crits: 0 }
+            "Starfire": { count: 0, timeSum: 0, hits: 0, crits: 0 },
+            "Wrath": { count: 0, timeSum: 0, hits: 0, crits: 0 },
+            "Moonfire": { count: 0, timeSum: 0, hits: 0, crits: 0 }, // Initial hit
+            "InsectSwarm": { count: 0, timeSum: 0, hits: 0, crits: 0 }
         }
     };
-    
+
     var RunLog = [];
 
     // 4. Internes RNG Objekt (Stochastisch)
@@ -140,7 +271,7 @@ function runCoreSimulation(cfg) {
     // 5. Helper Functions (Scope innerhalb runCoreSimulation)
     var isNE = function () { return State.t < State.neEnd; };
     var isAE = function () { return State.t < State.aeEnd; };
-    
+
     var getCurrentSP = function (school) {
         var val = cfg.power.sp;
         if (school === "Nature") val += cfg.power.nat;
@@ -148,34 +279,34 @@ function runCoreSimulation(cfg) {
         if (State.t < State.bindingEnd) val += 100;
         if (State.t < State.reosEnd) val += 130;
         if (State.t < State.toepEnd) val += 175;
-        if (State.t < State.roopEnd) val += 55; 
+        if (State.t < State.roopEnd) val += 55;
         if (State.t < State.zhcEnd && State.zhcVal > 0) val += State.zhcVal;
         if (State.t < State.dropletEnd) val += 80;
         return val;
     };
 
-    var log = function (time, evt, spell, res, dmg, castTime, info, mana) { 
-        var eclStr = ""; if (isNE()) eclStr = "NAT"; if (isAE()) eclStr = "ARC"; 
+    var log = function (time, evt, spell, res, dmg, castTime, info, mana) {
+        var eclStr = ""; if (isNE()) eclStr = "NAT"; if (isAE()) eclStr = "ARC";
         var dispSP = getCurrentSP("Arcane");
 
         // NEU: Aktuellen Haste-Wert zum Zeitpunkt des Events berechnen
         var currentHaste = cfg.stats.hasteFactor || 1.0;
-        if (cfg.gear.t3_8p && time < State.t38End) currentHaste *= 1.10; 
+        if (cfg.gear.t3_8p && time < State.t38End) currentHaste *= 1.10;
         if (cfg.gear.scythe && time < State.scytheEnd) currentHaste *= 1.10;
         if (cfg.gear.sulfuras && time < State.sulfurasEnd) currentHaste *= 1.05;
         if (cfg.gear.chromie && time < State.chromieEnd) currentHaste *= 0.90;
         if (cfg.gear.sphere && time < State.enlightenedEnd) currentHaste *= 1.20;
         var hasteStr = ((currentHaste - 1) * 100).toFixed(1) + "%";
-        
-        RunLog.push({ 
-            t: time.toFixed(2), evt: evt, spell: spell, res: res, 
-            dmgNorm: dmg ? dmg.norm : 0, dmgEcl: dmg ? dmg.ecl : 0, dmgCrit: dmg ? dmg.crit : 0, 
-            castTime: castTime ? castTime + "s" : "-", 
-            ecl: eclStr, 
-            boat: State.boat, ng: (State.ng ? "YES" : "-"), 
-            ooc: (State.ooc ? "YES" : "-"), boon: (State.boon > 0 ? State.boon : "-"), 
-            sp: dispSP, haste: hasteStr, mana: (mana !== undefined ? mana : "-"), 
-            info: info || "", 
+
+        RunLog.push({
+            t: time.toFixed(2), evt: evt, spell: spell, res: res,
+            dmgNorm: dmg ? dmg.norm : 0, dmgEcl: dmg ? dmg.ecl : 0, dmgCrit: dmg ? dmg.crit : 0,
+            castTime: castTime ? castTime + "s" : "-",
+            ecl: eclStr,
+            boat: State.boat, ng: (State.ng ? "YES" : "-"),
+            ooc: (State.ooc ? "YES" : "-"), boon: (State.boon > 0 ? State.boon : "-"),
+            sp: dispSP, haste: hasteStr, mana: (mana !== undefined ? mana : "-"),
+            info: info || "",
             mfRem: cfg.enemy.extMF ? "EXT" : ((State.activeMF && State.activeMF.exp > time) ? (State.activeMF.exp - time).toFixed(1) : "-"),
             isRem: cfg.enemy.extIS ? "EXT" : ((State.activeIS && State.activeIS.exp > time) ? (State.activeIS.exp - time).toFixed(1) : "-"),
             t36: (State.t3End > time) ? (State.t3End - time).toFixed(1) : "-",
@@ -186,74 +317,74 @@ function runCoreSimulation(cfg) {
             bRoop: (State.roopEnd > time) ? (State.roopEnd - time).toFixed(1) : "-",
             bZhc: (State.zhcEnd > time) ? (State.zhcVal) : "-",
             isAE: isAE(), isNE: isNE(),
-            stag: State.stagCritBonus 
-        }); 
+            stag: State.stagCritBonus
+        });
     };
 
-    var addEvt = function (time, type, data) { 
-        if (isNaN(time)) time = State.t; 
-        State.pendingImpacts.push({ t: time, type: type, data: data }); 
-        State.pendingImpacts.sort(function (a, b) { return a.t - b.t; }); 
+    var addEvt = function (time, type, data) {
+        if (isNaN(time)) time = State.t;
+        State.pendingImpacts.push({ t: time, type: type, data: data });
+        State.pendingImpacts.sort(function (a, b) { return a.t - b.t; });
     };
 
-    var cancelCurrentCast = function () { 
-        var idx = State.pendingImpacts.findIndex(function (e) { return e.type === "CAST_FINISH"; }); 
-        if (idx > -1) { 
-            State.pendingImpacts.splice(idx, 1); 
-            State.casting = false; 
-            State.currentSpellId = null; 
+    var cancelCurrentCast = function () {
+        var idx = State.pendingImpacts.findIndex(function (e) { return e.type === "CAST_FINISH"; });
+        if (idx > -1) {
+            State.pendingImpacts.splice(idx, 1);
+            State.casting = false;
+            State.currentSpellId = null;
             State.castEnd = State.t + cfg.avcd;
             State.gcdEnd = State.t + cfg.avcd;
             log(State.t, "INTERRUPT", "Cancel", "-", null, null, "Wrong Eclipse");
-        } 
+        }
     };
 
-    var getResist = function (school) { 
+    var getResist = function (school) {
         var currentAvgMitNat = (State.t < State.acidityEnd) ? avgMitNatAcidity : avgMitNat;
-        var avgMit = (school === "Nature") ? currentAvgMitNat : avgMitArc; 
-        
+        var avgMit = (school === "Nature") ? currentAvgMitNat : avgMitArc;
+
         // Verhindert unnötige Berechnungen, wenn keine Resistenz vorliegt
         if (avgMit <= 0) return { val: 1.0, txt: "" };
 
         // Zurück zur korrekten Classic 2-Bucket Interpolation!
         // Diese Logik garantiert, dass die avgMit über Zeit exakt getroffen wird.
-        var range = avgMit / 0.25; 
-        var bucket = Math.floor(range); 
-        var remainder = range - bucket; 
-        
+        var range = avgMit / 0.25;
+        var bucket = Math.floor(range);
+        var remainder = range - bucket;
+
         // Würfelt den "Rest" aus, um ggf. in den nächsthöheren 25%-Bucket zu rutschen
-        if (rngHandler.checkFloat(remainder)) bucket++; 
-        if (bucket > 3) bucket = 3; 
-        
-        var resistPct = bucket * 0.25; 
-        var dmgFactor = 1.0 - resistPct; 
-        var txt = (resistPct > 0) ? "Part " + (resistPct * 100).toFixed(0) + "%" : ""; 
-        
-        return { val: dmgFactor, txt: txt }; 
+        if (rngHandler.checkFloat(remainder)) bucket++;
+        if (bucket > 3) bucket = 3;
+
+        var resistPct = bucket * 0.25;
+        var dmgFactor = 1.0 - resistPct;
+        var txt = (resistPct > 0) ? "Part " + (resistPct * 100).toFixed(0) + "%" : "";
+
+        return { val: dmgFactor, txt: txt };
     };
 
-    var triggerTrinket = function(trinketKey, stepId) {
+    var triggerTrinket = function (trinketKey, stepId) {
         var used = false;
         if (trinketKey === "reos" && State.t >= State.reosCD) { State.reosEnd = State.t + 20.0; State.reosCD = State.t + 120.0; log(State.t, "USE", "Essence of Sapphiron", "", null, null, "+130 SP"); used = true; }
         else if (trinketKey === "toep" && State.t >= State.toepCD) { State.toepEnd = State.t + 15.0; State.toepCD = State.t + 90.0; log(State.t, "USE", "Talisman (ToEP)", "", null, null, "+175 SP"); used = true; }
         else if (trinketKey === "roop" && State.t >= State.roopCD) { State.roopEnd = State.t + 60.0; State.roopCD = State.t + 300.0; log(State.t, "USE", "Remains of Overwhelming Power", "", null, null, "+55 SP"); used = true; }
         else if (trinketKey === "zhc" && State.t >= State.zhcCD) { State.zhcEnd = State.t + 20.0; State.zhcCD = State.t + 120.0; State.zhcVal = 204; log(State.t, "USE", "Zandalarian Hero Charm", "", null, null, "+204 SP"); used = true; }
         else if (trinketKey === "scythe" && State.t >= State.scytheCD) { State.scytheEnd = State.t + 8.0; State.scytheCD = State.t + 600.0; log(State.t, "USE", "Scythe of Elune", "", null, null, "+10% Haste"); used = true; }
-        
+
         if (used && stepId) RunStats.stepCounts[stepId] = (RunStats.stepCounts[stepId] || 0) + 1;
         return used;
     };
 
-    var evaluateOp = function(left, op, right) {
-        if(op === '>') return left > right;
-        if(op === '<') return left < right;
-        if(op === '>=') return left >= right;
-        if(op === '<=') return left <= right;
-        if(op === '==') return left == right;
+    var evaluateOp = function (left, op, right) {
+        if (op === '>') return left > right;
+        if (op === '<') return left < right;
+        if (op === '>=') return left >= right;
+        if (op === '<=') return left <= right;
+        if (op === '==') return left == right;
         return false;
     };
 
-    var checkCondition = function(step) {
+    var checkCondition = function (step) {
         if (!step.conditions || step.conditions.length === 0) return true;
         for (var i = 0; i < step.conditions.length; i++) {
             var c = step.conditions[i];
@@ -261,7 +392,7 @@ function runCoreSimulation(cfg) {
             var right = parseFloat(c.val) || 0;
             var isValid = false;
 
-            switch(c.type) {
+            switch (c.type) {
                 case 'debuff_rem':
                     if (c.target === 'Moonfire') left = cfg.enemy.extMF ? 999 : (State.activeMF && State.activeMF.exp > State.t ? State.activeMF.exp - State.t : 0);
                     if (c.target === 'Insect Swarm') left = cfg.enemy.extIS ? 999 : (State.activeIS && State.activeIS.exp > State.t ? State.activeIS.exp - State.t : 0);
@@ -288,7 +419,7 @@ function runCoreSimulation(cfg) {
                         var test;
                         test = 1;
                     }
-                        
+
                     isValid = evaluateOp(left, c.op, right);
                     break;
                 case 'ecl_vs_cast':
@@ -310,12 +441,12 @@ function runCoreSimulation(cfg) {
         return true;
     };
 
-    var getCastTime = function (spellId, baseCast) { 
-        var base = baseCast; 
-        if (State.ng && (spellId === "Wrath" || spellId === "Starfire")) base -= 0.5; 
-        if (spellId === "Starfire") { 
+    var getCastTime = function (spellId, baseCast) {
+        var base = baseCast;
+        if (State.ng && (spellId === "Wrath" || spellId === "Starfire")) base -= 0.5;
+        if (spellId === "Starfire") {
             if (cfg.gear.idolEoF) base -= 0.2;
-        } 
+        }
         if (base < 0) base = 0;
         var hasteFactor = cfg.stats.hasteFactor; // Nutzt jetzt den echten multiplikativen Wert aus dem UI/Gear
         if (cfg.gear.t3_8p && State.t < State.t38End) hasteFactor *= 1.10;
@@ -328,10 +459,10 @@ function runCoreSimulation(cfg) {
     };
 
     // Calculate Damage
-    var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData) { 
-        var useEcl = (forceSnap !== undefined) ? forceSnap : ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE())); 
-        var currentSP = getCurrentSP(spell.type); 
-        
+    var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData) {
+        var useEcl = (forceSnap !== undefined) ? forceSnap : ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE()));
+        var currentSP = getCurrentSP(spell.type);
+
         // Base Damage calculation with variability
         var baseDmg = spell.base;
         if (!isTick && spell.min !== undefined && spell.max !== undefined) {
@@ -340,74 +471,74 @@ function runCoreSimulation(cfg) {
         }
 
         var baseRaw = (isTick) ? (spell.tickBase + spell.tickCoeff * currentSP) : (baseDmg + spell.coeff * currentSP);
-        
+
         // --- MOONFURY 1.18.1c ---
         var baseMoonfury = 0.12;
         var diff = 0.02; // difference to 0.10 for calculations
 
-        var baseClassMod = baseMoonfury; 
+        var baseClassMod = baseMoonfury;
         // Add diff to existing hardcoded overrides to maintain relation
-        if (spell.id === "InsectSwarm") baseClassMod = 0.25 + diff; 
-        if (spell.id === "Moonfire" && !isTick) baseClassMod = 0.20 + diff; 
+        if (spell.id === "InsectSwarm") baseClassMod = 0.25 + diff;
+        if (spell.id === "Moonfire" && !isTick) baseClassMod = 0.20 + diff;
         if (spell.id === "Moonfire" && isTick) baseClassMod = 0.35 + diff;
-        
-        var currentEclMod = useEcl ? eclFactor : 0; 
-        var idolMod = 0; 
-        if (spell.id === "Moonfire" && cfg.gear.idolMoon) idolMod = 0.17; 
+
+        var currentEclMod = useEcl ? eclFactor : 0;
+        var idolMod = 0;
+        if (spell.id === "Moonfire" && cfg.gear.idolMoon) idolMod = 0.17;
         //if (spell.id === "InsectSwarm" && cfg.gear.idolProp) idolMod = 0.17; 
-        
-        var t3Mod = 0; 
-        var hasT3 = false; 
-        if (cfg.gear.t3_6p && State.t < State.t3End) { t3Mod = 0.03; hasT3 = true; } 
-        
-        var classMult = 1.0 + baseClassMod + currentEclMod + idolMod + t3Mod; 
-        var debuffMult = 1.0; 
-        if (spell.type === "Arcane") debuffMult = 1.0 * cosMod; 
-        
-        if (resistData) debuffMult *= resistData.val; 
-        
-        var finalDmg = baseRaw * classMult * debuffMult; 
-        var critBonus = isCrit ? finalDmg : 0; 
-        var total = finalDmg + critBonus; 
-        
+
+        var t3Mod = 0;
+        var hasT3 = false;
+        if (cfg.gear.t3_6p && State.t < State.t3End) { t3Mod = 0.03; hasT3 = true; }
+
+        var classMult = 1.0 + baseClassMod + currentEclMod + idolMod + t3Mod;
+        var debuffMult = 1.0;
+        if (spell.type === "Arcane") debuffMult = 1.0 * cosMod;
+
+        if (resistData) debuffMult *= resistData.val;
+
+        var finalDmg = baseRaw * classMult * debuffMult;
+        var critBonus = isCrit ? finalDmg : 0;
+        var total = finalDmg + critBonus;
+
         // Log Split (Normal vs Ecl vs Crit)
-        var classMultNoEcl = 1.0 + baseClassMod + idolMod + t3Mod; 
-        var ratio = classMultNoEcl / classMult; 
-        var logNorm = total * ratio; 
-        var logCrit = 0; 
+        var classMultNoEcl = 1.0 + baseClassMod + idolMod + t3Mod;
+        var ratio = classMultNoEcl / classMult;
+        var logNorm = total * ratio;
+        var logCrit = 0;
         var logEcl = 0;
 
-        if (isCrit) { 
-            logCrit = total / 2; 
-            var basePart = logCrit; 
-            logNorm = basePart * ratio; 
-            logEcl = basePart - logNorm; 
-        } else { 
-            logCrit = 0; 
-            logNorm = total * ratio; 
-            logEcl = total - logNorm; 
+        if (isCrit) {
+            logCrit = total / 2;
+            var basePart = logCrit;
+            logNorm = basePart * ratio;
+            logEcl = basePart - logNorm;
+        } else {
+            logCrit = 0;
+            logNorm = total * ratio;
+            logEcl = total - logNorm;
         }
-        
-        var t3Part = 0; 
-        if (hasT3) { 
-            var modWithout = classMult - 0.03; 
-            var ratioT3 = modWithout / classMult; 
-            t3Part = total - (total * ratioT3); 
-        } 
-        
-        return { total: total, norm: logNorm, ecl: logEcl, crit: logCrit, t3Part: t3Part }; 
+
+        var t3Part = 0;
+        if (hasT3) {
+            var modWithout = classMult - 0.03;
+            var ratioT3 = modWithout / classMult;
+            t3Part = total - (total * ratioT3);
+        }
+
+        return { total: total, norm: logNorm, ecl: logEcl, crit: logCrit, t3Part: t3Part };
     };
 
-    var performCast = function (spell) { 
-        var ct = getCastTime(spell.id, spell.baseCast); 
-        State.casting = true; 
+    var performCast = function (spell) {
+        var ct = getCastTime(spell.id, spell.baseCast);
+        State.casting = true;
         State.castStart = State.t;
-        State.castEnd = State.t + ct + cfg.avcd; 
-        State.gcdEnd = State.t + 1.5 + cfg.avcd; 
-        if (spell.id === "Wrath") State.gcdEnd = State.t + 1 + cfg.avcd; 
-        var cost = spell.cost; 
-        var note = ""; 
-        if (State.ooc) { cost = 0; State.ooc = false; note = "OoC"; } 
+        State.castEnd = State.t + ct + cfg.avcd;
+        State.gcdEnd = State.t + 1.5 + cfg.avcd;
+        if (spell.id === "Wrath") State.gcdEnd = State.t + 1 + cfg.avcd;
+        var cost = spell.cost;
+        var note = "";
+        if (State.ooc) { cost = 0; State.ooc = false; note = "OoC"; }
         RunStats.totalMana += cost;
 
         // 1.18.1c BoaT: Wrath returns Mana if IS is up (Self or External)
@@ -415,29 +546,29 @@ function runCoreSimulation(cfg) {
         if (spell.id === "Wrath" && isISActive) {
             var boatManaFactor = 0.30; // 30% Base (3/3 Talents)
             if (cfg.gear.t35_5p) boatManaFactor *= 1.5; // T3.5 Bonus -> 45%
-            var returnAmt = cost * boatManaFactor; 
+            var returnAmt = cost * boatManaFactor;
             RunStats.totalMana -= returnAmt;
             note += (note ? " / " : "") + "BoaT: +" + Math.floor(returnAmt) + " Mana";
         }
 
-        State.currentSpellId = spell.id; 
-        State.lastCastId = spell.id; 
-        RunStats.casts++; 
-        if(spell.stepId) RunStats.stepCounts[spell.stepId] = (RunStats.stepCounts[spell.stepId] || 0) + 1;
-        log(State.t, "CAST_START", spell.name, "-", null, ct.toFixed(2), note, cost); 
-        if (State.ng && (spell.id === "Wrath" || spell.id === "Starfire")) State.ng = false; 
+        State.currentSpellId = spell.id;
+        State.lastCastId = spell.id;
+        RunStats.casts++;
+        if (spell.stepId) RunStats.stepCounts[spell.stepId] = (RunStats.stepCounts[spell.stepId] || 0) + 1;
+        log(State.t, "CAST_START", spell.name, "-", null, ct.toFixed(2), note, cost);
+        if (State.ng && (spell.id === "Wrath" || spell.id === "Starfire")) State.ng = false;
         if (spell.id === "Wrath" || spell.id === "Starfire") State.fishingLastCast = spell.id;
-        
+
         // FIX: Variable definieren
         var eclActive = ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE()));
 
         // FIX: 'ct' statt 'castTime' nutzen
-        addEvt(State.t + ct, "CAST_FINISH", { spell: spell, snap: eclActive, castTime: ct }); 
+        addEvt(State.t + ct, "CAST_FINISH", { spell: spell, snap: eclActive, castTime: ct });
     };
 
     var handleCastFinish = function (data) {
         var spell = data.spell;
-        State.casting = false; 
+        State.casting = false;
         State.currentSpellId = null;
 
         if (RunStats.spellStats[spell.id]) {
@@ -456,13 +587,13 @@ function runCoreSimulation(cfg) {
             currentHitChance = Math.min(0.99, currentHitChance + 0.03); // +3% Hit max 99%
         }
 
-        if (!RNG.checkHit(cfg.stats.hit)) { 
+        if (!RNG.checkHit(cfg.stats.hit)) {
             // NEU: Unterscheidung zwischen Sofort-Miss und Projektil-Miss
             if (spell.isDot || spell.flight === 0) {
                 //if (State.thaneActive) State.thaneActive = false;
-                RunStats.misses++; 
-                log(State.t, "MISS", spell.name, "Miss", null, null, "-"); 
-                
+                RunStats.misses++;
+                log(State.t, "MISS", spell.name, "Miss", null, null, "-");
+
                 // Droplet Proc on Full Resist (Instant)
                 if (cfg.gear.droplet && State.t >= State.dropletCD) {
                     State.dropletEnd = State.t + 10.0;
@@ -475,9 +606,9 @@ function runCoreSimulation(cfg) {
             }
             return;
         }
-        
-        RunStats.hits++; 
-        
+
+        RunStats.hits++;
+
         // CRIT CHECK
         var finalCritChance = cfg.stats.crit;
         // 1.18.1c BoaT: Starfire Crit if MF is up (Self or External)
@@ -511,61 +642,61 @@ function runCoreSimulation(cfg) {
             }
         }
 
-        var eclActive = ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE())); 
-        
-        if (spell.isDot) { 
-            State.dotCounter++; 
-            var dot = { id: State.dotCounter, spell: spell, next: State.t + spell.tick, exp: State.t + spell.dur, snap: eclActive, tickCount: 0 }; 
-            
+        var eclActive = ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE()));
+
+        if (spell.isDot) {
+            State.dotCounter++;
+            var dot = { id: State.dotCounter, spell: spell, next: State.t + spell.tick, exp: State.t + spell.dur, snap: eclActive, tickCount: 0 };
+
             if (spell.id === "Moonfire") {
-                State.activeMF = dot; 
+                State.activeMF = dot;
             } else {
-                State.activeIS = dot; 
-                
+                State.activeIS = dot;
+
                 // NEU: Idol of Propagation Proc
                 if (spell.id === "InsectSwarm" && cfg.gear.idolProp) {
                     // Refresh logic: Alte Ticks entfernen, falls IS erneuert wird
-                    State.pendingImpacts = State.pendingImpacts.filter(function(e) { return e.type !== "PROPAGATION_TICK"; });
+                    State.pendingImpacts = State.pendingImpacts.filter(function (e) { return e.type !== "PROPAGATION_TICK"; });
                     log(State.t, "PROC", "Idol of Prop.", "Fungus", null, null, "120 Nat Dmg over 12s");
-                    
+
                     // 12 Ticks á 10 Schaden (1 pro Sekunde)
                     for (var p = 1; p <= 12; p++) {
                         addEvt(State.t + p, "PROPAGATION_TICK", { dmg: 10 });
                     }
                 }
             }
-            
-            addEvt(dot.next, "DOT_TICK", { spellId: spell.id, dotId: dot.id }); 
-            if (spell.base > 0) handleImpact(spell, isCrit, eclActive); 
+
+            addEvt(dot.next, "DOT_TICK", { spellId: spell.id, dotId: dot.id });
+            if (spell.base > 0) handleImpact(spell, isCrit, eclActive);
         } else {
-            addEvt(State.t + spell.flight, "IMPACT", { spell: spell, crit: isCrit, snap: eclActive }); 
+            addEvt(State.t + spell.flight, "IMPACT", { spell: spell, crit: isCrit, snap: eclActive });
         }
     };
 
-    var handleImpact = function (spell, crit, snap) { 
-        var resData; 
-        if (cfg.mode === "D_AVG") resData = { val: 1.0, txt: "" }; 
-        else resData = getResist(spell.type); 
-        
-        var d = calculateDamageFull(spell, false, snap, crit, resData); 
+    var handleImpact = function (spell, crit, snap) {
+        var resData;
+        if (cfg.mode === "D_AVG") resData = { val: 1.0, txt: "" };
+        else resData = getResist(spell.type);
+
+        var d = calculateDamageFull(spell, false, snap, crit, resData);
 
         // Droplet Proc on Partial Resist
-         if (cfg.gear.droplet && resData.val < 1.0 ) {
+        if (cfg.gear.droplet && resData.val < 1.0) {
             if (cfg.gear.droplet && resData.val < 1.0 && State.t >= State.dropletCD) {
-                    State.dropletEnd = State.t + 10.0;
-                    State.dropletCD = State.t + 4.0;
-                    log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Partial Resist)");
-                }
-         }
+                State.dropletEnd = State.t + 10.0;
+                State.dropletCD = State.t + 4.0;
+                log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Partial Resist)");
+            }
+        }
 
-        
+
 
         if (State.thaneActive) {
             State.thaneActive = false;
             d.total += 48;
             d.norm += 48; // Dem flachen Schaden zugerechnet
         }
-        
+
         if (RunStats.spellStats[spell.id]) {
             RunStats.spellStats[spell.id].hits++;
             if (crit) RunStats.spellStats[spell.id].crits++;
@@ -574,16 +705,16 @@ function runCoreSimulation(cfg) {
 
         RunStats.totalDmg += d.total;
 
-        RunStats.dmgT36p += d.t3Part; 
+        RunStats.dmgT36p += d.t3Part;
         if (d.crit > 0) RunStats.dmgCrit += d.crit;
-        if (spell.id === "Wrath") RunStats.dmgWrath += d.total; 
-        if (spell.id === "Starfire") RunStats.dmgStarfire += d.total; 
-        if (spell.id === "Moonfire") RunStats.dmgMFDirect += d.total; 
-        
-        if (cfg.talents.ooc && RNG.check(5, "ooc")) { State.ooc = true; log(State.t, "PROC", "Omen of Clarity", "", null, null, "Clearcast"); } 
-        if (spell.id === "Moonfire" && cfg.talents.boon && RNG.check(30, "boon")) { if (State.boon < 3) State.boon++; } 
-        if (spell.id === "Moonfire" && cfg.gear.idolMoonfang) { RunStats.totalMana -= 50; log(State.t, "PROC", "Moonfang", "", null, null, "Restore 50", "-50"); } 
-        
+        if (spell.id === "Wrath") RunStats.dmgWrath += d.total;
+        if (spell.id === "Starfire") RunStats.dmgStarfire += d.total;
+        if (spell.id === "Moonfire") RunStats.dmgMFDirect += d.total;
+
+        if (cfg.talents.ooc && RNG.check(5, "ooc")) { State.ooc = true; log(State.t, "PROC", "Omen of Clarity", "", null, null, "Clearcast"); }
+        if (spell.id === "Moonfire" && cfg.talents.boon && RNG.check(30, "boon")) { if (State.boon < 3) State.boon++; }
+        if (spell.id === "Moonfire" && cfg.gear.idolMoonfang) { RunStats.totalMana -= 50; log(State.t, "PROC", "Moonfang", "", null, null, "Restore 50", "-50"); }
+
         // Mar'kali Proc
         if (cfg.gear.markali && State.t >= State.markaliCD && RNG.check(10 * fortuneMult, "procMarkali")) {
             State.markaliCD = State.t + 1.0;
@@ -594,19 +725,19 @@ function runCoreSimulation(cfg) {
             log(State.t, "PROC DMG", "Mar'kali", "Hit", { norm: markaliDmg, ecl: 0, crit: 0, total: markaliDmg }, null, "Arcane Dmg (3% Mana)");
         }
 
-        if (cfg.gear.binding && State.t >= State.bindingCD && RNG.check(5 * fortuneMult, "binding")) { 
-            State.bindingEnd = State.t + 5.0; 
-            State.bindingCD = State.t + 15.0; 
-            log(State.t, "PROC", "Binding", "", null, null, "+100 SP"); 
-        } 
-        
-        if (cfg.gear.scythe && RNG.check(5 * fortuneMult, "scythe")) { 
-            var baseScythe = 375 + rngHandler.rand() * (500 - 375); 
-            if (cfg.mode !== "S") baseScythe = 437.5; 
-            var scytheDmg = baseScythe * cosMod; 
-            RunStats.totalDmg += scytheDmg; 
-            RunStats.dmgScythe += scytheDmg; 
-            log(State.t, "PROC DMG", "Scythe of Elune", "Hit", { norm: scytheDmg, ecl: 0, crit: 0, total: scytheDmg }, null, "Arcane Dmg"); 
+        if (cfg.gear.binding && State.t >= State.bindingCD && RNG.check(5 * fortuneMult, "binding")) {
+            State.bindingEnd = State.t + 5.0;
+            State.bindingCD = State.t + 15.0;
+            log(State.t, "PROC", "Binding", "", null, null, "+100 SP");
+        }
+
+        if (cfg.gear.scythe && RNG.check(5 * fortuneMult, "scythe")) {
+            var baseScythe = 375 + rngHandler.rand() * (500 - 375);
+            if (cfg.mode !== "S") baseScythe = 437.5;
+            var scytheDmg = baseScythe * cosMod;
+            RunStats.totalDmg += scytheDmg;
+            RunStats.dmgScythe += scytheDmg;
+            log(State.t, "PROC DMG", "Scythe of Elune", "Hit", { norm: scytheDmg, ecl: 0, crit: 0, total: scytheDmg }, null, "Arcane Dmg");
         }
 
         if (cfg.gear.nobility && RNG.check(10 * fortuneMult, "procNobility")) {
@@ -627,9 +758,9 @@ function runCoreSimulation(cfg) {
             State.chromieEnd = State.t + 15.0;
             log(State.t, "PROC", "Pocket Watch", "", null, null, "-10% Haste");
         }
-        
+
         // Sphere of the Endless Gulch
-        if (cfg.gear.sphere && State.t >= State.sphereCD &&  State.t >= State.enlightenedEnd && RNG.check(20 * fortuneMult, "procSphere")) {
+        if (cfg.gear.sphere && State.t >= State.sphereCD && State.t >= State.enlightenedEnd && RNG.check(20 * fortuneMult, "procSphere")) {
             State.sphereCD = State.t + 3.0; // Interner Cooldown von 3 Sekunden
             State.makaruStacks++;
             if (State.makaruStacks >= 20) {
@@ -642,17 +773,17 @@ function runCoreSimulation(cfg) {
         }
 
         // Idol of Acidity Proc
-        if (spell.id === "Wrath" && cfg.gear.idolAcidity && RNG.check(8* fortuneMult, "procAcidity")) {
+        if (spell.id === "Wrath" && cfg.gear.idolAcidity && RNG.check(8 * fortuneMult, "procAcidity")) {
             State.acidityEnd = State.t + 6.0;
-            
+
             // Schaden berechnen (Snapshotting der aktuellen Nature SP inklusive temporärer Buffs)
             var currentNatSP = getCurrentSP("Nature");
             var totalAcidityDmg = 300 + (0.055 * currentNatSP);
             var tickAcidityDmg = totalAcidityDmg / 3;
-            
+
             // Bisherige ausstehende Ticks entfernen, damit der DoT nicht stackt (Refresh-Logik)
-            State.pendingImpacts = State.pendingImpacts.filter(function(e) { return e.type !== "ACIDITY_TICK"; });
-            
+            State.pendingImpacts = State.pendingImpacts.filter(function (e) { return e.type !== "ACIDITY_TICK"; });
+
             log(State.t, "PROC", "Idol of Acidity", "Refresh", null, null, "-25 Nat Res & " + Math.floor(totalAcidityDmg) + " Dmg over 6s");
             addEvt(State.t + 2.0, "ACIDITY_TICK", { dmg: tickAcidityDmg });
             addEvt(State.t + 4.0, "ACIDITY_TICK", { dmg: tickAcidityDmg });
@@ -667,42 +798,42 @@ function runCoreSimulation(cfg) {
             RunStats.dmgT36p += dIS.t3Part;
             RunStats.dmgIS += dIS.total;
             RunStats.dmgIdol += dIS.total;
-            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
-                State.t3End = State.t + 6.0; 
-                log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
+            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) {
+                State.t3End = State.t + 6.0;
+                log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)");
             }
             log(State.t, "PROC DMG", "Idol of Equil.", "Tick (IS)", dIS, null, "Extra IS Tick");
         }
 
         // Idol of Equilibrium Proc - Starfire -> Moonfire
-        if (spell.id === "Starfire" && cfg.gear.idolEquilibrium && State.activeMF && State.activeMF.exp > State.t && RNG.check(15* fortuneMult, "procEquilSF")) {
+        if (spell.id === "Starfire" && cfg.gear.idolEquilibrium && State.activeMF && State.activeMF.exp > State.t && RNG.check(15 * fortuneMult, "procEquilSF")) {
             var dot = State.activeMF;
             var dMF = calculateDamageFull(dot.spell, true, dot.snap, false, null);
             RunStats.totalDmg += dMF.total;
             RunStats.dmgT36p += dMF.t3Part;
             RunStats.dmgMFTick += dMF.total;
             RunStats.dmgIdol += dMF.total;
-            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) { 
-                State.t3End = State.t + 6.0; 
-                log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)"); 
+            if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) {
+                State.t3End = State.t + 6.0;
+                log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick (Equil)");
             }
             log(State.t, "PROC DMG", "Idol of Equil.", "Tick (MF)", dMF, null, "Extra MF Tick");
         }
 
         // Idol of Equilibrium (v2 Krokat) Proc - Wrath -> Insect Swarm
-        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV2 && State.activeIS && State.activeIS.exp > State.t && RNG.check(25* fortuneMult, "procEquilV2Wrath")) {
+        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV2 && State.activeIS && State.activeIS.exp > State.t && RNG.check(25 * fortuneMult, "procEquilV2Wrath")) {
             State.activeIS.exp = State.t + State.activeIS.spell.dur;
             log(State.t, "PROC", "Idol of Equil. v2", "Refresh (IS)", null, null, "IS Duration Refreshed");
         }
 
         // Idol of Equilibrium (v2 Krokat) Proc - Starfire -> Moonfire
-        if (spell.id === "Starfire" && cfg.gear.idolEquilibriumV2 && State.activeMF && State.activeMF.exp > State.t && RNG.check(50* fortuneMult, "procEquilV2SF")) {
+        if (spell.id === "Starfire" && cfg.gear.idolEquilibriumV2 && State.activeMF && State.activeMF.exp > State.t && RNG.check(50 * fortuneMult, "procEquilV2SF")) {
             State.activeMF.exp = State.t + State.activeMF.spell.dur;
             log(State.t, "PROC", "Idol of Equil. v2", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
 
         // Idol of Equilibrium (v2 Krokat) Proc - Wrath -> Insect Swarm
-        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV3 && State.activeIS && State.activeIS.exp > State.t ) {
+        if (spell.id === "Wrath" && cfg.gear.idolEquilibriumV3 && State.activeIS && State.activeIS.exp > State.t) {
             State.activeIS.exp = State.t + State.activeIS.spell.dur;
             log(State.t, "PROC", "Idol of Equil. v3", "Refresh (IS)", null, null, "IS Duration Refreshed");
         }
@@ -712,21 +843,21 @@ function runCoreSimulation(cfg) {
             State.activeMF.exp = State.t + State.activeMF.spell.dur;
             log(State.t, "PROC", "Idol of Equil. v3", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
-        
+
         if (crit) {
-            State.ng = true; 
-            log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG"); 
+            State.ng = true;
+            log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG");
             if (cfg.gear.thane) {
                 State.thaneActive = true;
-                log(State.t, "PROC", "High Thane", "", null, null, "Crit -> +48 Dmg on next Spell"); 
+                log(State.t, "PROC", "High Thane", "", null, null, "Crit -> +48 Dmg on next Spell");
             }
         }
-        
-        var triggeredEclipse = false; 
-        var canProc = true; 
-        if (cfg.talents.onCrit && !crit) canProc = false; 
-        
-        if (canProc) { 
+
+        var triggeredEclipse = false;
+        var canProc = true;
+        if (cfg.talents.onCrit && !crit) canProc = false;
+
+        if (canProc) {
             // Helper für Interrupt-Entscheidung
             var canInterrupt = true;
             if (State.casting) {
@@ -738,73 +869,73 @@ function runCoreSimulation(cfg) {
                 if (pct > cfg.rota.interruptThresh) canInterrupt = false;
             }
 
-            if (spell.id === "Starfire" && !isAE() && State.t >= State.neCD && RNG.check(cfg.talents.nEProc, "procNE")) { 
-                State.neEnd = State.t + cfg.talents.neDuration; 
-                State.neCD = State.t + cfg.talents.neICD; 
-                triggeredEclipse = true; 
-                log(State.t, "PROC", "Nature Eclipse", "Proc", null, null, "SF -> NE"); 
+            if (spell.id === "Starfire" && !isAE() && State.t >= State.neCD && RNG.check(cfg.talents.nEProc, "procNE")) {
+                State.neEnd = State.t + cfg.talents.neDuration;
+                State.neCD = State.t + cfg.talents.neICD;
+                triggeredEclipse = true;
+                log(State.t, "PROC", "Nature Eclipse", "Proc", null, null, "SF -> NE");
                 // Check mit canInterrupt
-                if (cfg.rota.spellInterrupt && canInterrupt && State.casting && (State.currentSpellId === "Starfire" || State.currentSpellId === "Moonfire")) cancelCurrentCast(); 
-            } 
-            if (spell.id === "Wrath" && !isNE() && State.t >= State.aeCD && RNG.check(cfg.talents.aEProc, "procAE")) { 
-                State.aeEnd = State.t + cfg.talents.aeDuration; 
-                State.aeCD = State.t + cfg.talents.aeICD; 
-                triggeredEclipse = true; 
-                log(State.t, "PROC", "Arcane Eclipse", "Proc", null, null, "Wrath -> AE"); 
+                if (cfg.rota.spellInterrupt && canInterrupt && State.casting && (State.currentSpellId === "Starfire" || State.currentSpellId === "Moonfire")) cancelCurrentCast();
+            }
+            if (spell.id === "Wrath" && !isNE() && State.t >= State.aeCD && RNG.check(cfg.talents.aEProc, "procAE")) {
+                State.aeEnd = State.t + cfg.talents.aeDuration;
+                State.aeCD = State.t + cfg.talents.aeICD;
+                triggeredEclipse = true;
+                log(State.t, "PROC", "Arcane Eclipse", "Proc", null, null, "Wrath -> AE");
                 // Check mit canInterrupt
-                if (cfg.rota.spellInterrupt && canInterrupt && State.casting && (State.currentSpellId === "Wrath" || State.currentSpellId === "InsectSwarm")) cancelCurrentCast(); 
-            } 
+                if (cfg.rota.spellInterrupt && canInterrupt && State.casting && (State.currentSpellId === "Wrath" || State.currentSpellId === "InsectSwarm")) cancelCurrentCast();
+            }
         }
-        
-        if (triggeredEclipse) { 
-            if (cfg.gear.t3_8p) State.t38End = State.t + 8.0; 
-        } 
-        
-        var hitTxt = (cfg.mode === "D_AVG") ? "Hit" : (crit ? "CRIT" : "Hit"); 
-        log(State.t, "IMPACT", spell.name, hitTxt, d, null, resData.txt); 
+
+        if (triggeredEclipse) {
+            if (cfg.gear.t3_8p) State.t38End = State.t + 8.0;
+        }
+
+        var hitTxt = (cfg.mode === "D_AVG") ? "Hit" : (crit ? "CRIT" : "Hit");
+        log(State.t, "IMPACT", spell.name, hitTxt, d, null, resData.txt);
     };
 
-    var handleTick = function (payload) { 
-        var dot = (payload.spellId === "Moonfire") ? State.activeMF : State.activeIS; 
-        if (!dot || payload.dotId !== dot.id || State.t > dot.exp + 0.01) return; 
-        
-        dot.tickCount++; 
-        var d = calculateDamageFull(dot.spell, true, dot.snap, false, null); 
-        RunStats.totalDmg += d.total; 
-        RunStats.dmgT36p += d.t3Part; 
-        
-        if (cfg.gear.t3_4p && ((payload.spellId === "Moonfire" && dot.tickCount > 6) || (payload.spellId === "InsectSwarm" && dot.tickCount > 9))) { 
-            RunStats.dmgT34p += d.total; 
-        } 
-        
-        if (payload.spellId === "InsectSwarm") RunStats.dmgIS += d.total; 
-        if (payload.spellId === "Moonfire") RunStats.dmgMFTick += d.total; 
-        
+    var handleTick = function (payload) {
+        var dot = (payload.spellId === "Moonfire") ? State.activeMF : State.activeIS;
+        if (!dot || payload.dotId !== dot.id || State.t > dot.exp + 0.01) return;
+
+        dot.tickCount++;
+        var d = calculateDamageFull(dot.spell, true, dot.snap, false, null);
+        RunStats.totalDmg += d.total;
+        RunStats.dmgT36p += d.t3Part;
+
+        if (cfg.gear.t3_4p && ((payload.spellId === "Moonfire" && dot.tickCount > 6) || (payload.spellId === "InsectSwarm" && dot.tickCount > 9))) {
+            RunStats.dmgT34p += d.total;
+        }
+
+        if (payload.spellId === "InsectSwarm") RunStats.dmgIS += d.total;
+        if (payload.spellId === "Moonfire") RunStats.dmgMFTick += d.total;
+
         if (cfg.gear.t3_6p && RNG.check(8, "procT36p")) {
-            State.t3End = State.t + 6.0; 
-            log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick"); 
-        } 
+            State.t3End = State.t + 6.0;
+            log(State.t, "PROC", "Dreamwalker (6p)", "", null, null, "8% on Tick");
+        }
 
         // Heart of Decay Proc
-        if (cfg.gear.decay && State.t >= State.decayCD && RNG.check(5* fortuneMult, "procDecay")) {
+        if (cfg.gear.decay && State.t >= State.decayCD && RNG.check(5 * fortuneMult, "procDecay")) {
             State.decayCD = State.t + 5.0;
             var currentNatSP = getCurrentSP("Nature");
             var currentEclipseMod = isNE() ? (1.0 + eclFactor) : 1.0;
             var decayDmg = (180.0 + (0.041 * currentNatSP)) * currentEclipseMod;
-            
+
             RunStats.totalDmg += decayDmg;
             RunStats.dmgDecay += decayDmg;
-            
-            log(State.t, "PROC DMG", "Heart of Decay", "Tick", {norm: decayDmg, ecl: 0, crit: 0, total: decayDmg}, null, "Nature Dmg");
+
+            log(State.t, "PROC DMG", "Heart of Decay", "Tick", { norm: decayDmg, ecl: 0, crit: 0, total: decayDmg }, null, "Nature Dmg");
         }
-        
-        log(State.t, "TICK", dot.spell.name, "Tick", d, null, (dot.snap ? "Snap:ECL" : "Norm")); 
-        
-        if (State.t + dot.spell.tick <= dot.exp + 0.01) addEvt(State.t + dot.spell.tick, "DOT_TICK", { spellId: dot.spell.id, dotId: dot.id }); 
-        else { 
-            if (payload.spellId === "Moonfire") State.activeMF = null; 
-            else State.activeIS = null; 
-        } 
+
+        log(State.t, "TICK", dot.spell.name, "Tick", d, null, (dot.snap ? "Snap:ECL" : "Norm"));
+
+        if (State.t + dot.spell.tick <= dot.exp + 0.01) addEvt(State.t + dot.spell.tick, "DOT_TICK", { spellId: dot.spell.id, dotId: dot.id });
+        else {
+            if (payload.spellId === "Moonfire") State.activeMF = null;
+            else State.activeIS = null;
+        }
     };
 
     // 6. Main Loop
@@ -828,21 +959,21 @@ function runCoreSimulation(cfg) {
                 if (cfg.gear.toep) availTrinkets.push("toep");
                 if (cfg.gear.roop) availTrinkets.push("roop");
                 if (cfg.gear.zhc) availTrinkets.push("zhc");
-                if (cfg.gear.scythe) availTrinkets.push("scythe"); 
+                if (cfg.gear.scythe) availTrinkets.push("scythe");
 
                 var idx = step.skill === "Trinket1" ? 0 : 1;
                 if (availTrinkets[idx]) {
                     triggerTrinket(availTrinkets[idx], step.id);
                 }
                 // Trinkets triggern sofort und verbrauchen keinen GCD. Wir suchen weiter.
-                continue; 
+                continue;
             }
 
             // GCD / Spell Evaluierung
             if (Spells[step.skill]) {
                 var spell = Spells[step.skill];
                 if (spell.isDot && !allowDots) continue; // Cutoff ignorieren? Dann suche den nächsten Schritt
-                
+
                 spell.stepId = step.id; // Speichert die ID für den Counter
                 return spell; // Wir haben unseren Spell gefunden -> Abbruch der Prio-Liste
             }
@@ -859,7 +990,7 @@ function runCoreSimulation(cfg) {
             //if (evt.type === "CAST_FINISH") handleCastFinish(evt.data.spell);
             if (evt.type === "CAST_FINISH") handleCastFinish(evt.data);
             else if (evt.type === "IMPACT") handleImpact(evt.data.spell, evt.data.crit, evt.data.snap);
-            
+
             // NEU: Hier wird der aufgeschobene Miss abgehandelt
             else if (evt.type === "IMPACT_MISS") {
                 //if (State.thaneActive) State.thaneActive = false;
@@ -873,19 +1004,19 @@ function runCoreSimulation(cfg) {
                     log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Full Resist)");
                 }
             }
-            
+
             else if (evt.type === "DOT_TICK") handleTick(evt.data);
             else if (evt.type === "ACIDITY_TICK") {
                 var tickDmg = evt.data.dmg;
                 RunStats.totalDmg += tickDmg;
                 RunStats.dmgIdol += tickDmg;
-                log(State.t, "TICK", "Idol of Acidity", "Tick", {norm: tickDmg, ecl: 0, crit: 0, total: tickDmg}, null, "Nature Dmg");
+                log(State.t, "TICK", "Idol of Acidity", "Tick", { norm: tickDmg, ecl: 0, crit: 0, total: tickDmg }, null, "Nature Dmg");
             }
             else if (evt.type === "PROPAGATION_TICK") {
                 var pDmg = evt.data.dmg;
                 RunStats.totalDmg += pDmg;
                 RunStats.dmgIdol += pDmg;
-                log(State.t, "TICK", "Idol of Prop.", "Tick", {norm: pDmg, ecl: 0, crit: 0, total: pDmg}, null, "Nature Dmg");
+                log(State.t, "TICK", "Idol of Prop.", "Tick", { norm: pDmg, ecl: 0, crit: 0, total: pDmg }, null, "Nature Dmg");
             }
         }
         var gcdReady = State.t >= (State.gcdEnd - 0.001) && State.t >= (State.castEnd - 0.001);
@@ -900,10 +1031,10 @@ function runCoreSimulation(cfg) {
             var jump = Math.min(nextEvt, nextAct);
             if (jump > cfg.maxTime) jump = cfg.maxTime; if (jump >= 99990) break;
             var dt = jump - State.t;
-            if (dt > 0) { 
-                if (isNE()) RunStats.uptimeNE += Math.min(dt, State.neEnd - State.t); 
-                if (isAE()) RunStats.uptimeAE += Math.min(dt, State.aeEnd - State.t); 
-                if (State.t < State.dropletEnd) RunStats.uptimeDroplet += Math.min(dt, State.dropletEnd - State.t); 
+            if (dt > 0) {
+                if (isNE()) RunStats.uptimeNE += Math.min(dt, State.neEnd - State.t);
+                if (isAE()) RunStats.uptimeAE += Math.min(dt, State.aeEnd - State.t);
+                if (State.t < State.dropletEnd) RunStats.uptimeDroplet += Math.min(dt, State.dropletEnd - State.t);
                 if (State.t < State.scytheEnd) RunStats.uptimeScythe += Math.min(dt, State.scytheEnd - State.t);
                 if (State.t < State.sulfurasEnd) RunStats.uptimeSulfuras += Math.min(dt, State.sulfurasEnd - State.t);
                 if (State.t < State.enlightenedEnd) RunStats.uptimeSphere += Math.min(dt, State.enlightenedEnd - State.t);
@@ -933,7 +1064,7 @@ function runCoreSimulation(cfg) {
 
 // Seeded PRNG (Mulberry32)
 function mulberry32(a) {
-    return function() {
+    return function () {
         var t = a += 0x6D2B79F5;
         t = Math.imul(t ^ (t >>> 15), t | 1);
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -949,16 +1080,18 @@ function RNGHandler(seed) {
     }
 }
 
-RNGHandler.prototype.check = function(chance) {
+RNGHandler.prototype.check = function (chance) {
     if (chance <= 0) return false;
     if (chance >= 100) return true;
     return (this.rand() * 100) < chance;
 };
 
 // Returns true based on 0-1 probability
-RNGHandler.prototype.checkFloat = function(prob) {
+RNGHandler.prototype.checkFloat = function (prob) {
     if (prob <= 0) return false;
     if (prob >= 1.0) return true;
     return this.rand() < prob;
 };
+
+
 

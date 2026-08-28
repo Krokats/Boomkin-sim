@@ -2,31 +2,19 @@
 // IMPORT / EXPORT LOGIC
 // ============================================================================
 
-var CONFIG_VERSION = 2; // Version 2: Delta-Encoding aktiv!
+var CONFIG_VERSION = 2; 
 
 // Wörterbuch für die Standardwerte (alles was nicht hier steht, ist standardmäßig 0 oder "")
 var DEFAULT_CFG_VALUES = {
     "sim_patch": "1.18.1c",
-    "maxTime": 60,
-    "simCount": 10000,
+    "maxTime": 120,
+    "simCount": 1000,
     "calcMethod": "S",
     "stat_proc_nature": 60,
     "stat_proc_arcane": 40,
     "enemy_level": 63,
     "char_race": "Tauren"
 };
-
-var GEAR_SLOT_ORDER = [
-    "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet", 
-    "Finger 1", "Finger 2", "Trinket 1", "Trinket 2", "Main Hand", "Off Hand", "Relic"
-];
-
-var OP_MAP = [">", "<", ">=", "<=", "=="];
-var TARGET_MAP = [
-    "Moonfire", "Insect Swarm", "Nature Eclipse", "Arcane Eclipse", 
-    "Nature's Grace", "Arcane Solstice", "Natural Solstice", "Starfire", "Wrath"
-];
-
 
 function packConfig(cfg) {
     var packedValues = [];
