@@ -107,9 +107,13 @@ function getInputs() {
             interruptThresh: getVal("rota_interrupt_thresh")
         },
         custom_rotation: (typeof CUSTOM_ROTATION !== 'undefined') ? JSON.parse(JSON.stringify(CUSTOM_ROTATION)) : { steps: [] },
-        stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), hasteFactor: hasteMultVal, fortune: fortuneVal, baseHitProb: baseHit, int: parseFloat(document.getElementById("gp_int") ? document.getElementById("gp_int").innerText : "150") || 150 },
+        stats: { hit: finalHitChance, hitBonus: hitBonus, crit: getVal("statCrit"), haste: getVal("statHaste"), hasteFactor: hasteMultVal, fortune: fortuneVal, baseHitProb: baseHit, int: parseFloat(document.getElementById("gp_int") ? document.getElementById("gp_int").innerText : "150") || 150, 
+            maxMana: parseFloat(document.getElementById("statMana") ? document.getElementById("statMana").value : 0),
+            spirit: parseFloat(document.getElementById("statSpirit") ? document.getElementById("statSpirit").value : 0),
+            mp5: parseFloat(document.getElementById("statMP5") ? document.getElementById("statMP5").value : 0),
+        enableOOM: document.getElementById("sim_enable_oom") ? document.getElementById("sim_enable_oom").checked : true}, 
         power: { sp: getVal("sp_gen"), nat: getVal("sp_nature"), arc: getVal("sp_arcane"), pen: getVal("sp_pen") },
-        enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is") },
+        enemy: { resNat: getVal("res_nature"), resArc: getVal("res_arcane"), cos: getVal("enemy_cos"), level: lvl, extMF: getVal("enemy_ext_mf"), extIS: getVal("enemy_ext_is"), sow: getVal("enemy_sow") },
         gear: {
             t3_4p: getVal("t3_4p"), t3_6p: getVal("t3_6p"), t3_8p: getVal("t3_8p"), t35_3p: getVal("t35_3p"), t35_5p: getVal("t35_5p"), stag_5p: getVal("stag_5p"),
             idolEoF: getVal("idolEoF"), idolMoon: getVal("idolMoon"), idolProp: getVal("idolProp"), idolMoonfang: getVal("idolMoonfang"),
@@ -118,7 +122,9 @@ function getInputs() {
             sulfuras: getVal("item_sulfuras"), sigil: getVal("item_sigil"), chromie: getVal("item_chromie"), kelp: getVal("item_kelp"), sphere: getVal("item_sphere"),
             reos: getVal("item_reos"), toep: getVal("item_toep"), roop: getVal("item_roop"), zhc: getVal("item_zhc"), decay: getVal("item_decay"), droplet: getVal("item_droplet"), markali: getVal("item_markali")
         },
-        talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1 }
+        talents: { nEProc: valNE, aEProc: valAE, onCrit: false, neDuration: 15.0, aeDuration: 15.0, neICD: 30.0, aeICD: 30.0, boatReduc: getVal("t35_5p") ? 0.75 : 0.5, boatChance: 0.30, ooc: 1, boon: 1, 
+            reflection: (typeof TALENT_CONFIG !== 'undefined' ? TALENT_CONFIG.reflection : 0) || 0
+         }
     };
 }
 
@@ -257,7 +263,7 @@ function runCoreSimulation(cfg) {
     var cosMod = 1 + 0.1 * cfg.enemy.cos;
 
     // NEU: Max Mana für diese Iteration berechnen
-    var maxMana = 964 + (15 * (cfg.stats.int || 150));
+    var maxMana = cfg.stats.maxMana > 0 ? cfg.stats.maxMana : (964 + (15 * (cfg.stats.int || 150)));
 
     // 3. Kampf-Status & Stats (Nur für diesen EINEN Run)
     var State = {
@@ -272,11 +278,13 @@ function runCoreSimulation(cfg) {
         scytheEnd: 0.0, scytheCD: 0.0,
         nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
         makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, decayCD: 0.0, dropletCD: 0.0, markaliCD: 0.0,
-        ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0
+        ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0,
+        currentMana: maxMana, lastManaSpend: -9999, timeToOOM: null,
+        manaPotionCD: 0, runeCD: 0, innervateCD: 0, innervateEnd: 0
     };
 
     var RunStats = {
-        totalDmg: 0, totalMana: 0, stepCounts: {},
+        totalDmg: 0, totalMana: 0, stepCounts: {}, timeToOOM: null,
         dmgIS: 0, dmgMFDirect: 0, dmgMFTick: 0, dmgWrath: 0, dmgStarfire: 0,
         dmgT36p: 0, dmgIdol: 0, dmgT34p: 0, dmgScythe: 0, dmgSigil: 0, dmgDecay: 0, dmgMarkali: 0,
         casts: 0, misses: 0, hits: 0, dmgCrit: 0,
@@ -304,6 +312,8 @@ function runCoreSimulation(cfg) {
     };
 
     // 5. Helper Functions (Scope innerhalb runCoreSimulation)
+    // Start Mana Tick Loop
+    State.pendingImpacts.push({ t: 0.0, type: "MANA_TICK", data: {} });
     var isNE = function () { return State.t < State.neEnd; };
     var isAE = function () { return State.t < State.aeEnd; };
 
@@ -468,6 +478,14 @@ function runCoreSimulation(cfg) {
                 case 'last_cast':
                     isValid = (State.lastCastId === c.target);
                     break;
+                case 'mana_pct':
+                    left = (State.currentMana / maxMana) * 100;
+                    isValid = evaluateOp(left, c.op, right);
+                    break;
+                case 'mana_deficit':
+                    left = maxMana - State.currentMana;
+                    isValid = evaluateOp(left, c.op, right);
+                    break;
                 default:
                     isValid = true;
             }
@@ -542,23 +560,38 @@ function runCoreSimulation(cfg) {
     };
 
     var performCast = function (spell) {
-        var ct = spell.currentCastTime; // NEU! Zieht den Wert direkt aus dem Objekt
+        var ct = spell.currentCastTime; 
         State.casting = true;
         State.castStart = State.t;
         State.castEnd = State.t + ct + cfg.avcd;
         State.gcdEnd = State.t + 1.5 + cfg.avcd;
         if (spell.id === "Wrath") State.gcdEnd = State.t + 1 + cfg.avcd;
+        
         var cost = spell.cost;
         var note = "";
         if (State.ooc) { cost = 0; State.ooc = false; note = "OoC"; }
+        
+        // Mana abziehen
+        State.currentMana -= cost;
         RunStats.totalMana += cost;
+
+        // Innervate Special Logic
+        if (spell.id === "Innervate") {
+            State.innervateEnd = State.t + 20.0;
+            State.innervateCD = State.t + 360.0;
+            if (spell.stepId) RunStats.stepCounts[spell.stepId] = (RunStats.stepCounts[spell.stepId] || 0) + 1;
+            log(State.t, "CAST_START", "Innervate", "-", null, "0.00s", "+400% Regen for 20s", Math.floor(State.currentMana));
+            addEvt(State.t + ct, "CAST_FINISH", { spell: spell, snap: false, castTime: ct, costPaid: cost });
+            return;
+        }
 
         // 1.18.1c BoaT: Wrath returns Mana if IS is up (Self or External)
         var isISActive = (State.activeIS && State.activeIS.exp > State.t) || cfg.enemy.extIS;
         if (spell.id === "Wrath" && isISActive) {
-            var boatManaFactor = (TALENT_CONFIG.balanceOfAllThings || 0) * 0.10; // Neu
-            if (cfg.gear.t35_5p) boatManaFactor *= 1.5; // T3.5 Bonus -> 45%
+            var boatManaFactor = (TALENT_CONFIG.balanceOfAllThings || 0) * 0.10;
+            if (cfg.gear.t35_5p) boatManaFactor *= 1.5; 
             var returnAmt = cost * boatManaFactor;
+            State.currentMana += returnAmt; // Mana direkt gutschreiben!
             RunStats.totalMana -= returnAmt;
             note += (note ? " / " : "") + "BoaT: +" + Math.floor(returnAmt) + " Mana";
         }
@@ -567,21 +600,26 @@ function runCoreSimulation(cfg) {
         State.lastCastId = spell.id;
         RunStats.casts++;
         if (spell.stepId) RunStats.stepCounts[spell.stepId] = (RunStats.stepCounts[spell.stepId] || 0) + 1;
-        log(State.t, "CAST_START", spell.name, "-", null, ct.toFixed(2), note, cost);
+        log(State.t, "CAST_START", spell.name, "-", null, ct.toFixed(2), note, Math.floor(State.currentMana));
         if (State.ng && (spell.id === "Wrath" || spell.id === "Starfire")) State.ng = false;
         if (spell.id === "Wrath" || spell.id === "Starfire") State.fishingLastCast = spell.id;
 
-        // FIX: Variable definieren
         var eclActive = ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE()));
-
-        // FIX: 'ct' statt 'castTime' nutzen
-        addEvt(State.t + ct, "CAST_FINISH", { spell: spell, snap: eclActive, castTime: ct });
+        addEvt(State.t + ct, "CAST_FINISH", { spell: spell, snap: eclActive, castTime: ct, costPaid: cost });
     };
 
     var handleCastFinish = function (data) {
         var spell = data.spell;
         State.casting = false;
         State.currentSpellId = null;
+
+        // FSR Rule: Startet, sobald ein Cast abgeschlossen ist, der Mana gekostet hat
+        if (data.costPaid > 0) {
+            State.lastManaSpend = State.t;
+        }
+
+        // Innervate hat keinen Impact-Schaden, nach dem GCD ist es erledigt
+        if (spell.id === "Innervate") return;
 
         if (RunStats.spellStats[spell.id]) {
             RunStats.spellStats[spell.id].count++;
@@ -905,6 +943,13 @@ function runCoreSimulation(cfg) {
 
         var hitTxt = (cfg.mode === "D_AVG") ? "Hit" : (crit ? "CRIT" : "Hit");
         log(State.t, "IMPACT", spell.name, hitTxt, d, null, resData.txt);
+
+        // NEU: Seal of Wisdom Proc (50% Chance on direct spell impact)
+        if (cfg.enemy.sow && RNG.check(50, "sow")) {
+            State.currentMana = Math.min(maxMana, State.currentMana + 59);
+            RunStats.totalMana -= 59; // Vom Nettomanakonsum abziehen
+            log(State.t, "PROC", "Seal of Wisdom", "", null, null, "+59 Mana", Math.floor(State.currentMana));
+        }
     };
 
     var handleTick = function (payload) {
@@ -961,8 +1006,35 @@ function runCoreSimulation(cfg) {
         for (var i = 0; i < cfg.custom_rotation.steps.length; i++) {
             var step = cfg.custom_rotation.steps[i];
             if (step.disabled) continue;
-
             if (!checkCondition(step)) continue;
+
+            // NEU: Consumables & Off-GCD
+            if (step.skill === "ManaPotion") {
+                if (State.t >= State.manaPotionCD) {
+                    State.manaPotionCD = State.t + 120.0;
+                    var restore = 1350 + rngHandler.rand() * 900; // ~1350 bis 2250
+                    State.currentMana = Math.min(maxMana, State.currentMana + restore);
+                    if (step.id) RunStats.stepCounts[step.id] = (RunStats.stepCounts[step.id] || 0) + 1;
+                    log(State.t, "USE", "Major Mana Potion", "", null, null, "+" + Math.floor(restore) + " Mana", Math.floor(State.currentMana));
+                }
+                continue; // Sofort einsetzbar, suche direkt nächsten Cast
+            }
+            if (step.skill === "DemonicRune") {
+                if (State.t >= State.runeCD) {
+                    State.runeCD = State.t + 120.0;
+                    var restore = 900 + rngHandler.rand() * 600; // ~900 bis 1500
+                    State.currentMana = Math.min(maxMana, State.currentMana + restore);
+                    if (step.id) RunStats.stepCounts[step.id] = (RunStats.stepCounts[step.id] || 0) + 1;
+                    log(State.t, "USE", "Demonic Rune", "", null, null, "+" + Math.floor(restore) + " Mana", Math.floor(State.currentMana));
+                }
+                continue; 
+            }
+            if (step.skill === "Innervate") {
+                if (State.t >= State.innervateCD && (!cfg.stats.enableOOM || State.currentMana >= 85)) {
+                    return { id: "Innervate", name: "Innervate", currentCastTime: 0, cost: 85, isDot: false, flight: 0, type: "Nature", stepId: step.id };
+                }
+                continue;
+            }
 
             // Off-GCD / Items Evaluierung
             if (step.skill === "Trinket1" || step.skill === "Trinket2") {
@@ -986,6 +1058,13 @@ function runCoreSimulation(cfg) {
                 var spell = getDynamicSpellStats(step.skill, cfg, State);
                 if (spell.isDot && !allowDots) continue; 
                 
+                // NEU ANGEPASST: MANA CHECK (OOM-Skip) - Prüft jetzt enableOOM
+                var actualCost = State.ooc ? 0 : spell.cost;
+                if (cfg.stats.enableOOM && State.currentMana < actualCost) {
+                    if (State.timeToOOM === null) State.timeToOOM = State.t;
+                    continue; // Skip! Cast ist zu teuer
+                }
+
                 spell.stepId = step.id; 
                 return spell; 
             }
@@ -1030,12 +1109,51 @@ function runCoreSimulation(cfg) {
                 RunStats.dmgIdol += pDmg;
                 log(State.t, "TICK", "Idol of Prop.", "Tick", { norm: pDmg, ecl: 0, crit: 0, total: pDmg }, null, "Nature Dmg");
             }
+            else if (evt.type === "MANA_TICK") {
+                var regen_base = Math.floor(cfg.stats.spirit / 5) + 15;
+                var mp5_tick = cfg.stats.mp5 * 0.4;
+                var regen_total = 0;
+
+                if (State.t < State.innervateEnd) {
+                    // Innervate = 500% total regen & ignoriert FSR
+                    regen_total = (regen_base * 5.0) + mp5_tick;
+                } else if (State.t - State.lastManaSpend < 5.0) {
+                    // 5-Second-Rule ist aktiv -> Reflection (Talent) greift
+                    regen_total = (regen_base * (cfg.talents.reflection * 0.05)) + mp5_tick;
+                } else {
+                    // Normale Regeneration (FSR nicht aktiv)
+                    regen_total = regen_base + mp5_tick;
+                }
+
+                State.currentMana = Math.min(maxMana, State.currentMana + regen_total);
+                addEvt(State.t + 2.0, "MANA_TICK", {});
+            }
         }
         var gcdReady = State.t >= (State.gcdEnd - 0.001) && State.t >= (State.castEnd - 0.001);
         if (!State.casting && gcdReady && State.t < cfg.maxTime) {
             var spell = decideSpell();
-            if (spell) performCast(spell);
-            else { State.t += 0.1; }
+            if (spell) {
+                performCast(spell);
+            } else { 
+                // NEU: Smart Idle! Anstatt in 0.1s Schritten zu kriechen, 
+                // springen wir sofort zum nächsten Event, das uns Mana geben könnte.
+                var nextEvt = (State.pendingImpacts.length > 0) ? State.pendingImpacts[0].t : cfg.maxTime;
+                
+                // Prüfen, ob Potion, Rune oder Innervate VOR dem nächsten Event bereit werden
+                var nextCD = cfg.maxTime;
+                if (State.manaPotionCD > State.t && State.manaPotionCD < nextCD) nextCD = State.manaPotionCD;
+                if (State.runeCD > State.t && State.runeCD < nextCD) nextCD = State.runeCD;
+                if (State.innervateCD > State.t && State.innervateCD < nextCD) nextCD = State.innervateCD;
+                
+                var jumpTo = Math.min(nextEvt, nextCD);
+                
+                // Springe zur neuen Zeit. Fallback 0.1s, falls sich Zeiten zu stark überlappen.
+                if (jumpTo <= State.t + 0.001) {
+                    State.t += 0.1; 
+                } else {
+                    State.t = jumpTo;
+                }
+            }
         } else {
             var nextEvt = (State.pendingImpacts.length > 0) ? State.pendingImpacts[0].t : 99999;
             var playerReady = (State.gcdEnd > State.castEnd) ? State.gcdEnd : State.castEnd;
@@ -1067,6 +1185,7 @@ function runCoreSimulation(cfg) {
     }
 
     // 7. Return Result
+    RunStats.timeToOOM = State.timeToOOM;
     return {
         stats: RunStats,
         totalDmg: RunStats.totalDmg,

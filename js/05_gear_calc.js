@@ -260,6 +260,8 @@ function calculateGearStats() {
         crit: baseStats.crit,
         hit: baseStats.hit + (TALENT_CONFIG.naturalWeapons || 0),
         int: baseStats.int,
+        spirit: baseStats.spirit || 100, // NEU (100 als Fallback)
+        mp5: 0,
         haste: baseStats.haste, // Additiv für UI
         hasteMult: 1.0 + (baseStats.haste / 100), // Multiplikativ für Engine
         fortune: 0
@@ -319,7 +321,9 @@ function calculateGearStats() {
             var item = ITEM_ID_MAP[id] || ITEM_DB.find(i => i.id == id); // Use Map
             if (item) {
                 var intVal = (item.intellect || 0);
+                var spiritVal = (item.spirit || 0);
                 var e = item.effects || {};
+                var mp5Val = (e.mp5 || 0);
                 var spVal = (e.spellPower || 0);
                 var spArc = (e.arcaneSpellPower || 0);
                 var spNat = (e.natureSpellPower || 0);
@@ -327,9 +331,12 @@ function calculateGearStats() {
                 var hitVal = (e.spellHit || 0);
                 var hasteVal = (e.spellHaste || 0);
                 var fortuneVal = (e.fortune || 0);
+                
 
                 // Add to Character (Total)
                 charStats.int += intVal;
+                charStats.spirit += spiritVal;
+                charStats.mp5 += mp5Val;
                 charStats.sp += spVal;
                 charStats.spArc += spArc;
                 charStats.spNat += spNat;
@@ -441,7 +448,9 @@ function calculateGearStats() {
                 var critVal = (ench.effects.spellCrit || 0);
                 var hitVal = (ench.effects.spellHit || 0);
                 var hasteVal = (ench.effects.spellHaste || 0);
-                var fortuneVal = (ench.effects.fortune || 0)
+                var fortuneVal = (ench.effects.fortune || 0);
+                var spiritVal = (ench.effects.spirit || 0); // NEU
+                var mp5Val = (ench.effects.mp5 || 0);
 
                 // Add to Character (Total) - YES
                 charStats.int += intVal;
@@ -452,6 +461,8 @@ function calculateGearStats() {
                 charStats.hit += hitVal;
                 charStats.haste += hasteVal;
                 charStats.fortune += fortuneVal;
+                charStats.spirit += spiritVal; // NEU
+                charStats.mp5 += mp5Val;
                 if (hasteVal) charStats.hasteMult *= (1 + (hasteVal / 100));
             }
         }
@@ -475,6 +486,8 @@ function calculateGearStats() {
                     var hitVal = (bonus.spellHit || 0);
                     var hasteVal = (bonus.spellHaste || 0);
                     var fortuneVal = (bonus.fortune || 0);
+                    var spiritVal = (ench.effects.spirit || 0); // NEU
+                    var mp5Val = (ench.effects.mp5 || 0);
 
                     // Add to Character (Total)
                     charStats.sp += spVal;
@@ -484,6 +497,8 @@ function calculateGearStats() {
                     charStats.hit += hitVal;
                     charStats.haste += hasteVal;
                     charStats.fortune += fortuneVal;
+                    charStats.spirit += spiritVal; // NEU
+                    charStats.mp5 += mp5Val;
                     if (hasteVal) charStats.hasteMult *= (1 + (hasteVal / 100));
 
                     // Add to Gear Only (GS) - Sets usually count as Gear Power
@@ -492,6 +507,8 @@ function calculateGearStats() {
                     gearOnlyStats.hit += hitVal;
                     gearOnlyStats.haste += hasteVal;
                     gearOnlyStats.fortune += fortuneVal;
+                    gearOnlyStats.spirit += spiritVal; // NEU
+                    gearOnlyStats.mp5 += mp5Val;
                     if (hasteVal) gearOnlyStats.hasteMult *= (1 + (hasteVal / 100));
                 }
             });
@@ -507,6 +524,7 @@ function calculateGearStats() {
     var buffCrit = 0;
     var buffHit = 0;
     var buffHasteMult = 1.0;
+    var buffSpirit = 0; // NEU
 
     // Auras
     if (getVal("buff_atiesh_warlock")) buffSP += 33;
@@ -514,8 +532,12 @@ function calculateGearStats() {
     // Buffs
     if (getVal("buff_arcane_brilliance")) buffInt += 31;
     if (getVal("buff_gotw")) {
-        buffInt += Math.floor(12 * (1 + ((TALENT_CONFIG.impMarkOfTheWild || 0) * 0.07)));
+        var gotw = Math.floor(12 * (1 + ((TALENT_CONFIG.impMarkOfTheWild || 0) * 0.07)));
+        buffInt += gotw;
+        buffSpirit += gotw; // NEU (MdW gibt auch Willenskraft)
     }
+    if (getVal("buff_bow")) buffMP5 += 33;
+    if (getVal("buff_mst")) buffMP5 += 25;
 
     // Food
     if (getVal("buff_food_sp")) buffSP += 22;
@@ -537,6 +559,7 @@ function calculateGearStats() {
 
     // ADD FLAT BUFFS TO TOTAL
     charStats.int += buffInt;
+    charStats.spirit += buffSpirit;
     charStats.sp += buffSP;
     charStats.spArc += buffSPArc;
     charStats.spNat += buffSPNat;
@@ -544,6 +567,7 @@ function calculateGearStats() {
     // 2. APPLY MULTIPLIERS (BoK)
     if (getVal("buff_bok")) {
         charStats.int = Math.floor(charStats.int * 1.10);
+        charStats.spirit = Math.floor(charStats.spirit * 1.10);
     }
 
     // 3. DERIVE CRIT FROM INT
@@ -641,9 +665,10 @@ function calculateGearStats() {
         elInt.style.fontSize = "0.85rem"; // Schriftgröße etwas reduzieren, damit der Text in die Box passt
     }
 
-    // Update Main Simulation Inputs (TOTAL STATS - SPLIT)
     var inMana = document.getElementById("statMana"); if (inMana) { inMana.value = maxMana; inMana.dispatchEvent(new Event('change')); }
-    
+    // NEU: Sync
+    var inSpirit = document.getElementById("statSpirit"); if (inSpirit) { inSpirit.value = charStats.spirit; inSpirit.dispatchEvent(new Event('change')); }
+    var inMP5 = document.getElementById("statMP5"); if (inMP5) { inMP5.value = charStats.mp5; inMP5.dispatchEvent(new Event('change')); }
     var inSP = document.getElementById("sp_gen"); if (inSP) { inSP.value = charStats.sp; inSP.dispatchEvent(new Event('change')); }
     var inSPNat = document.getElementById("sp_nature"); if (inSPNat) { inSPNat.value = charStats.spNat; inSPNat.dispatchEvent(new Event('change')); }
     var inSPArc = document.getElementById("sp_arcane"); if (inSPArc) { inSPArc.value = charStats.spArc; inSPArc.dispatchEvent(new Event('change')); }

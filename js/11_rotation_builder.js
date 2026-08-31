@@ -13,7 +13,10 @@ var ROTATION_SKILLS = [
     { id: "Moonfire", name: "Moonfire", icon: "spell_nature_starfall" },
     { id: "InsectSwarm", name: "Insect Swarm", icon: "spell_nature_insectswarm" },
     { id: "Trinket1", name: "Use Trinket 1", icon: "inv_jewelry_trinket_04" },
-    { id: "Trinket2", name: "Use Trinket 2", icon: "inv_jewelry_trinket_04" }
+    { id: "Trinket2", name: "Use Trinket 2", icon: "inv_jewelry_trinket_0" },
+    { id: "Innervate", name: "Innervate", icon: "spell_nature_lightning" },
+    { id: "ManaPotion", name: "Major Mana Potion", icon: "inv_potion_76" },
+    { id: "DemonicRune", name: "Demonic Rune", icon: "inv_misc_rune_04" }
 ];
 
 var CONDITION_TYPES = [
@@ -23,7 +26,9 @@ var CONDITION_TYPES = [
     { id: "time_elapsed", label: "Time Elapsed (s)", hasOp: true, hasVal: true },
     { id: "time_remaining", label: "Time Remaining (s)", hasOp: true, hasVal: true },
     { id: "ecl_vs_cast", label: "Eclipse Rem. > Cast Time", hasTarget: ["Starfire", "Wrath"], hasBool: true },
-    { id: "last_cast", label: "Last Cast was", hasTarget: ["Starfire", "Wrath"] }
+    { id: "last_cast", label: "Last Cast was", hasTarget: ["Starfire", "Wrath"] },
+    { id: "mana_pct", label: "Player Mana %", hasOp: true, hasVal: true },
+    { id: "mana_deficit", label: "Player Mana Deficit", hasOp: true, hasVal: true }
 ];
 
 var PRESET_ROTATIONS = {
@@ -810,7 +815,10 @@ function generateAutoDescription() {
                 
             case "last_cast":
                 return "the last cast was " + target;
-                
+            case "mana_pct":
+                return "your Mana is " + op + " " + val + "%";
+            case "mana_deficit":
+                return "your missing Mana is " + op + " " + val;
             default:
                 return "a specific condition is met";
         }

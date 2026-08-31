@@ -62,6 +62,17 @@ async function runSimulation() {
                 setText("viewMedian", "Median (" + aggregated.median.dps.toFixed(1) + ")");
                 setText("viewP5", "5% DPS (" + aggregated.p5.dps.toFixed(1) + ")");
                 setText("viewP95", "95% DPS (" + aggregated.p95.dps.toFixed(1) + ")");
+
+                var oomEl = document.getElementById("out_time_to_oom");
+                if (oomEl) {
+                    if (aggregated.timeToOOM !== null) {
+                        oomEl.innerText = aggregated.timeToOOM.toFixed(1) + "s";
+                        oomEl.style.color = "#f44336"; // Rot, da OOM gegangen
+                    } else {
+                        oomEl.innerText = "Never";
+                        oomEl.style.color = "#a5d6a7"; // Grün, genug Mana
+                    }
+                }
                 
                 switchView(CURRENT_VIEW);
                 var btnW = document.getElementById("btnWeights");
@@ -152,18 +163,28 @@ function aggregateResults(results, cfg) {
     
     var n = results.length;
     var totalDmg = 0;
-    
     var dpsDistribution = [];
     
-    // Pass 1: Alle Werte sammeln für Verteilung und Durchschnitt (für den Variationskoeffizienten)
+    // NEU: Time to OOM Average sammeln
+    var totalTimeToOOM = 0;
+    var oomCount = 0;
+    
+    // Pass 1: Alle Werte sammeln 
     for (var i = 0; i < n; i++) {
         var r = results[i];
         var d = r.totalDmg; 
         var currentDPS = d / cfg.maxTime;
         
+        if (r.stats.timeToOOM !== null) {
+             totalTimeToOOM += r.stats.timeToOOM;
+             oomCount++;
+        }
+        
         dpsDistribution.push(currentDPS);
         totalDmg += d;
     }
+    
+    var avgTimeToOOM = oomCount > 0 ? (totalTimeToOOM / oomCount) : null;
 
     var avgDpsVal = (totalDmg / n) / cfg.maxTime;
 
@@ -204,7 +225,8 @@ function aggregateResults(results, cfg) {
         p95: { stats: p95Run.stats, dps: p95Run.totalDmg / cfg.maxTime, log: p95Run.log },
         seed: { stats: results[0].stats, dps: results[0].totalDmg / cfg.maxTime, log: results[0].log },
         dpsDistribution: dpsDistribution,
-        varianceCV: cv
+        varianceCV: cv,
+        timeToOOM: avgTimeToOOM
     };
 }
 
