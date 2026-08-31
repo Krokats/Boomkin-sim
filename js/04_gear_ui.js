@@ -200,6 +200,21 @@ function showTooltip(e, item) {
         }
     }
 
+    // ---> NEU: Source Info anzeigen <---
+    if (item.sources && item.sources.length > 0) {
+        html += '<div class="tt-spacer"></div>';
+        html += '<div class="tt-white" style="color: #00ccff;">Sources:</div>';
+        
+        item.sources.forEach(function(src) {
+            var srcText = "";
+            if (src.category) srcText += src.category;
+            if (src.subCategory) srcText += (srcText ? " > " : "") + src.subCategory;
+            if (src.detail) srcText += (srcText ? " > " : "") + src.detail;
+            
+            html += '<div class="tt-white" style="margin-left:10px; color: #88ccff;">' + srcText + '</div>';
+        });
+    }
+
     tt.innerHTML = html;
     moveTooltip(e);
 }
@@ -297,20 +312,48 @@ function renderItemList(filterText) {
     if(slotKey === "Idol") slotKey = "Relic";
 
     var relevantItems = ITEM_DB.filter(function (i) {
+        // --- 1. SLOT LOGIK ---
+        let slotMatches = false;
         if (CURRENT_SELECTING_SLOT === "Main Hand") {
             var s = i.slot.toLowerCase().replace(/[\s-]/g, "");
-            if (s !== "mainhand" && s !== "onehand" && s !== "twohand") return false;
-
-            return i.weaponType;
+            if (s === "mainhand" || s === "onehand" || s === "twohand") {
+                slotMatches = !!i.weaponType;
+            }
+        } else if (CURRENT_SELECTING_SLOT === "Finger 1") {
+            slotMatches = (i.slot === slotKey && GEAR_SELECTION["Finger 2"] != i.id);
+        } else if (CURRENT_SELECTING_SLOT === "Finger 2") {
+            slotMatches = (i.slot === slotKey && GEAR_SELECTION["Finger 1"] != i.id);
+        } else if (CURRENT_SELECTING_SLOT === "Trinket 1") {
+            slotMatches = (i.slot === slotKey && GEAR_SELECTION["Trinket 2"] != i.id);
+        } else if (CURRENT_SELECTING_SLOT === "Trinket 2") {
+            slotMatches = (i.slot === slotKey && GEAR_SELECTION["Trinket 1"] != i.id);
+        } else if (CURRENT_SELECTING_SLOT === "Off Hand") {
+            slotMatches = (i.slot === "Held In Off-Hand");
+        } else {
+            slotMatches = (i.slot === slotKey);
         }
 
-        if (CURRENT_SELECTING_SLOT === "Finger 1" && GEAR_SELECTION["Finger 2"] == i.id) return false;
-        if (CURRENT_SELECTING_SLOT === "Finger 2" && GEAR_SELECTION["Finger 1"] == i.id) return false;
-        if (CURRENT_SELECTING_SLOT === "Trinket 1" && GEAR_SELECTION["Trinket 2"] == i.id) return false;
-        if (CURRENT_SELECTING_SLOT === "Trinket 2" && GEAR_SELECTION["Trinket 1"] == i.id) return false;
+        if (!slotMatches) return false;
 
-        if (CURRENT_SELECTING_SLOT === "Off Hand") return (i.slot === "Held In Off-Hand");
-        return i.slot === slotKey;
+        // --- 2. SOURCE FILTER LOGIK ---
+        let isSourceEnabled = false;
+        if (!i.sources || i.sources.length === 0) {
+            isSourceEnabled = WORLD_DROPS_ENABLED;
+        } else {
+            // Checkt, ob mindestens EINE Quelle des Items im Filter aktiv ist
+            isSourceEnabled = i.sources.some(function(src) {
+                let cat = src.category || "Unknown";
+                let sub = src.subCategory || "Unknown";
+                let det = src.detail || "";
+                
+                if (SOURCE_TREE[cat] && SOURCE_TREE[cat][sub] && SOURCE_TREE[cat][sub][det] !== undefined) {
+                    return SOURCE_TREE[cat][sub][det] === true;
+                }
+                return true;
+            });
+        }
+
+        return isSourceEnabled;
     });
 
     // Calculate Score with Context (Slot Name) for Set Bonuses
@@ -498,3 +541,236 @@ function selectEnchant(enchId) {
     initGearPlannerUI();
     saveCurrentState(); // Fix: Instant Save
 }
+
+// ============================================================================
+// SOURCE FILTER LOGIC (Global Multi-Level Menu)
+// ============================================================================
+var SOURCE_TREE = {};
+var WORLD_DROPS_ENABLED = true;
+
+function initSourceTree() {
+    SOURCE_TREE = {};
+    WORLD_DROPS_ENABLED = true;
+
+    ITEM_DB.forEach(item => {
+        if (!item.sources || item.sources.length === 0) {
+            // World drop
+        } else {
+            item.sources.forEach(src => {
+                let cat = src.category || "Unknown";
+                let sub = src.subCategory || "Unknown";
+                let det = src.detail || ""; 
+
+                if (!SOURCE_TREE[cat]) SOURCE_TREE[cat] = {};
+                if (!SOURCE_TREE[cat][sub]) SOURCE_TREE[cat][sub] = {};
+                if (SOURCE_TREE[cat][sub][det] === undefined) {
+                    SOURCE_TREE[cat][sub][det] = true; // Default: Alles ist anwählbar
+                }
+            });
+        }
+    });
+    // Menü nur noch EINMAL bauen, statt bei jedem Klick!
+    buildSourceMenuDOM(); 
+}
+
+function buildSourceMenuDOM() {
+    var root = document.getElementById("sourceMenuRoot");
+    if (!root) return;
+    root.innerHTML = "";
+
+    // 1. Checkbox für World Drops
+    root.appendChild(createMenuItem("World Drops / Other", WORLD_DROPS_ENABLED, "world", null, null, null, false));
+
+    // 2. Checkboxen für dynamische Kategorien
+    Object.keys(SOURCE_TREE).sort().forEach(cat => {
+        let catNode = createMenuItem(cat, isCategoryChecked(cat), "cat", cat, null, null, true);
+
+        let subMenu = document.createElement("ul");
+        subMenu.className = "submenu";
+
+        Object.keys(SOURCE_TREE[cat]).sort().forEach(sub => {
+            let subNode = createMenuItem(sub, isSubCategoryChecked(cat, sub), "sub", cat, sub, null, true);
+
+            let detMenu = document.createElement("ul");
+            detMenu.className = "submenu";
+
+            Object.keys(SOURCE_TREE[cat][sub]).sort().forEach(det => {
+                let label = det === "" ? "General / None" : det;
+                let detNode = createMenuItem(label, SOURCE_TREE[cat][sub][det], "det", cat, sub, det, false);
+                detMenu.appendChild(detNode);
+            });
+
+            subNode.appendChild(detMenu);
+            subMenu.appendChild(subNode);
+        });
+
+        catNode.appendChild(subMenu);
+        root.appendChild(catNode);
+    });
+}
+
+function createMenuItem(label, isChecked, type, cat, sub, det, hasSubmenu) {
+    let li = document.createElement("li");
+    if (hasSubmenu) li.className = "has-submenu";
+
+    let cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "source-checkbox";
+    cb.checked = isChecked;
+    
+    // Wir speichern die Art der Checkbox als Daten-Attribut im Element
+    cb.dataset.type = type;
+    if (cat !== null) cb.dataset.cat = cat;
+    if (sub !== null) cb.dataset.sub = sub;
+    if (det !== null) cb.dataset.det = det;
+
+    cb.onclick = function(e) { e.stopPropagation(); }; 
+    cb.onchange = function(e) {
+        handleSourceChange(type, cat, sub, det, e.target.checked);
+    };
+
+    let span = document.createElement("span");
+    span.innerText = label;
+
+    li.onclick = function(e) {
+        if (e.target !== cb) {
+            e.stopPropagation();
+            cb.checked = !cb.checked;
+            handleSourceChange(type, cat, sub, det, cb.checked);
+        }
+    };
+
+    li.appendChild(cb);
+    li.appendChild(span);
+    return li;
+}
+
+function handleSourceChange(type, cat, sub, det, isChecked) {
+    // 1. Daten im Hintergrund updaten
+    if (type === "world") {
+        WORLD_DROPS_ENABLED = isChecked;
+    } else if (type === "cat") {
+        setCategory(cat, isChecked);
+    } else if (type === "sub") {
+        setSubCategory(cat, sub, isChecked);
+    } else if (type === "det") {
+        SOURCE_TREE[cat][sub][det] = isChecked;
+    }
+
+    // 2. Optische Darstellung (Haken) live anpassen OHNE das HTML zu löschen
+    syncCheckboxesUI();
+    
+    // 3. Item Liste neu filtern, falls das Modal offen ist
+    updateItemListsIfOpen();
+}
+
+function syncCheckboxesUI() {
+    let checkboxes = document.querySelectorAll(".source-checkbox");
+    checkboxes.forEach(cb => {
+        let type = cb.dataset.type;
+        let cat = cb.dataset.cat;
+        let sub = cb.dataset.sub;
+        let det = cb.dataset.det;
+
+        // Reset the indeterminate state before re-evaluating
+        cb.indeterminate = false;
+
+        if (type === "world") {
+            cb.checked = WORLD_DROPS_ENABLED;
+        } else if (type === "cat") {
+            let checkedState = getCategoryCheckState(cat);
+            cb.checked = checkedState.checked;
+            cb.indeterminate = checkedState.indeterminate;
+        } else if (type === "sub") {
+            let checkedState = getSubCategoryCheckState(cat, sub);
+            cb.checked = checkedState.checked;
+            cb.indeterminate = checkedState.indeterminate;
+        } else if (type === "det") {
+            cb.checked = SOURCE_TREE[cat][sub][det];
+        }
+    });
+}
+
+// --- NEUE HELPER FUNKTIONEN FÜR INDETERMINATE STATUS ---
+
+// Returnt ein Objekt: { checked: boolean, indeterminate: boolean }
+function getCategoryCheckState(cat) {
+    let totalSubs = 0;
+    let checkedSubs = 0;
+    let hasIndeterminateSub = false;
+
+    for (let sub in SOURCE_TREE[cat]) {
+        totalSubs++;
+        let subState = getSubCategoryCheckState(cat, sub);
+        if (subState.checked) checkedSubs++;
+        if (subState.indeterminate) hasIndeterminateSub = true;
+    }
+
+    if (totalSubs === 0) return { checked: false, indeterminate: false };
+
+    if (checkedSubs === totalSubs && !hasIndeterminateSub) {
+        return { checked: true, indeterminate: false }; // Alle an
+    } else if (checkedSubs === 0 && !hasIndeterminateSub) {
+        return { checked: false, indeterminate: false }; // Alle aus
+    } else {
+        return { checked: false, indeterminate: true }; // Teilweise
+    }
+}
+
+function getSubCategoryCheckState(cat, sub) {
+    let totalDets = 0;
+    let checkedDets = 0;
+
+    for (let det in SOURCE_TREE[cat][sub]) {
+        totalDets++;
+        if (SOURCE_TREE[cat][sub][det]) checkedDets++;
+    }
+
+    if (totalDets === 0) return { checked: false, indeterminate: false };
+
+    if (checkedDets === totalDets) {
+        return { checked: true, indeterminate: false }; // Alle an
+    } else if (checkedDets === 0) {
+        return { checked: false, indeterminate: false }; // Alle aus
+    } else {
+        return { checked: false, indeterminate: true }; // Teilweise
+    }
+}
+
+// Wir ersetzen auch die alten isCategoryChecked / isSubCategoryChecked, 
+// damit handleSourceChange sauber arbeitet.
+function isCategoryChecked(cat) {
+    return getCategoryCheckState(cat).checked;
+}
+function isSubCategoryChecked(cat, sub) {
+    return getSubCategoryCheckState(cat, sub).checked;
+}
+
+function setCategory(cat, val) {
+    for (let sub in SOURCE_TREE[cat]) setSubCategory(cat, sub, val);
+}
+function setSubCategory(cat, sub, val) {
+    for (let det in SOURCE_TREE[cat][sub]) SOURCE_TREE[cat][sub][det] = val;
+}
+function updateItemListsIfOpen() {
+    var modal = document.getElementById("itemSelectorModal");
+    if (modal && !modal.classList.contains("hidden")) {
+        filterItemList();
+    }
+}
+
+function toggleSourceMenu(e) {
+    if(e) e.stopPropagation();
+    var menu = document.getElementById("sourceMenuRoot");
+    menu.style.display = (menu.style.display === "none" || menu.style.display === "") ? "block" : "none";
+}
+
+document.addEventListener("click", function(e) {
+    var menu = document.getElementById("sourceMenuRoot");
+    var btn = document.getElementById("sourceMenuBtn");
+    if (menu && menu.style.display === "block") {
+        if (!menu.contains(e.target) && e.target !== btn) {
+            menu.style.display = "none";
+        }
+    }
+});

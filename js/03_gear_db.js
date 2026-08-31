@@ -29,6 +29,32 @@ async function loadDatabase() {
             .filter(line => line.trim() !== '') // Leere Zeilen (z.B. am Ende der Datei) ignorieren
             .map(line => JSON.parse(line)); // Jede einzelne Zeile als JSON parsen
 
+        // ---> NEU: Dynamische Trennung von Instances und Raids <---
+        const raidList = [
+            "Blackwing Lair", 
+            "Emerald Sanctum", 
+            "Lower Karazhan Halls", 
+            "Molten Core", 
+            "Naxxramas",
+            "Onyxia's Lair", 
+            "Ruins of Ahn'Qiraj", 
+            "Temple of Ahn'Qiraj", 
+            "Timbermaw Hold", 
+            "Upper Karazhan Halls", 
+            "Zul'Gurub"
+        ];
+
+        items.forEach(item => {
+            if (item.sources) {
+                item.sources.forEach(src => {
+                    // Wenn es als Instance deklariert ist, aber in der Raid-Liste steht -> Kategorie ändern
+                    if (src.category === "Instances" && raidList.includes(src.subCategory)) {
+                        src.category = "Raids";
+                    }
+                });
+            }
+        });
+
         const enchantsText = await rEnchants.text();
         const enchants = enchantsText
             .split(/\r?\n/) // Berücksichtigt Windows (\r\n) und Linux (\n) Zeilenumbrüche
@@ -48,6 +74,10 @@ async function loadDatabase() {
         ITEM_ID_MAP = {};
         ITEM_DB.forEach(i => { ITEM_ID_MAP[i.id] = i; });
         ENCHANT_DB = enchants;
+
+        // ---> NEU: Dynamische Baumstruktur für den globalen Quellen-Filter erstellen
+        if (typeof initSourceTree === "function") initSourceTree();
+        // <---
 
         initGearPlannerUI();
         var statusEl = document.getElementById("dbStatus");
