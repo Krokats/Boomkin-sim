@@ -276,7 +276,7 @@ function runCoreSimulation(cfg) {
         toepEnd: 0.0, toepCD: 0.0, roopEnd: 0.0, roopCD: 0.0,
         zhcEnd: 0.0, zhcCD: 0.0, zhcVal: 0,
         scytheEnd: 0.0, scytheCD: 0.0,
-        nobilityEnd: 0.0, thaneActive: false, sulfurasEnd: 0.0, chromieEnd: 0.0,
+        nobilityEnd: 0.0, thaneEnd: 0.0, sulfurasEnd: 0.0, chromieEnd: 0.0,
         makaruStacks: 0, enlightenedEnd: 0.0, sphereCD: 0.0, decayCD: 0.0, dropletCD: 0.0, markaliCD: 0.0,
         ooc: false, boon: 0, acidityEnd: 0.0, stagCritBonus: 0,
         currentMana: maxMana, lastManaSpend: -9999, timeToOOM: null,
@@ -327,6 +327,7 @@ function runCoreSimulation(cfg) {
         if (State.t < State.roopEnd) val += 55;
         if (State.t < State.zhcEnd && State.zhcVal > 0) val += State.zhcVal;
         if (State.t < State.dropletEnd) val += 80;
+        if (State.t < State.thaneEnd) val += 48; // NEU: High Thane Buff
         return val;
     };
 
@@ -496,9 +497,10 @@ function runCoreSimulation(cfg) {
 
 
     // Calculate Damage
-    var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData, extraSP) { 
+    var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData, snapSP) { 
         var useEcl = (forceSnap !== undefined) ? forceSnap : ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE())); 
-        var currentSP = getCurrentSP(spell.type) + (extraSP || 0);
+        // Wenn snapSP übergeben wurde, nutze diesen (DoT Snapshot), ansonsten ziehe live SP
+        var currentSP = (snapSP !== undefined && snapSP !== null) ? snapSP : getCurrentSP(spell.type);
         
         var baseDmg = spell.base;
         if (!isTick && spell.min !== undefined && spell.max !== undefined) {
@@ -704,8 +706,9 @@ function runCoreSimulation(cfg) {
 
         if (spell.isDot) {
             State.dotCounter++;
-            // thaneSP zum DoT-Objekt hinzufügen
-            var dot = { id: State.dotCounter, spell: spell, next: State.t + spell.tick, exp: State.t + spell.dur, snap: eclActive, tickCount: 0, thaneSP: thaneBonusSP };
+            // SP im Moment des Casts snapshotten (inklusive High Thane falls aktiv)
+            var currentSnapSP = getCurrentSP(spell.type); 
+            var dot = { id: State.dotCounter, spell: spell, next: State.t + spell.tick, exp: State.t + spell.dur, snap: eclActive, tickCount: 0, snapSP: currentSnapSP };
 
             if (spell.id === "Moonfire") {
                 State.activeMF = dot;
@@ -725,12 +728,12 @@ function runCoreSimulation(cfg) {
         }
     };
 
-    var handleImpact = function (spell, crit, snap, thaneSP) {
+    var handleImpact = function (spell, crit, snap) {
         var resData;
         if (cfg.mode === "D_AVG") resData = { val: 1.0, txt: "" };
         else resData = getResist(spell.type);
 
-        var d = calculateDamageFull(spell, false, snap, crit, resData, thaneSP);
+        var d = calculateDamageFull(spell, false, snap, crit, resData);
 
         // Droplet Proc on Partial Resist
         if (cfg.gear.droplet && resData.val < 1.0) {
@@ -739,6 +742,13 @@ function runCoreSimulation(cfg) {
                 State.dropletCD = State.t + 4.0;
                 log(State.t, "PROC", "Nordrassil's Reprieve", "", null, null, "+80 SP, +3% Hit (Partial Resist)");
             }
+        }
+
+        // NEU: High Thane Consume
+        // Nur direkte Zauber (Wrath, Starfire, Initial Moonfire) entfernen den Buff beim Einschlag
+        if (State.t < State.thaneEnd && (spell.id === "Wrath" || spell.id === "Starfire" || spell.id === "Moonfire")) {
+            State.thaneEnd = 0.0;
+            log(State.t, "BUFF", "High Thane", "Consume", null, null, "Consumed by " + spell.name);
         }
 
         if (RunStats.spellStats[spell.id]) {
@@ -836,7 +846,7 @@ function runCoreSimulation(cfg) {
         // Idol of Equilibrium Proc - Wrath -> Insect Swarm
         if (spell.id === "Wrath" && cfg.gear.idolEquilibrium && State.activeIS && State.activeIS.exp > State.t && RNG.check(8, "procEquilWrath")) {
             var dot = State.activeIS;
-            var dIS = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.thaneSP);
+            var dIS = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.snapSP);
             RunStats.totalDmg += dIS.total;
             RunStats.dmgT36p += dIS.t3Part;
             RunStats.dmgIS += dIS.total;
@@ -851,7 +861,7 @@ function runCoreSimulation(cfg) {
         // Idol of Equilibrium Proc - Starfire -> Moonfire
         if (spell.id === "Starfire" && cfg.gear.idolEquilibrium && State.activeMF && State.activeMF.exp > State.t && RNG.check(15 * fortuneMult, "procEquilSF")) {
             var dot = State.activeMF;
-            var dMF = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.thaneSP);
+            var dMF = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.snapSP);
              RunStats.totalDmg += dMF.total;
             RunStats.dmgT36p += dMF.t3Part;
             RunStats.dmgMFTick += dMF.total;
@@ -893,8 +903,8 @@ function runCoreSimulation(cfg) {
                 log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG");
             }
             if (cfg.gear.thane) {
-                State.thaneActive = true;
-                log(State.t, "PROC", "High Thane", "", null, null, "Crit -> +48 Dmg on next Spell");
+                State.thaneEnd = State.t + 6.0;
+                log(State.t, "PROC", "High Thane", "", null, null, "Crit -> +48 SP (6s)");
             }
         }
 
@@ -952,7 +962,8 @@ function runCoreSimulation(cfg) {
         if (!dot || payload.dotId !== dot.id || State.t > dot.exp + 0.01) return;
 
         dot.tickCount++;
-        var d = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.thaneSP);
+        var d = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.snapSP);
+
         RunStats.totalDmg += d.total;
         RunStats.dmgT36p += d.t3Part;
 
