@@ -525,6 +525,7 @@ function calculateGearStats() {
     var buffHit = 0;
     var buffHasteMult = 1.0;
     var buffSpirit = 0; // NEU
+    var buffMP5 = 0;
 
     // Auras
     if (getVal("buff_atiesh_warlock")) buffSP += 33;
