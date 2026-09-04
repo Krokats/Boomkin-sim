@@ -496,9 +496,9 @@ function runCoreSimulation(cfg) {
 
 
     // Calculate Damage
-    var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData) { 
+    var calculateDamageFull = function (spell, isTick, forceSnap, isCrit, resistData, extraSP) { 
         var useEcl = (forceSnap !== undefined) ? forceSnap : ((spell.type === "Nature" && isNE()) || (spell.type === "Arcane" && isAE())); 
-        var currentSP = getCurrentSP(spell.type); 
+        var currentSP = getCurrentSP(spell.type) + (extraSP || 0);
         
         var baseDmg = spell.base;
         if (!isTick && spell.min !== undefined && spell.max !== undefined) {
@@ -621,6 +621,14 @@ function runCoreSimulation(cfg) {
         // Innervate hat keinen Impact-Schaden, nach dem GCD ist es erledigt
         if (spell.id === "Innervate") return;
 
+        // --- NEU: High Thane Buff Consume & Snapshot ---
+        var thaneBonusSP = 0;
+        if (State.thaneActive && (spell.id === "Wrath" || spell.id === "Starfire" || spell.id === "Moonfire" || spell.id === "InsectSwarm")) {
+            State.thaneActive = false;
+            thaneBonusSP = 48;
+            log(State.t, "BUFF", "High Thane", "Consume", null, null, "+48 SP snapshotted for " + spell.name);
+        }
+
         if (RunStats.spellStats[spell.id]) {
             RunStats.spellStats[spell.id].count++;
             if (data.castTime) RunStats.spellStats[spell.id].timeSum += data.castTime;
@@ -696,39 +704,33 @@ function runCoreSimulation(cfg) {
 
         if (spell.isDot) {
             State.dotCounter++;
-            var dot = { id: State.dotCounter, spell: spell, next: State.t + spell.tick, exp: State.t + spell.dur, snap: eclActive, tickCount: 0 };
+            // thaneSP zum DoT-Objekt hinzufügen
+            var dot = { id: State.dotCounter, spell: spell, next: State.t + spell.tick, exp: State.t + spell.dur, snap: eclActive, tickCount: 0, thaneSP: thaneBonusSP };
 
             if (spell.id === "Moonfire") {
                 State.activeMF = dot;
             } else {
                 State.activeIS = dot;
-
-                // NEU: Idol of Propagation Proc
                 if (spell.id === "InsectSwarm" && cfg.gear.idolProp) {
-                    // Refresh logic: Alte Ticks entfernen, falls IS erneuert wird
                     State.pendingImpacts = State.pendingImpacts.filter(function (e) { return e.type !== "PROPAGATION_TICK"; });
                     log(State.t, "PROC", "Idol of Prop.", "Fungus", null, null, "120 Nat Dmg over 12s");
-
-                    // 12 Ticks á 10 Schaden (1 pro Sekunde)
-                    for (var p = 1; p <= 12; p++) {
-                        addEvt(State.t + p, "PROPAGATION_TICK", { dmg: 10 });
-                    }
+                    for (var p = 1; p <= 12; p++) { addEvt(State.t + p, "PROPAGATION_TICK", { dmg: 10 }); }
                 }
             }
 
             addEvt(dot.next, "DOT_TICK", { spellId: spell.id, dotId: dot.id });
-            if (spell.base > 0) handleImpact(spell, isCrit, eclActive);
+            if (spell.base > 0) handleImpact(spell, isCrit, eclActive, thaneBonusSP);
         } else {
-            addEvt(State.t + spell.flight, "IMPACT", { spell: spell, crit: isCrit, snap: eclActive });
+            addEvt(State.t + spell.flight, "IMPACT", { spell: spell, crit: isCrit, snap: eclActive, thaneSP: thaneBonusSP });
         }
     };
 
-    var handleImpact = function (spell, crit, snap) {
+    var handleImpact = function (spell, crit, snap, thaneSP) {
         var resData;
         if (cfg.mode === "D_AVG") resData = { val: 1.0, txt: "" };
         else resData = getResist(spell.type);
 
-        var d = calculateDamageFull(spell, false, snap, crit, resData);
+        var d = calculateDamageFull(spell, false, snap, crit, resData, thaneSP);
 
         // Droplet Proc on Partial Resist
         if (cfg.gear.droplet && resData.val < 1.0) {
@@ -739,18 +741,9 @@ function runCoreSimulation(cfg) {
             }
         }
 
-
-
-        if (State.thaneActive) {
-            State.thaneActive = false;
-            d.total += 48;
-            d.norm += 48; // Dem flachen Schaden zugerechnet
-        }
-
         if (RunStats.spellStats[spell.id]) {
             RunStats.spellStats[spell.id].hits++;
             if (crit) RunStats.spellStats[spell.id].crits++;
-            log(State.t, "PROC DMG", "High Thane", "Hit", { norm: 48, ecl: 0, crit: 0, total: 48 }, null, "Flat +48 Dmg");
         }
 
         RunStats.totalDmg += d.total;
@@ -843,7 +836,7 @@ function runCoreSimulation(cfg) {
         // Idol of Equilibrium Proc - Wrath -> Insect Swarm
         if (spell.id === "Wrath" && cfg.gear.idolEquilibrium && State.activeIS && State.activeIS.exp > State.t && RNG.check(8, "procEquilWrath")) {
             var dot = State.activeIS;
-            var dIS = calculateDamageFull(dot.spell, true, dot.snap, false, null);
+            var dIS = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.thaneSP);
             RunStats.totalDmg += dIS.total;
             RunStats.dmgT36p += dIS.t3Part;
             RunStats.dmgIS += dIS.total;
@@ -858,8 +851,8 @@ function runCoreSimulation(cfg) {
         // Idol of Equilibrium Proc - Starfire -> Moonfire
         if (spell.id === "Starfire" && cfg.gear.idolEquilibrium && State.activeMF && State.activeMF.exp > State.t && RNG.check(15 * fortuneMult, "procEquilSF")) {
             var dot = State.activeMF;
-            var dMF = calculateDamageFull(dot.spell, true, dot.snap, false, null);
-            RunStats.totalDmg += dMF.total;
+            var dMF = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.thaneSP);
+             RunStats.totalDmg += dMF.total;
             RunStats.dmgT36p += dMF.t3Part;
             RunStats.dmgMFTick += dMF.total;
             RunStats.dmgIdol += dMF.total;
@@ -894,9 +887,11 @@ function runCoreSimulation(cfg) {
             log(State.t, "PROC", "Idol of Equil. v3", "Refresh (MF)", null, null, "MF Duration Refreshed");
         }
 
-        if (crit && (TALENT_CONFIG.naturesGrace || 0) > 0) {
-            State.ng = true;
-            log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG");
+        if (crit) {
+            if ((TALENT_CONFIG.naturesGrace || 0) > 0) {
+                State.ng = true;
+                log(State.t, "PROC", "Nature's Grace", "", null, null, "Crit -> NG");
+            }
             if (cfg.gear.thane) {
                 State.thaneActive = true;
                 log(State.t, "PROC", "High Thane", "", null, null, "Crit -> +48 Dmg on next Spell");
@@ -957,7 +952,7 @@ function runCoreSimulation(cfg) {
         if (!dot || payload.dotId !== dot.id || State.t > dot.exp + 0.01) return;
 
         dot.tickCount++;
-        var d = calculateDamageFull(dot.spell, true, dot.snap, false, null);
+        var d = calculateDamageFull(dot.spell, true, dot.snap, false, null, dot.thaneSP);
         RunStats.totalDmg += d.total;
         RunStats.dmgT36p += d.t3Part;
 
@@ -1080,7 +1075,7 @@ function runCoreSimulation(cfg) {
             var evt = State.pendingImpacts.shift();
             //if (evt.type === "CAST_FINISH") handleCastFinish(evt.data.spell);
             if (evt.type === "CAST_FINISH") handleCastFinish(evt.data);
-            else if (evt.type === "IMPACT") handleImpact(evt.data.spell, evt.data.crit, evt.data.snap);
+            else if (evt.type === "IMPACT") handleImpact(evt.data.spell, evt.data.crit, evt.data.snap, evt.data.thaneSP);
 
             // NEU: Hier wird der aufgeschobene Miss abgehandelt
             else if (evt.type === "IMPACT_MISS") {
