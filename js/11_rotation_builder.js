@@ -13,7 +13,7 @@ var ROTATION_SKILLS = [
     { id: "Moonfire", name: "Moonfire", icon: "spell_nature_starfall" },
     { id: "InsectSwarm", name: "Insect Swarm", icon: "spell_nature_insectswarm" },
     { id: "Trinket1", name: "Use Trinket 1", icon: "inv_jewelry_trinket_04" },
-    { id: "Trinket2", name: "Use Trinket 2", icon: "inv_jewelry_trinket_0" },
+    { id: "Trinket2", name: "Use Trinket 2", icon: "inv_jewelry_trinket_04" },
     { id: "Innervate", name: "Innervate", icon: "spell_nature_lightning" },
     { id: "ManaPotion", name: "Major Mana Potion", icon: "inv_potion_76" },
     { id: "DemonicRune", name: "Demonic Rune", icon: "inv_misc_rune_04" }
@@ -355,7 +355,6 @@ var draggedStepIndex = null;
 function initRotationBuilder() {
     try {
         console.log("Starte Rotation Builder...");
-        populatePresetDropdown();
         renderRotationToolbox();
         renderRotationList();
 
@@ -665,84 +664,6 @@ function removeCondition(sIdx, cIdx) {
     
     // UI neu laden und speichern
     renderRotationList();
-}
-
-function populatePresetDropdown() {
-    var sel = document.getElementById("rotation_preset_select");
-    if (!sel) return;
-    sel.innerHTML = '<option value="">-- Select Preset --</option>';
-    
-    var grpDef = document.createElement("optgroup");
-    grpDef.label = "Default Presets";
-    Object.keys(PRESET_ROTATIONS).forEach(k => {
-        var opt = document.createElement("option"); opt.value = "def_" + k; opt.innerText = PRESET_ROTATIONS[k].name || k;
-        grpDef.appendChild(opt);
-    });
-    sel.appendChild(grpDef);
-
-    var customStr = localStorage.getItem("boomkin_sim_custom_rotations");
-    if (customStr) {
-        try {
-            var custom = JSON.parse(customStr);
-            var grpCus = document.createElement("optgroup");
-            grpCus.label = "My Saved Presets";
-            Object.keys(custom).forEach(k => {
-                var opt = document.createElement("option"); opt.value = "cus_" + k; opt.innerText = custom[k].name || k;
-                grpCus.appendChild(opt);
-            });
-            if (grpCus.children.length > 0) sel.appendChild(grpCus);
-        } catch(e){}
-    }
-}
-
-function loadSelectedPreset() {
-    var val = document.getElementById("rotation_preset_select").value;
-    if (!val) { alert("Please select a preset from the dropdown first."); return; }
-    if (CUSTOM_ROTATION && CUSTOM_ROTATION.steps && CUSTOM_ROTATION.steps.length > 0) {
-        if(!confirm("Overwrite your current rotation?")) return;
-    }
-    
-    if (val.startsWith("def_")) {
-        var k = val.substring(4);
-        CUSTOM_ROTATION = JSON.parse(JSON.stringify(PRESET_ROTATIONS[k]));
-    } else if (val.startsWith("cus_")) {
-        var k = val.substring(4);
-        var custom = JSON.parse(localStorage.getItem("boomkin_sim_custom_rotations") || "{}");
-        if (custom[k]) CUSTOM_ROTATION = JSON.parse(JSON.stringify(custom[k]));
-    }
-    renderRotationList();
-    showToast("Preset loaded!");
-}
-
-function saveCustomPreset() {
-    if (!CUSTOM_ROTATION || !CUSTOM_ROTATION.steps || CUSTOM_ROTATION.steps.length === 0) { alert("Rotation is empty."); return; }
-    var name = CUSTOM_ROTATION.name || "Custom Rota";
-    var safeName = prompt("Enter a save name for your local storage:", name);
-    if (!safeName) return;
-    
-    var custom = JSON.parse(localStorage.getItem("boomkin_sim_custom_rotations") || "{}");
-    CUSTOM_ROTATION.name = safeName; // Updates the input field
-    custom[safeName] = JSON.parse(JSON.stringify(CUSTOM_ROTATION));
-    localStorage.setItem("boomkin_sim_custom_rotations", JSON.stringify(custom));
-    
-    populatePresetDropdown();
-    document.getElementById("rotation_preset_select").value = "cus_" + safeName;
-    renderRotationList(); // Update UI
-    showToast("Preset saved locally!");
-}
-
-function deleteCustomPreset() {
-    var val = document.getElementById("rotation_preset_select").value;
-    if (!val || !val.startsWith("cus_")) { alert("Please select one of 'My Saved Presets' to delete."); return; }
-    if (!confirm("Are you sure you want to delete this preset?")) return;
-    
-    var k = val.substring(4);
-    var custom = JSON.parse(localStorage.getItem("boomkin_sim_custom_rotations") || "{}");
-    delete custom[k];
-    localStorage.setItem("boomkin_sim_custom_rotations", JSON.stringify(custom));
-    
-    populatePresetDropdown();
-    showToast("Preset deleted!");
 }
 
 function clearRotation() {

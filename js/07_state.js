@@ -295,7 +295,6 @@ function saveCurrentState() {
 // INITIALIZATION ON PAGE LOAD
 // ============================================================================
 window.addEventListener('DOMContentLoaded', function () {
-    renderTalentPresetDropdown();
 
     // Prüfen, ob der Baum noch komplett leer ist (Verhindert, dass ein 
     // potenzieller URL-Import überschrieben wird)

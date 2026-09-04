@@ -8,11 +8,9 @@
 
 function init() {
     setupUIListeners();
-    populateBiSDropdown();
     addSim(true);
     updateEnemyInfo();
     updateSpellStats();
-    importSettings();
     loadDatabase();
     
     // NEU: Initialisiert den Feral-Style Drag & Drop Rotation Builder

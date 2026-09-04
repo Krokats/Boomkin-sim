@@ -692,8 +692,6 @@ function syncCheckboxesUI() {
 }
 
 // --- NEUE HELPER FUNKTIONEN FÜR INDETERMINATE STATUS ---
-
-// Returnt ein Objekt: { checked: boolean, indeterminate: boolean }
 function getCategoryCheckState(cat) {
     let totalSubs = 0;
     let checkedSubs = 0;
@@ -737,8 +735,6 @@ function getSubCategoryCheckState(cat, sub) {
     }
 }
 
-// Wir ersetzen auch die alten isCategoryChecked / isSubCategoryChecked, 
-// damit handleSourceChange sauber arbeitet.
 function isCategoryChecked(cat) {
     return getCategoryCheckState(cat).checked;
 }
@@ -758,13 +754,11 @@ function updateItemListsIfOpen() {
         filterItemList();
     }
 }
-
 function toggleSourceMenu(e) {
     if(e) e.stopPropagation();
     var menu = document.getElementById("sourceMenuRoot");
     menu.style.display = (menu.style.display === "none" || menu.style.display === "") ? "block" : "none";
 }
-
 document.addEventListener("click", function(e) {
     var menu = document.getElementById("sourceMenuRoot");
     var btn = document.getElementById("sourceMenuBtn");
@@ -774,3 +768,69 @@ document.addEventListener("click", function(e) {
         }
     }
 });
+
+// ============================================================================
+// PHASE PRESET FILTER LOGIC
+// ============================================================================
+
+function applyPhasePreset(phase) {
+    // 1. Definiere, welche Raids/Zonen zu welcher Phase gehören
+    var phaseMap = {
+        0: ["Molten Core", "Onyxia's Lair", "Lower Karazhan Halls", "World Bosses"],
+        1: ["Zul'Gurub"], 
+        2: ["Blackwing Lair"],
+        3: ["Emerald Sanctum"],
+        4: ["Ruins of Ahn'Qiraj", "Temple of Ahn'Qiraj"],
+        5: ["Timbermaw Hold"],
+        6: ["Naxxramas"],
+        7: ["Upper Karazhan Halls"]
+    };
+
+    var allowedRaids = new Set();
+    var maxPhase = phase === "all" ? 99 : parseInt(phase);
+
+    // Sammle alle erlaubten Sub-Kategorien (Raids/Zonen) bis zur ausgewählten Phase
+    for (var i = 0; i <= maxPhase; i++) {
+        if (phaseMap[i]) {
+            phaseMap[i].forEach(function(r) { allowedRaids.add(r); });
+        }
+    }
+
+    // 2. Iteriere direkt über das zentrale Datenmodell (SOURCE_TREE)
+    for (let cat in SOURCE_TREE) {
+        for (let sub in SOURCE_TREE[cat]) {
+            
+            // Prüfen, ob der Name der SubKategorie (z.B. der Raid) in der Map vorkommt
+            let isKnownPhaseZone = false;
+            for (var p in phaseMap) {
+                if (phaseMap[p].includes(sub)) {
+                    isKnownPhaseZone = true;
+                    break;
+                }
+            }
+
+            // Falls die Zone phasenabhängig ist, schalten wir sie entsprechend ein oder aus
+            if (isKnownPhaseZone) {
+                let shouldBeEnabled = allowedRaids.has(sub);
+                
+                // Wir setzen alle Details (Bosse) in dieser Zone auf den Ziel-Wert
+                for (let det in SOURCE_TREE[cat][sub]) {
+                    SOURCE_TREE[cat][sub][det] = shouldBeEnabled;
+                }
+            }
+        }
+    }
+
+    // 3. Optische Darstellung aktualisieren (Checkboxen, Indeterminate-Status setzen)
+    syncCheckboxesUI();
+    
+    // 4. Item-Liste im Modal live neu filtern, falls das Modal gerade geöffnet ist
+    updateItemListsIfOpen();
+
+    // Feedback für den Nutzer
+    if (typeof showToast === "function") {
+        showToast("Phase " + (phase === "all" ? "All" : phase) + " filter applied!");
+    } else {
+        console.log("Phase " + (phase === "all" ? "All" : phase) + " filter applied!");
+    }
+}

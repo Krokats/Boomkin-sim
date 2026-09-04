@@ -356,48 +356,6 @@ function drawArrows(container, treeData) {
 // TALENT PRESET LOGIC
 // ============================================================================
 
-function renderTalentPresetDropdown() {
-    let select = document.getElementById("talent_preset_select");
-    if (!select) return;
-    select.innerHTML = '<option value="">-- Select Preset --</option>';
-    for (let name in TALENT_PRESETS) {
-        select.innerHTML += `<option value="${name}">${name}</option>`;
-    }
-}
-
-function loadTalentPreset() {
-    let name = document.getElementById("talent_preset_select").value;
-    if (!name || !TALENT_PRESETS[name]) return;
-
-    TALENT_CONFIG = structuredClone(TALENT_PRESETS[name]);
-    renderTalentTree();
-    saveCurrentState();
-    showToast("Talent Preset Loaded!");
-}
-
-function saveTalentPreset() {
-    let name = prompt("Enter a name for this Talent Preset:");
-    if (!name || name.trim() === "") return;
-
-    TALENT_PRESETS[name] = structuredClone(TALENT_CONFIG);
-    localStorage.setItem("boomie_talent_presets", JSON.stringify(TALENT_PRESETS));
-    renderTalentPresetDropdown();
-    document.getElementById("talent_preset_select").value = name;
-    showToast("Preset Saved!");
-}
-
-function deleteTalentPreset() {
-    let name = document.getElementById("talent_preset_select").value;
-    if (!name || !TALENT_PRESETS[name]) return;
-
-    if (confirm(`Delete preset '${name}'?`)) {
-        delete TALENT_PRESETS[name];
-        localStorage.setItem("boomie_talent_presets", JSON.stringify(TALENT_PRESETS));
-        renderTalentPresetDropdown();
-        showToast("Preset Deleted!");
-    }
-}
-
 function clearTalents() {
     if (confirm("Reset all talent points?")) {
         for (let key in TALENT_CONFIG) {
@@ -550,15 +508,6 @@ var TALENT_PRESETS = {
         treeOfLife: 0
     }
 };
-
-// Laden aus dem LocalStorage (falls der User eigene gespeichert hat)
-try {
-    var storedTalents = localStorage.getItem("boomie_talent_presets");
-    if (storedTalents) {
-        Object.assign(TALENT_PRESETS, JSON.parse(storedTalents));
-    }
-} catch (e) { console.warn("Could not load talent presets", e); }
-
 
 
 
