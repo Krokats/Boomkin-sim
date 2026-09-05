@@ -890,3 +890,18 @@ function updateGlobalDpsRange() {
         GLOBAL_DPS_MAX = max + padding;
     }
 }
+
+function closeWelcomeInfoModal() {
+    document.getElementById('welcomeInfoModal').classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (!localStorage.getItem('krokatSimWelcomeShown')) {
+        const welcomeModal = document.getElementById('welcomeInfoModal');
+        if (welcomeModal) {
+            welcomeModal.classList.remove('hidden');
+        }
+        
+        localStorage.setItem('krokatSimWelcomeShown', 'true');
+    }
+});
